@@ -7,7 +7,7 @@
   # no API key: reuse a saved (or hand-corrected) extraction
   python -m checker.audit --extraction demo/salon_flawed_extraction.json --business salon --zoning NR3
 
-Writes <out>.json and <out>.md. If the database built by pipeline/run_pipeline.py exists,
+Writes <out>.json, <out>.md and <out>.pdf (the report). If the database built by pipeline/run_pipeline.py exists,
 the report also shows what Seattle's plan-review records say about similar projects.
 """
 from __future__ import annotations
@@ -91,6 +91,9 @@ def main(argv=None) -> int:
     Path(f"{a.out}.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     md = rules_engine.to_markdown(result)
     Path(f"{a.out}.md").write_text(md + "\n", encoding="utf-8")
+    from .pdf import report_pdf      # imported here so the checks above still run if the PDF library is missing
+
+    Path(f"{a.out}.pdf").write_bytes(report_pdf(result))
     print(md)
     return 0
 

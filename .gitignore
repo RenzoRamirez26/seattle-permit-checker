@@ -21,6 +21,7 @@ data/*.csv
 # outputs of one-off runs
 report.json
 report.md
+report.pdf
 voice_test.wav
 reports/*_vision_extraction.json
 

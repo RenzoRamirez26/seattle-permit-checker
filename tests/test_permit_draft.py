@@ -58,14 +58,19 @@ def test_cafe_sheet_is_filled_from_the_audit(cafe):
     for r in cafe["occupant_load"]["by_space"]:
         assert f"| {r['space']} | {r['use']} | {r['area_sqft']:g} | {r['factor']} | {r['load']} |" in sheet
 
-    # every permit, and every open problem with its fix and code section; nothing that passed
+    # every permit; every open problem as one line (title and severity), with a pointer to the report; nothing that passed
     for p in cafe["permits_likely_required"]:
         assert f"- {p['name']}: {p['agency']}" in sheet
     open_items = [f for f in cafe["findings"] if f["status"] != "pass"]
     assert f"Open problems to fix before submitting ({len(open_items)})" in sheet and len(open_items) == 13
+    lines = sheet.splitlines()
     for f in open_items:
-        assert f["title"] in sheet and f["detail"] in sheet and f["citation"] in sheet
-    assert "**Fix: Not enough exits.**" in sheet and "**Confirm: " in sheet
+        word = "Fix" if f["status"] == "fail" else "Confirm"
+        assert f"- {word}: {f['title']} ({f['severity']})" in lines
+        assert f["detail"] not in sheet and (not f["fix"] or f["fix"] not in sheet)      # the detail and the fix stay in the report
+    assert "- Fix: Not enough exits (critical)" in lines and any(line.startswith("- Confirm: ") for line in lines)
+    assert "The pre-check report gives the fix and the code section for each of these." in lines
+    assert "SBC 1010.1.1" not in sheet
     assert not any(f["title"] in sheet for f in cafe["findings"] if f["status"] == "pass" and f["title"] != "Occupancy classification")
     assert "From your pre-check (not part of the city's application)" in sheet
 

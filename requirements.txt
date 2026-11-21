@@ -9,6 +9,9 @@ anthropic==2.12.0       # Claude API: vision (checker/extract.py) and the agent 
 pillow==13.0.0          # resize the plan image before sending it
 pypdfium2==5.15.2       # first page of a PDF plan -> image
 
+#PDF downloads
+fpdf2==2.9.0            # builds the report and preparation-sheet PDFs (checker/pdf.py); pure Python, no system packages
+
 #Seattle data
 requests==2.34.2        # open data downloads, geocoder, zoning layer
 

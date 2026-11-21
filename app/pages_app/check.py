@@ -275,12 +275,19 @@ if result:
                                       "factor": "Sq ft per person", "load": "People"}), hide_index=True, width="stretch")
         st.caption(result["code_basis"])
 
-    st.download_button("Download the permit draft", ac.permit_sheet(result), file_name="permit_application_preparation.md",
-                       mime="text/markdown", key="dl_permit_draft",
-                       help="A one-page preparation sheet: what the city's application asks for, filled in from this "
-                            "result where it can be. It is not the city's form.")
-    st.download_button("Download the report (Markdown)", rules_engine.to_markdown(result), file_name="permit_precheck.md",
-                       mime="text/markdown")
+    try:
+        report_file, sheet_file = ac.report_pdf(result), ac.permit_sheet_pdf(result)
+    except Exception as e:  # a PDF that cannot be built should explain itself, not take the results off the page
+        st.error(f"The PDF downloads could not be built: {e}")
+    else:
+        st.download_button("Download the report (PDF)", report_file, file_name="permit_precheck.pdf",
+                           mime="application/pdf", key="dl_report_pdf",
+                           help="The results above, laid out to print: the fix list, the permits and how the occupant "
+                                "load was calculated.")
+        st.download_button("Download the permit preparation sheet (PDF)", sheet_file, file_name="permit_preparation_sheet.pdf",
+                           mime="application/pdf", key="dl_sheet_pdf",
+                           help="What the city's application asks for, filled in from this result where it can be. "
+                                "It is a preparation aid, not the city's form.")
     st.caption(result["disclaimer"])
 
     # ------------------------------------------------------------------------------
