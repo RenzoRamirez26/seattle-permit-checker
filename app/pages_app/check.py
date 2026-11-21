@@ -262,10 +262,12 @@ if result:
         sm = review["summary"]
         st.markdown(f"**What Seattle's records show for {review['category_label']} build-outs**")
         d1, d2, d3 = st.columns(3)
-        d1.metric("Needed 2+ review rounds", f"{sm['share_two_or_more_cycles']:.0%}", help=f"Of {sm['permits']} permits")
-        d2.metric("Median days in plan review", f"{sm['median_days_plan_review']:g}" if sm["median_days_plan_review"] is not None else "n/a")
-        d3.metric("Median days out for corrections", f"{sm['median_days_out_corrections']:g}" if sm["median_days_out_corrections"] is not None else "n/a")
+        d1.metric("Needed 2+ review rounds", f"{sm['share_two_or_more_rounds']:.0%}", help=f"Of {sm['permits']} permits")
+        d2.metric("Median days in plan review", f"{sm['median_days_in_review']:g}" if sm["median_days_in_review"] is not None else "n/a")
+        d3.metric("Median days out for corrections", f"{sm['median_days_with_applicant']:g}" if sm["median_days_with_applicant"] is not None else "n/a")
         st.caption(f"Source: {review['source']}. See the Seattle's review records page for the breakdown.")
+    elif ac.database_problem():
+        st.error(ac.database_problem())      # an old database: the check above still ran, without the city's records
     elif not ac.has_database():
         st.caption("Seattle's review records are not downloaded yet. Run `python -m pipeline.run_pipeline --seattle` to add them here.")
 

@@ -52,9 +52,9 @@ def print_summary(con) -> None:
             continue
         sm = review["summary"]
         print(f"\n{review['category_label'].capitalize()} tenant build-outs with plan review: {sm['permits']}")
-        print(f"  passed in one round: {sm['share_one_cycle']:.0%}; two or more rounds: {sm['share_two_or_more_cycles']:.0%}")
-        print(f"  median days in plan review: {sm['median_days_plan_review']}; "
-              f"median days out for corrections: {sm['median_days_out_corrections']}")
+        print(f"  passed in one round: {sm['share_one_round']:.0%}; two or more rounds: {sm['share_two_or_more_rounds']:.0%}")
+        print(f"  median days in plan review: {sm['median_days_in_review']}; "
+              f"median days out for corrections: {sm['median_days_with_applicant']}")
         for r in review["corrections_by_review_type"]:
             print(f"  {r['share_corrections']:>5.0%} sent back in round 1 by {r['review_type']} ({r['permits']} projects)")
         for r in review["top_comment_subjects"]:

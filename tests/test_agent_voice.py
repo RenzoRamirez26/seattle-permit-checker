@@ -31,7 +31,7 @@ def test_template_answers_need_no_model(salon, monkeypatch):
 
 def test_review_time_answer_uses_seattle_records(salon):
     data = {"category_label": "salon and barbershop", "source": "x",
-            "summary": {"permits": 40, "share_two_or_more_cycles": 0.8, "median_days_plan_review": 55.0}}
+            "summary": {"permits": 40, "share_two_or_more_rounds": 0.8, "median_days_in_review": 55.0}}
     text = agent.template_answer("how long does it take?", salon | {"local_review_data": data})
     assert "80% of 40 salon and barbershop build-outs" in text and "55 days" in text
 
@@ -64,8 +64,9 @@ def test_context_carries_review_records_and_real_comments(salon):
     data = {"category_label": "salon and barbershop", "source": "SDCI", "summary": {"permits": 9},
             "corrections_by_review_type": [], "top_comment_subjects": []}
     ctx = agent.build_context(salon | {"local_review_data": data},
-                              examples=[{"Review_Type": "Ordinance", "Subject_Raw": "11 Accessibility", "Comment": "Show the turning space.", "Permit_id": "X"}])
-    assert '"seattle_review_records"' in ctx and "Show the turning space." in ctx and '"Permit_id"' not in ctx
+                              examples=[{"review_type": "Ordinance", "subject_raw": "11 Accessibility", "comment": "Show the turning space.", "permit_number": "X"}])
+    assert '"seattle_review_records"' in ctx and "Show the turning space." in ctx and '"permit_number"' not in ctx
+    assert '"review_type": "Ordinance"' in ctx and '"subject_raw": "11 Accessibility"' in ctx
 
 
 def test_for_speech_drops_rule_ids_and_markdown():

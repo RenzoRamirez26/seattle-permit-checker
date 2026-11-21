@@ -30,7 +30,7 @@ from typing import Any, Iterator, Optional
 
 from .classify import business_category
 from .http import get
-from .schema import Permit, comm_res_from_text, work_from_text
+from .schema import ALTER, Permit, work_from_text
 from .util import num as _num, parse_date as _parse_date
 
 HOST = "https://cos-data.seattle.gov/resource"
@@ -144,34 +144,30 @@ def _link(v) -> Optional[str]:
 
 def permit_from_row(r: dict[str, Any]) -> Permit:
     desc = r.get("description")
-    category = business_category(desc)
     return Permit(
-        Permit_id=str(r.get("permitnum") or ""),
-        County="King",
-        Jurisdiction="City of Seattle",
-        Address=r.get("originaladdress1"),
-        Comm_Res=comm_res_from_text(r.get("permitclassmapped")),
-        Description=desc,
-        Estimated_Cost=_num(r.get("estprojectcost")),
-        Issue_Date=_parse_date(r.get("issueddate")),
-        New_Alter_Demo=work_from_text(r.get("permittypedesc")),
-        Permit_Type="/".join(x for x in (r.get("permittypemapped"), r.get("permittypedesc")) if x) or None,
-        Status=r.get("statuscurrent"),
-        Structure_Type=r.get("permitclass"),
-        Work_Type=r.get("permittypedesc"),
-        Contractor=r.get("contractorcompanyname"),
-        Lat=_num(r.get("latitude")),
-        Lon=_num(r.get("longitude")),
-        Category=category,
-        Food_Drink=int(category == "food_drink"),
-        Applied_Date=_parse_date(r.get("applieddate")),
-        Review_Cycles=_int(r.get("numberreviewcycles")),
-        Days_Plan_Review=_num(r.get("totaldaysplanreview")),
-        Days_Initial_Review=_num(r.get("daysinitialplanreview")),
-        Days_City_Review=_num(r.get("daysplanreviewcity")),
-        Days_Out_Corrections=_num(r.get("daysoutcorrections")),
-        Source_URL=_link(r.get("link")),
-        Raw=r,
+        permit_number=str(r.get("permitnum") or ""),
+        address=r.get("originaladdress1"),
+        description=desc,
+        category=business_category(desc),
+        permit_class=r.get("permitclassmapped"),
+        permit_type="/".join(x for x in (r.get("permittypemapped"), r.get("permittypedesc")) if x) or None,
+        work_type=r.get("permittypedesc"),
+        is_alteration=int(work_from_text(r.get("permittypedesc")) == ALTER),
+        status=r.get("statuscurrent"),
+        estimated_cost=_num(r.get("estprojectcost")),
+        contractor=r.get("contractorcompanyname"),
+        latitude=_num(r.get("latitude")),
+        longitude=_num(r.get("longitude")),
+        applied_date=_parse_date(r.get("applieddate")),
+        issued_date=_parse_date(r.get("issueddate")),
+        completed_date=_parse_date(r.get("completeddate")),
+        review_rounds=_int(r.get("numberreviewcycles")),
+        days_in_review=_num(r.get("totaldaysplanreview")),
+        days_first_round=_num(r.get("daysinitialplanreview")),
+        days_with_city=_num(r.get("daysplanreviewcity")),
+        days_with_applicant=_num(r.get("daysoutcorrections")),
+        record_url=_link(r.get("link")),
+        raw=r,
     )
 
 
@@ -179,20 +175,20 @@ def review_from_row(r: dict[str, Any]) -> dict[str, Any]:
     """One review step. The reviewer's name is in the source data and is left out here."""
     desc = r.get("description")
     return {
-        "Permit_id": str(r.get("permitnum") or ""),
-        "Review_Cycle": _int(r.get("reviewcycle")),
-        "Review_Type": r.get("reviewtype"),
-        "Review_Team": r.get("reviewteam") or "",
-        "Assign_Date": _parse_date(r.get("reviewteamassigndate")) or "",
-        "Finish_Date": _parse_date(r.get("reviewerfinishdate")),
-        "Result": r.get("reviewresultdesc"),
-        "Complexity": r.get("reviewcomplexitydesc"),
-        "Permit_Class": r.get("permitclassmapped"),
-        "Permit_Type": r.get("permittypedesc"),
-        "Description": desc,
-        "Applied_Date": _parse_date(r.get("applieddate")),
-        "Address": r.get("originaladdress1"),
-        "Category": business_category(desc),
+        "permit_number": str(r.get("permitnum") or ""),
+        "review_round": _int(r.get("reviewcycle")),
+        "review_type": r.get("reviewtype"),
+        "review_team": r.get("reviewteam") or "",
+        "assigned_date": _parse_date(r.get("reviewteamassigndate")) or "",
+        "finished_date": _parse_date(r.get("reviewerfinishdate")),
+        "result": r.get("reviewresultdesc"),
+        "complexity": r.get("reviewcomplexitydesc"),
+        "permit_class": r.get("permitclassmapped"),
+        "work_type": r.get("permittypedesc"),
+        "description": desc,
+        "applied_date": _parse_date(r.get("applieddate")),
+        "address": r.get("originaladdress1"),
+        "category": business_category(desc),
     }
 
 
@@ -225,16 +221,16 @@ def normalize_subject(raw: Optional[str]) -> tuple[Optional[int], str]:
 def comment_from_row(r: dict[str, Any]) -> dict[str, Any]:
     chapter, subject = normalize_subject(r.get("commentsubject"))
     return {
-        "Permit_id": str(r.get("permitnum") or ""),
-        "Review_Type": r.get("reviewtype"),
-        "Review_Cycle": _int(r.get("reviewcycle")),
-        "Subject_Raw": r.get("commentsubject"),
-        "Chapter": chapter,
-        "Subject": subject,
-        "Comment": r.get("comment"),
-        "Document_Title": r.get("documenttitle"),
-        "Document_URL": _link(r.get("url")),
-        "Document_Date": _parse_date(r.get("documentdate")),
+        "permit_number": str(r.get("permitnum") or ""),
+        "review_type": r.get("reviewtype"),
+        "review_round": _int(r.get("reviewcycle")),
+        "subject_raw": r.get("commentsubject"),
+        "chapter": chapter,
+        "subject": subject,
+        "comment": r.get("comment"),
+        "letter_title": r.get("documenttitle"),
+        "letter_url": _link(r.get("url")),
+        "letter_date": _parse_date(r.get("documentdate")),
     }
 
 

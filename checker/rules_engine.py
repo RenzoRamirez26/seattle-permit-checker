@@ -460,12 +460,12 @@ def local_data_markdown(d: Optional[dict]) -> list[str]:
     out = ["", f"## What Seattle's plan-review records show for {label} projects", "",
            f"From {sm['permits']} {label} tenant build-out permits that went through plan review "
            f"({d.get('source', 'city open data')}):", ""]
-    if sm.get("share_two_or_more_cycles") is not None:
-        out.append(f"- {sm['share_two_or_more_cycles']:.0%} needed two or more review rounds.")
-    if sm.get("median_days_plan_review") is not None:
-        out.append(f"- Half spent {sm['median_days_plan_review']:g} days or more in plan review.")
-    if sm.get("median_days_out_corrections") is not None:
-        out.append(f"- Half spent {sm['median_days_out_corrections']:g} days or more waiting on the applicant's corrections.")
+    if sm.get("share_two_or_more_rounds") is not None:
+        out.append(f"- {sm['share_two_or_more_rounds']:.0%} needed two or more review rounds.")
+    if sm.get("median_days_in_review") is not None:
+        out.append(f"- Half spent {sm['median_days_in_review']:g} days or more in plan review.")
+    if sm.get("median_days_with_applicant") is not None:
+        out.append(f"- Half spent {sm['median_days_with_applicant']:g} days or more waiting on the applicant's corrections.")
     rows = d.get("corrections_by_review_type") or []
     if rows:
         out += ["", "| Review | Projects reviewed | Sent back for corrections in round 1 |", "|---|---|---|"]

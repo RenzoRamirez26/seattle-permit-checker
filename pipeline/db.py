@@ -1,49 +1,67 @@
-"""SQLite storage: permits, plan-review steps and reviewer comments."""
+"""SQLite storage: permits, plan-review steps and reviewer comments.
+
+In:  a path. Out: a connection with the three tables created if they are missing.
+
+The database is rebuilt by the pipeline and is not migrated. If a file was built with
+different column names (for example before the columns were renamed), connect() raises
+OutdatedDatabase with the command that rebuilds it.
+"""
 from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
 from typing import Iterable
 
-from .schema import COLUMNS, Permit
+from .schema import COLUMNS, COMMENT_COLUMNS, REVIEW_COLUMNS, REVIEW_KEY, Permit
 
+REBUILD_COMMAND = "python -m pipeline.run_pipeline --seattle"
+TABLES = {"permits": COLUMNS, "plan_reviews": REVIEW_COLUMNS, "plan_comments": COMMENT_COLUMNS}
 _TYPES = {
-    "Comm_Res": "INTEGER", "New_Alter_Demo": "INTEGER", "Food_Drink": "INTEGER",
-    "Estimated_Cost": "REAL", "Sqr_Ft": "REAL", "Lat": "REAL", "Lon": "REAL",
-    "Review_Cycles": "INTEGER", "Days_Plan_Review": "REAL", "Days_Initial_Review": "REAL",
-    "Days_City_Review": "REAL", "Days_Out_Corrections": "REAL",
+    "is_alteration": "INTEGER", "estimated_cost": "REAL", "latitude": "REAL", "longitude": "REAL",
+    "review_rounds": "INTEGER", "days_in_review": "REAL", "days_first_round": "REAL",
+    "days_with_city": "REAL", "days_with_applicant": "REAL",
+    "review_round": "INTEGER", "chapter": "INTEGER",
 }
 
-# One row per review step of a permit (Seattle "Plan Review" dataset). Reviewer names are not stored.
-REVIEW_COLUMNS = ["Permit_id", "Review_Cycle", "Review_Type", "Review_Team", "Assign_Date", "Finish_Date",
-                  "Result", "Complexity", "Permit_Class", "Permit_Type", "Description", "Applied_Date",
-                  "Address", "Category"]
-# One row per reviewer comment (Seattle "Plan Comments" dataset).
-COMMENT_COLUMNS = ["Permit_id", "Review_Type", "Review_Cycle", "Subject_Raw", "Chapter", "Subject", "Comment",
-                   "Document_Title", "Document_URL", "Document_Date"]
+
+class OutdatedDatabase(RuntimeError):
+    """The database file has different columns from the ones this code reads and writes."""
+
+
+def _columns(columns: list[str]) -> str:
+    return ", ".join(f'"{c}" {_TYPES.get(c, "TEXT")}' for c in columns)
+
+
+def _key(columns: list[str]) -> str:
+    return ", ".join(f'"{c}"' for c in columns)
+
+
+def check_columns(con: sqlite3.Connection, path: Path | str) -> None:
+    """Raise OutdatedDatabase if a table that already exists does not have exactly the expected columns."""
+    for table, expected in TABLES.items():
+        have = [r["name"] for r in con.execute(f"PRAGMA table_info({table})")]
+        if have and set(have) != set(expected):
+            unexpected = sorted(set(have) - set(expected))[:4]
+            raise OutdatedDatabase(
+                f"The Seattle database at {path} was built with different column names "
+                f"(table {table} has {', '.join(unexpected) or 'columns missing'}). "
+                f"Delete the file and rebuild it with: {REBUILD_COMMAND}")
 
 
 def connect(path: Path | str) -> sqlite3.Connection:
     con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
-    cols = ", ".join(f'"{c}" {_TYPES.get(c, "TEXT")}' for c in COLUMNS)
-    con.execute(f'CREATE TABLE IF NOT EXISTS permits ({cols}, PRIMARY KEY ("County", "Permit_id"))')
-    have = {r["name"] for r in con.execute("PRAGMA table_info(permits)")}
-    for c in COLUMNS:  # databases made before a column was added
-        if c not in have:
-            con.execute(f'ALTER TABLE permits ADD COLUMN "{c}" {_TYPES.get(c, "TEXT")}')
-    con.execute('CREATE INDEX IF NOT EXISTS idx_addr ON permits ("Address")')
-    con.execute('CREATE INDEX IF NOT EXISTS idx_category ON permits ("Category")')
-    con.execute(
-        'CREATE TABLE IF NOT EXISTS plan_reviews ("Permit_id" TEXT, "Review_Cycle" INTEGER, "Review_Type" TEXT, '
-        '"Review_Team" TEXT, "Assign_Date" TEXT, "Finish_Date" TEXT, "Result" TEXT, "Complexity" TEXT, '
-        '"Permit_Class" TEXT, "Permit_Type" TEXT, "Description" TEXT, "Applied_Date" TEXT, "Address" TEXT, '
-        '"Category" TEXT, PRIMARY KEY ("Permit_id", "Review_Cycle", "Review_Type", "Review_Team", "Assign_Date"))')
-    con.execute(
-        'CREATE TABLE IF NOT EXISTS plan_comments ("Permit_id" TEXT, "Review_Type" TEXT, "Review_Cycle" INTEGER, '
-        '"Subject_Raw" TEXT, "Chapter" INTEGER, "Subject" TEXT, "Comment" TEXT, "Document_Title" TEXT, '
-        '"Document_URL" TEXT, "Document_Date" TEXT)')
-    con.execute('CREATE INDEX IF NOT EXISTS idx_comment_permit ON plan_comments ("Permit_id")')
+    try:
+        check_columns(con, path)
+    except OutdatedDatabase:
+        con.close()
+        raise
+    con.execute(f'CREATE TABLE IF NOT EXISTS permits ({_columns(COLUMNS)}, PRIMARY KEY ("permit_number"))')
+    con.execute('CREATE INDEX IF NOT EXISTS idx_addr ON permits ("address")')
+    con.execute('CREATE INDEX IF NOT EXISTS idx_category ON permits ("category")')
+    con.execute(f'CREATE TABLE IF NOT EXISTS plan_reviews ({_columns(REVIEW_COLUMNS)}, PRIMARY KEY ({_key(REVIEW_KEY)}))')
+    con.execute(f'CREATE TABLE IF NOT EXISTS plan_comments ({_columns(COMMENT_COLUMNS)})')
+    con.execute('CREATE INDEX IF NOT EXISTS idx_comment_permit ON plan_comments ("permit_number")')
     return con
 
 
@@ -52,7 +70,7 @@ def _insert(con: sqlite3.Connection, table: str, columns: list[str], rows: Itera
            f'VALUES ({", ".join(":" + c for c in columns)})')
     n, buf = 0, []
     for r in rows:
-        if not r.get("Permit_id"):
+        if not r.get("permit_number"):
             continue
         buf.append({c: r.get(c) for c in columns})
         if len(buf) >= batch:
@@ -80,7 +98,7 @@ def upsert(con: sqlite3.Connection, permits: Iterable[Permit], batch: int = 2000
     )
     n, buf = 0, []
     for p in permits:
-        if not p.Permit_id:
+        if not p.permit_number:
             continue
         buf.append(p.to_row())
         if len(buf) >= batch:

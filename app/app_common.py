@@ -95,8 +95,22 @@ def has_api_key() -> bool:
     return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 
+def database_problem() -> str | None:
+    """Why the Seattle database on this computer cannot be used, or None. Shown on the page instead of a crash."""
+    if not DB_PATH.exists():
+        return None
+    from pipeline import db
+
+    try:
+        db.connect(DB_PATH).close()
+    except db.OutdatedDatabase as e:
+        return str(e)
+    return None
+
+
 def has_database() -> bool:
-    return DB_PATH.exists()
+    """True when the database is there and was built with the column names this code reads."""
+    return DB_PATH.exists() and database_problem() is None
 
 
 def category_for(business_type: str):

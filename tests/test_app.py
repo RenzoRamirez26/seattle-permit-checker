@@ -168,6 +168,30 @@ def test_other_pages_load_without_a_database(app):
         assert not at.exception
 
 
+def test_an_old_seattle_database_is_explained_on_the_page(monkeypatch, tmp_path):
+    """A database built before the columns were renamed: the pages say how to rebuild it and keep working without it."""
+    import sqlite3
+
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("PERMIT_STT", "off")
+    old = sqlite3.connect(tmp_path / "permits.sqlite")
+    old.executescript((FIXTURES / "old_database_schema.sql").read_text(encoding="utf-8"))
+    old.commit(); old.close()
+    from app import app_common
+
+    monkeypatch.setattr(app_common, "DB_PATH", tmp_path / "permits.sqlite")
+    assert not app_common.has_database() and "python -m pipeline.run_pipeline --seattle" in app_common.database_problem()
+
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert not at.exception and _metrics(at)["Problems"] == "11"                    # the check itself is unaffected
+    assert any("different column names" in e.value and "python -m pipeline.run_pipeline --seattle" in e.value for e in at.error)
+    at.switch_page("pages_app/seattle_data.py").run()
+    assert not at.exception and any("different column names" in e.value for e in at.error)
+    assert at.dataframe[0].value["Number"].tolist()[2] == "462 (87%)"                 # the preview is shown meanwhile
+
+
 def test_pages_with_the_seattle_database(monkeypatch, tmp_path):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("PERMIT_STT", "off")
