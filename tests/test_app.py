@@ -167,6 +167,67 @@ def test_a_different_plan_still_clears_everything(app):
     assert [b.label for b in at.button] == ["Read the plan"]
 
 
+def _seed_an_uploaded_plan_check(at):
+    """Upload mode with a reading and a result in place, as after reading and checking an uploaded plan.
+    (The test tool cannot drive the file uploader or the microphone, so the state is put there directly.)"""
+    import json
+
+    from checker import audit
+
+    at.radio(key="plan_source").set_value("Upload my own plan").run()
+    at.selectbox(key="business_type").set_value("salon").run()
+    at.text_input(key="zone_text").set_value("NR3").run()
+    facts = json.loads((ROOT / "demo" / "salon_flawed_extraction.json").read_text(encoding="utf-8"))
+    at.session_state["extraction"] = facts
+    at.session_state["extraction_source"] = "the vision model"
+    at.session_state["result"] = audit.audit(None, {"business_type": "salon"}, extraction=facts, zoning_override="NR3")
+    at.run()
+    return facts
+
+
+def test_an_uploaded_plans_reading_and_results_survive_page_reruns(app):
+    """Stopping a voice recording reruns the page. In upload mode that used to wipe the reading, the results and
+    the owner's business type and zone: Streamlit drops the demo-plan selectbox's key there, and the page took a
+    missing key to mean "first visit" and loaded the first demo plan again."""
+    at = app
+    facts = _seed_an_uploaded_plan_check(at)
+    for _ in range(6):                                           # any rerun at all, several times over
+        at.run()
+        assert not at.exception
+        assert at.session_state["extraction"] == facts and "result" in at.session_state
+        assert _metrics(at)["Occupant load"] == "15"
+        assert any(h.value == "3. What was read from the plan" for h in at.subheader)
+        assert at.selectbox(key="business_type").value == "salon" and at.text_input(key="zone_text").value == "NR3"
+    assert "demo_case" not in at.session_state                   # Streamlit did drop the key; it no longer matters
+
+    at.text_input(key="question").set_value("What permits do I need?")       # asking a question is a rerun too
+    _click(at, "Ask")
+    assert _metrics(at)["Occupant load"] == "15" and [c.name for c in at.chat_message] == ["user", "assistant"]
+    assert at.selectbox(key="business_type").value == "salon"
+
+
+def test_the_reading_is_cleared_only_when_the_plan_is_a_different_one(app):
+    at = app
+    facts = _seed_an_uploaded_plan_check(at)
+    at.session_state["plan_id"] = "upload:0123abcd"              # the reading belongs to a file that is no longer on the page
+    at.run()
+    assert "extraction" not in at.session_state and "result" not in at.session_state and not at.metric
+    assert at.selectbox(key="business_type").value == "salon"    # the owner's answers are not touched
+
+    # a demo plan: the reading remembers which plan it came from, survives reruns, and goes when the plan changes
+    at.radio(key="plan_source").set_value("Use a demo plan").run()
+    assert at.selectbox(key="demo_case").value == "cafe_flawed" and at.selectbox(key="business_type").value == "cafe_restaurant"
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert at.session_state["plan_id"] == "demo:cafe_flawed"
+    for _ in range(3):
+        at.run()
+        assert at.session_state["plan_id"] == "demo:cafe_flawed" and _metrics(at)["Occupant load"] == "106"
+    at.selectbox(key="demo_case").set_value("salon_flawed").run()
+    assert "extraction" not in at.session_state and "plan_id" not in at.session_state and not at.metric
+    assert facts["gross_area_sqft"] == 800
+
+
 def test_business_type_changes_the_answer(app):
     at = app
     at.selectbox(key="demo_case").set_value("salon_flawed").run()

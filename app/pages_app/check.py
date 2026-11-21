@@ -26,7 +26,7 @@ types = ac.rules()["business_types"]
 # ----------------------------------------------------------------------------------
 def _reset_results() -> None:
     """A different plan (source, demo plan or uploaded file): the reading and everything built on it go."""
-    for key in (ac.KEY_EXTRACTION, ac.KEY_EXTRACTION_SOURCE, ac.KEY_RESULT, ac.KEY_CHAT, ac.KEY_SPEAK):
+    for key in (ac.KEY_EXTRACTION, ac.KEY_EXTRACTION_SOURCE, ac.KEY_PLAN_ID, ac.KEY_RESULT, ac.KEY_CHAT, ac.KEY_SPEAK):
         st.session_state.pop(key, None)
 
 
@@ -41,16 +41,35 @@ def _reset_check() -> None:
 
 
 def _load_case() -> None:
-    """Fill the business and zone fields from the chosen demo plan."""
+    """Fill the business and zone fields from the chosen demo plan. (Called when the demo plan changes.)"""
     _reset_results()
-    case = cases[st.session_state[ac.KEY_CASE]]
+    case = cases[st.session_state.get(ac.KEY_CASE) or next(iter(cases))]
     st.session_state[ac.KEY_BUSINESS] = case["intake"]["business_type"]
     st.session_state[ac.KEY_COOKING] = bool(case["intake"].get("cooking_on_site"))
     st.session_state[ac.KEY_ZONE_MODE] = ac.ZONE_BY_HAND
     st.session_state[ac.KEY_ZONE] = case.get("zoning", "")
 
 
-if ac.KEY_CASE not in st.session_state:
+def _source_changed() -> None:
+    """Switching back to the demo plans fills step 2 from the demo plan again. The reading is handled by the fingerprint below."""
+    if st.session_state.get(ac.KEY_SOURCE) == ac.SOURCE_DEMO:
+        st.session_state[ac.KEY_CASE] = st.session_state.get(ac.KEY_CASE) or next(iter(cases))
+        _load_case()
+
+
+def _plan_id(case: dict | None, uploaded) -> str | None:
+    """A fingerprint of the plan on the page now: the demo case, or the bytes of the uploaded file. None = no plan."""
+    if case is not None:
+        return f"demo:{case['id']}"
+    return f"upload:{hashlib.sha1(uploaded.getvalue()).hexdigest()}" if uploaded is not None else None
+
+
+# Fill in the first demo plan's answers once per session. Not "whenever KEY_CASE is missing": Streamlit drops a
+# widget's key on any run where the widget is not drawn, and the demo-plan selectbox is never drawn in upload mode.
+# Testing for KEY_CASE here re-ran _load_case() on every other rerun there, wiping an uploaded plan's reading and
+# results (and the owner's business type and zone) whenever the page reran, for example after a voice recording.
+if ac.KEY_READY not in st.session_state:
+    st.session_state[ac.KEY_READY] = True
     st.session_state[ac.KEY_CASE] = next(iter(cases))
     _load_case()
 
@@ -60,7 +79,7 @@ if ac.KEY_CASE not in st.session_state:
 # ----------------------------------------------------------------------------------
 st.subheader("1. Your floor plan")
 source = st.radio("Plan", [ac.SOURCE_DEMO, ac.SOURCE_UPLOAD], key=ac.KEY_SOURCE, horizontal=True,
-                  label_visibility="collapsed", on_change=_reset_results)
+                  label_visibility="collapsed", on_change=_source_changed)
 uploaded = None
 if source == ac.SOURCE_DEMO:
     st.selectbox("Demo plan", list(cases), format_func=lambda cid: cases[cid]["title"],
@@ -74,7 +93,7 @@ if source == ac.SOURCE_DEMO:
 else:
     case = None
     uploaded = st.file_uploader("Floor plan (PNG, JPG or PDF) with dimensions printed on it",
-                                type=["png", "jpg", "jpeg", "pdf"], on_change=_reset_results)
+                                type=["png", "jpg", "jpeg", "pdf"])
     if uploaded and uploaded.type != "application/pdf":
         with st.expander("Show the drawing"):
             st.image(uploaded)
@@ -129,6 +148,12 @@ def _read_with_model(path: Path) -> dict:
         return extract_floor_plan(path, f"business type: {bt['label']}")
 
 
+# The reading and the results belong to one plan. They are cleared when the plan on the page is a different one
+# (another demo plan, another file, no file, the other source), and never just because the page ran again.
+plan_id = _plan_id(case, uploaded)
+if ac.KEY_EXTRACTION in st.session_state and st.session_state.get(ac.KEY_PLAN_ID) != plan_id:
+    _reset_results()
+
 if st.button("Read the plan", type="primary", key="btn_read"):
     _reset_results()
     try:
@@ -136,9 +161,11 @@ if st.button("Read the plan", type="primary", key="btn_read"):
             if st.session_state.get(ac.KEY_USE_VISION) and ac.has_api_key():
                 st.session_state[ac.KEY_EXTRACTION] = _read_with_model(ac.DEMO_DIR / case["plan"])
                 st.session_state[ac.KEY_EXTRACTION_SOURCE] = "the vision model"
+                st.session_state[ac.KEY_PLAN_ID] = plan_id
             else:
                 st.session_state[ac.KEY_EXTRACTION] = ac.truth_extraction(case["id"])
                 st.session_state[ac.KEY_EXTRACTION_SOURCE] = "the saved reading for this demo plan (no model call)"
+                st.session_state[ac.KEY_PLAN_ID] = plan_id
         elif uploaded is None:
             st.error("Upload a floor plan first.")
         elif not ac.has_api_key():
@@ -147,6 +174,7 @@ if st.button("Read the plan", type="primary", key="btn_read"):
             # written to a temporary file for the reader and deleted straight after (see app_common)
             st.session_state[ac.KEY_EXTRACTION] = ac.read_uploaded_plan(uploaded.getvalue(), uploaded.name, _read_with_model)
             st.session_state[ac.KEY_EXTRACTION_SOURCE] = "the vision model"
+            st.session_state[ac.KEY_PLAN_ID] = plan_id
     except Exception as e:  # a failed model call should explain itself, not crash the page
         st.error(f"The plan could not be read: {e}")
 
