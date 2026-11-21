@@ -12,13 +12,47 @@ def test_extract_builds_a_valid_request(load):
     out = extract.extract_floor_plan(ROOT / "demo/flawed_plan.png", "business type: Café or restaurant", client=fake)
     kw = fake.kwargs
     assert out["seat_count"] == 56
-    assert kw["tool_choice"] == {"type": "tool", "name": "record_floor_plan"}
+    assert kw["tool_choice"] == {"type": "auto"}        # a forced tool is rejected by current models (400)
+    assert kw["tools"][0]["name"] == "record_floor_plan" and len(kw["tools"]) == 1
+    assert "Call record_floor_plan exactly once with what you read, and write nothing else." in kw["messages"][0]["content"][1]["text"]
     img = kw["messages"][0]["content"][0]["source"]
     assert img["media_type"] == "image/png" and len(img["data"]) > 10_000
     assert "Café or restaurant" in kw["messages"][0]["content"][1]["text"]
     uses = kw["tools"][0]["input_schema"]["properties"]["spaces"]["items"]["properties"]["use"]["enum"]
     factors = rules_engine.load_rules()["occupant_load_factors_sqft_per_person"]
     assert set(factors) <= set(uses)                 # every use the rules can count is one the reader may report
+
+
+def test_extract_retries_once_when_the_model_does_not_call_the_tool(load):
+    """With tool_choice "auto" the model may answer in words. Ask once more; if it still does not call the tool, say so."""
+    from types import SimpleNamespace
+
+    import pytest
+
+    class Replies:
+        def __init__(self, *replies):
+            self.replies, self.calls = list(replies), []
+            self.messages = SimpleNamespace(create=self._create)
+
+        def _create(self, **kw):
+            self.calls.append(kw)
+            return SimpleNamespace(content=self.replies[len(self.calls) - 1])
+
+    words = [SimpleNamespace(type="thinking", thinking=""), SimpleNamespace(type="text", text="This plan shows a café.")]
+    reading = [SimpleNamespace(type="thinking", thinking=""), SimpleNamespace(type="tool_use", name="record_floor_plan", input=load("flawed"))]
+    plan = ROOT / "demo/flawed_plan.png"
+
+    first_try = Replies(reading)
+    assert extract.extract_floor_plan(plan, client=first_try)["seat_count"] == 56 and len(first_try.calls) == 1    # no needless second call
+
+    second_try = Replies(words, reading)
+    assert extract.extract_floor_plan(plan, client=second_try)["seat_count"] == 56
+    assert len(second_try.calls) == 2 and second_try.calls[0] == second_try.calls[1]       # the same request, sent again
+
+    never = Replies(words, words, reading)
+    with pytest.raises(RuntimeError, match="did not call record_floor_plan in 2 attempts"):
+        extract.extract_floor_plan(plan, client=never)
+    assert len(never.calls) == 2                                                           # one retry, not more
 
 
 def test_audit_end_to_end_with_mocked_vision(load):
