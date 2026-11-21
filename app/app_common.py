@@ -50,6 +50,7 @@ KEY_RESULT = "result"               # the last audit result
 KEY_CHAT = "chat"                   # list of {"role", "content", "by"}
 KEY_QUESTION = "question"
 KEY_SPEAK = "speak_text"            # answer waiting to be spoken on this run
+KEY_PHOTO_NOTES = "photo_notes"     # notes from checker/photos.py; kept apart from the audit result on purpose
 
 ZONE_BY_HAND, ZONE_BY_ADDRESS = "Enter the zone", "Look up an address"
 SOURCE_DEMO, SOURCE_UPLOAD = "Use a demo plan", "Upload my own plan"

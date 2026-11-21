@@ -49,6 +49,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Rules engine | `checker/rules_engine.py` | **Real and tested** on three demo plans and on each business type | More checks (travel distance, parking, signage) |
 | Zoning | `checker/zoning.py` | Logic tested; the live lookup is tested with the network mocked | Run one real address |
 | Plan reading | `checker/extract.py` | Request tested with the API mocked | **Run it on the demo plans with a key** |
+| Site photo notes | `checker/photos.py` | Up to four photos; notes whether six things are visible (exit sign, extinguisher, entrance step, sprinkler heads, kitchen hood, grab bars). Notes to confirm, never findings. Request and reply handling tested with the API mocked | **Run it on real photos with a key** |
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested | **No results yet**: run `--vision` |
 | Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |

@@ -3,6 +3,8 @@ permits, then ask questions by typing or by voice. Runs through app/streamlit_ap
 
 Five steps on one page:
   1 floor plan -> 2 business and location -> 3 what was read (editable) -> 4 results -> 5 ask
+After the results, an optional section reads up to four site photos (checker/photos.py). Its
+notes are shown beside the results and never change them.
 """
 from __future__ import annotations
 
@@ -14,7 +16,7 @@ import pandas as pd
 import streamlit as st
 
 from app import app_common as ac
-from checker import agent, rules_engine, voice
+from checker import agent, photos, rules_engine, voice
 from checker.extract import SPACE_USES
 
 cases = ac.cases()
@@ -33,6 +35,7 @@ def _reset_results() -> None:
 def _load_case() -> None:
     """Fill the business and zone fields from the chosen demo plan."""
     _reset_results()
+    st.session_state.pop(ac.KEY_PHOTO_NOTES, None)     # a different plan is a different place: old photo notes do not apply
     case = cases[st.session_state[ac.KEY_CASE]]
     st.session_state[ac.KEY_BUSINESS] = case["intake"]["business_type"]
     st.session_state[ac.KEY_COOKING] = bool(case["intake"].get("cooking_on_site"))
@@ -280,6 +283,49 @@ if result:
     st.download_button("Download the report (Markdown)", rules_engine.to_markdown(result), file_name="permit_precheck.md",
                        mime="text/markdown")
     st.caption(result["disclaimer"])
+
+    # ------------------------------------------------------------------------------
+    # What the photos show (optional). Notes to confirm, never findings: they are kept in
+    # their own session key and nothing below writes to `result`.
+    # ------------------------------------------------------------------------------
+    st.divider()
+    st.subheader("What the photos show")
+    st.caption("Optional. Add photos of the storefront and interior and a vision model notes whether a few things are "
+               "visible in them. These are notes for you to confirm, not findings: they do not change the fix list "
+               "above. A photo carries no measurements, so door widths, aisle widths and turning space cannot be "
+               "read from one.")
+    photo_files = st.file_uploader(
+        f"Site photos (up to {photos.MAX_PHOTOS}; JPG, PNG or WebP)", type=["jpg", "jpeg", "png", "webp"],
+        accept_multiple_files=True, key="photo_files")
+    st.caption("Please avoid photos that show people. Photos are sent to the Claude API to be read and are not saved "
+               "by this app. iPhone HEIC photos are not supported: export them as JPG first.")
+    if not ac.has_api_key():
+        st.info("Reading photos needs a Claude API key (see the README). Nothing else on this page depends on it.")
+    elif st.button("Read the photos", key="btn_photos"):
+        if not photo_files:
+            st.error("Add at least one photo first.")
+        elif len(photo_files) > photos.MAX_PHOTOS:
+            st.error(f"Please choose at most {photos.MAX_PHOTOS} photos; {len(photo_files)} are selected.")
+        else:
+            try:
+                with st.spinner("Looking at the photos..."):
+                    # bytes go straight from the upload to the request; nothing is written to disk
+                    st.session_state[ac.KEY_PHOTO_NOTES] = photos.read_photos([f.getvalue() for f in photo_files])
+            except Exception as e:  # a failed model call or an unreadable image should explain itself, not crash the page
+                st.error(f"The photos could not be read: {e}")
+
+    photo_notes = st.session_state.get(ac.KEY_PHOTO_NOTES)
+    if photo_notes:
+        st.table(pd.DataFrame([{"What": n["label"], "In the photos": n["status"],
+                                "Seen in": ", ".join(f"photo {i}" for i in n["seen_in"]) or "-"} for n in photo_notes])
+                 .set_index("What"))
+        differences = photos.compare_with_plan(photo_notes, result.get("extraction") or {})
+        if differences:
+            st.markdown("**Please confirm: the photos and the plan reading differ**")
+            for d in differences:
+                st.warning(d["text"], icon="❓")
+        st.caption("\"Not visible in these photos\" means only that these photos do not show it. "
+                   "Nothing here has been checked against the code.")
 
     # ------------------------------------------------------------------------------
     # 5. Ask about your results (typed or spoken)

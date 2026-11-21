@@ -132,3 +132,49 @@ def test_pages_with_the_seattle_database(monkeypatch, tmp_path):
     assert any("Paraphrased for the test" in x.value for x in at.markdown)       # a reviewer comment is shown
     at.selectbox[0].set_value("salon").run()
     assert not at.exception and _metrics(at)["Permits with plan review"] == "1"
+
+
+def test_photo_notes_section_shows_notes_and_never_moves_the_results(app, monkeypatch):
+    """The section appears after a check; notes that contradict the plan ask to confirm and leave the fix list alone."""
+    from checker import photos
+
+    at = app
+    assert not any(h.value == "What the photos show" for h in at.subheader)          # nothing before a check has run
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert any(h.value == "What the photos show" for h in at.subheader)
+    captions = " ".join(c.value for c in at.caption)
+    assert "avoid photos that show people" in captions and "not findings" in captions and "not saved" in captions
+    assert any("Reading photos needs a Claude API key" in i.value for i in at.info)   # no key: explained, no button
+    assert "Read the photos" not in [b.label for b in at.button]
+    before = (_metrics(at), [m.value for m in at.markdown], at.session_state["result"])
+
+    # the café plan reads: no exit signs, no sprinklers, no hood. The photos "show" all three.
+    seen = {"exit_sign": [1], "sprinkler_heads": [2], "kitchen_hood": [1, 2]}
+    at.session_state["photo_notes"] = photos.clean_notes(
+        {"items": [{"item": k, "status": photos.VISIBLE if k in seen else photos.NOT_VISIBLE, "seen_in": seen.get(k, [])}
+                   for k in photos.PHOTO_ITEMS]}, photo_count=2)
+    at.run()
+    assert not at.exception
+    table = next(t.value for t in at.table if t.value.index.name == "What")
+    assert table.loc["Illuminated exit sign"].tolist() == ["visible", "photo 1"]
+    assert table.loc["Restroom grab bars"].tolist() == ["not visible in these photos", "-"]
+    warnings = [w.value for w in at.warning]
+    assert any(w.startswith("Photo 1 shows an exit sign, but the plan reading shows none.") for w in warnings)
+    assert any(w.startswith("Photos 1 and 2 show an exhaust hood") and "Please confirm" in w for w in warnings)
+    assert any("photos and the plan reading differ" in m.value for m in at.markdown)
+
+    # the results are exactly what they were: same counts, same fix list, same audit result
+    assert _metrics(at) == before[0] and at.session_state["result"] == before[2]
+    assert [m for m in before[1] if "MECH-1" in m or "FS-2" in m] == [m.value for m in at.markdown if "MECH-1" in m.value or "FS-2" in m.value]
+    assert "photo_notes" not in at.session_state["result"]
+
+    # with a key the button is there, and pressing it with no photo explains itself without calling a model
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
+    at.run()
+    at.button(key="btn_photos").click().run()
+    assert not at.exception and any("Add at least one photo first" in e.value for e in at.error)
+
+    # choosing a different plan drops the notes
+    at.selectbox(key="demo_case").set_value("salon_flawed").run()
+    assert "photo_notes" not in at.session_state
