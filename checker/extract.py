@@ -6,8 +6,9 @@ whether anything complies; that is rules_engine.py's job.
 Needs ANTHROPIC_API_KEY in the environment. Model is set by PERMIT_VISION_MODEL
 (default claude-sonnet-5-5).
 
-STATUS: the request is tested with the API mocked. No real model has read the demo plans
-from this code yet; run `python -m evaluation.evaluate_extraction --vision` to do that.
+STATUS: the real model read the three demo plans from this code on 21 November 2026
+(results: reports/extraction_eval.md). It has NOT read a real, non-demo floor plan yet,
+and the demo plans are drawn to be easy to read.
 """
 from __future__ import annotations
 

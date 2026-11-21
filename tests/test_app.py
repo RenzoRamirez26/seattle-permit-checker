@@ -9,12 +9,13 @@ APP = str(ROOT / "app" / "streamlit_app.py")
 
 
 @pytest.fixture
-def app(monkeypatch):
+def app(monkeypatch, tmp_path):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)      # no model calls from tests
     monkeypatch.setenv("PERMIT_STT", "off")
     from app import app_common
 
     monkeypatch.setattr(app_common, "DB_PATH", ROOT / "data" / "does_not_exist.sqlite")
+    monkeypatch.setattr(app_common, "REPORTS_DIR", tmp_path / "reports")      # empty: tests never read the real reports/ folder
     return AppTest.from_file(APP, default_timeout=30).run()
 
 
@@ -190,6 +191,18 @@ def test_an_old_seattle_database_is_explained_on_the_page(monkeypatch, tmp_path)
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception and any("different column names" in e.value for e in at.error)
     assert at.dataframe[0].value["Number"].tolist()[2] == "462 (87%)"                 # the preview is shown meanwhile
+
+
+def test_evidence_page_shows_a_report_when_there_is_one(app, tmp_path):
+    """With no report the page says so (checked above); with one, it shows that report. Neither depends on the real reports/ folder."""
+    at = app
+    at.switch_page("pages_app/evidence.py").run()
+    assert any("No results yet" in w.value for w in at.warning)
+    (tmp_path / "reports").mkdir()
+    (tmp_path / "reports" / "extraction_eval.md").write_text("# Plan-reading evaluation\n\nA test report: 38 of 38.\n", encoding="utf-8")
+    at.run()
+    assert not at.exception and not any("No results yet" in w.value for w in at.warning)
+    assert any("A test report: 38 of 38." in m.value for m in at.markdown)
 
 
 def test_pages_with_the_seattle_database(monkeypatch, tmp_path):

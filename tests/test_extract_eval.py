@@ -86,7 +86,8 @@ def test_a_perfect_reading_scores_100_percent():
     case = {c["id"]: c for c in ev.load_cases()}["cafe_flawed"]
     r = ev.evaluate_case(case, ev.load_truth(case))
     assert r["accuracy"] == 1.0 and r["facts"] == 38 and r["wrong"] == []
-    assert r["problems"] == {"real_problems": 11, "caught": 11, "missed": [], "false_alarms": []}
+    assert r["problems"] == {"real_problems": 11, "caught": 11, "to_confirm": [], "missed": [], "false_alarms": []}
+    assert r["matching"] == {"same label": 14}
 
 
 def test_misreadings_are_counted_and_traced_to_problems():
@@ -105,10 +106,10 @@ def test_misreadings_are_counted_and_traced_to_problems():
     assert wrong == {"Restroom 1 door: clear width (in.)", "Restroom 1: door width (in.)",
                      "Aisle A (between tables): width (in.)", "area of Dining Room", "fire_safety: exit_signs_shown"}
     assert r["correct"] == 33 and r["accuracy"] == round(33 / 38, 3)
-    assert r["problems"]["caught"] == 8 and len(r["problems"]["missed"]) == 3
+    assert r["problems"]["caught"] == 8 and len(r["problems"]["missed"]) == 3 and r["problems"]["to_confirm"] == []
     assert "Missing exit signs" in r["problems"]["missed"] and "Door too narrow: Restroom 1 door (Restroom 1)" in r["problems"]["missed"]
     md = ev.to_markdown([r], "test")
-    assert "| Café with planted problems | 38 | 33 | 87% | 11 | 8 | 0 |" in md and "Misread area of Dining Room: read 1500, should be 1280" in md
+    assert "| Café with planted problems | 38 | 33 | 87% | 11 | 8 | 0 | 3 | 0 |" in md and "Misread area of Dining Room: read 1500, should be 1280" in md
 
 
 def test_an_invented_problem_is_a_false_alarm():
@@ -117,3 +118,106 @@ def test_an_invented_problem_is_a_false_alarm():
     pred["restrooms"][0]["turning_circle_diameter_in"] = 54
     p = ev.evaluate_case(case, pred)["problems"]
     assert p["real_problems"] == 0 and p["false_alarms"] == ["Restroom too tight to turn a wheelchair: Restroom 1"]
+
+
+def test_items_are_matched_by_number_then_words_then_order():
+    m = ev.match_items
+    doors = [{"label": "Door 1"}, {"label": "Restroom 1 door"}, {"label": "Restroom 2 door"}]
+    read = [{"label": "Restroom 2 door", "w": 30}, {"label": "Door 1 - Main Entry / Exit", "w": 36}, {"label": "restroom 1 DOOR", "w": 31}]
+    got = m(doors, read, "label")
+    assert [(t["label"], p["label"], how) for t, p, how in got] == [
+        ("Door 1", "Door 1 - Main Entry / Exit", "type and number"),          # the case from the first real run
+        ("Restroom 1 door", "restroom 1 DOOR", "same label"),
+        ("Restroom 2 door", "Restroom 2 door", "same label")]
+    assert ev._type_and_number("Door 1 - Main Entry / Exit") == ev._type_and_number("Door 1") == "door 1"
+    assert ev._type_and_number("Restroom 1 door") == "restroom 1" != ev._type_and_number("Door 1")       # not the same item
+    assert ev._type_and_number("Aisle A (between tables, middle row)") == "aisle a" and ev._type_and_number("Corridor to restrooms") is None
+
+    # no number: the most words in common, one to one
+    got = m([{"label": "Corridor to restrooms"}, {"label": "Aisle A (between tables)"}],
+            [{"label": "Aisle A (between ADA table and adjacent table, dining room row 2)"}, {"label": "Corridor (restroom corridor)"}], "label")
+    assert [(p["label"][:8], how) for _t, p, how in got] == [("Corridor", "shared words"), ("Aisle A ", "type and number")]
+    got = m([{"name": "Restroom"}, {"name": "Styling Floor"}],
+            [{"name": "Styling Floor (6 styling stations, 2 shampoo bowls)"}, {"name": "All-Gender Restroom"}], "name")
+    assert [(p["name"], how) for _t, p, how in got] == [("All-Gender Restroom", "shared words"),
+                                                         ("Styling Floor (6 styling stations, 2 shampoo bowls)", "shared words")]
+
+    # nothing in common: by order; and each of the model's items is used once
+    got = m([{"label": "Front"}, {"label": "Back"}, {"label": "Side"}], [{"label": "Entrance"}, {"label": "Rear"}], "label")
+    assert [(p and p["label"], how) for _t, p, how in got] == [("Entrance", "order"), ("Rear", "order"), (None, "not found")]
+    two = m([{"label": "Door 1"}, {"label": "Door 1"}], [{"label": "Door 1 - Entry"}], "label")
+    assert [how for _t, _p, how in two] == ["type and number", "not found"]
+    assert m([{"label": "Door 1"}], [], "label") == [({"label": "Door 1"}, None, "not found")]
+
+
+def test_a_fuller_label_is_not_a_misreading_but_a_wrong_value_still_is():
+    case = {c["id"]: c for c in ev.load_cases()}["cafe_flawed"]
+    truth = ev.load_truth(case)
+    pred = copy.deepcopy(truth)
+    pred["doors"][0]["label"] = "Door 1 - Main Entry / Exit"
+    pred["aisles"][0]["label"] = "Aisle A (between tables, middle row)"
+    pred["aisles"][1]["label"] = "Corridor (restroom corridor)"
+    pred["spaces"][4]["name"] = "Restroom 1 (Women)"
+    pred["restrooms"][0]["label"] = "Restroom 1 (Women)"
+    pred["doors"][1]["serves"] = "Restroom 1 (Women)"
+    before = copy.deepcopy(pred)
+    r = ev.evaluate_case(case, pred)
+    assert pred == before                                                   # scoring does not change the reading it is given
+    assert r["accuracy"] == 1.0 and r["wrong"] == []
+    assert r["problems"] == {"real_problems": 11, "caught": 11, "to_confirm": [], "missed": [], "false_alarms": []}
+    assert r["matching"]["type and number"] >= 3 and r["matching"]["shared words"] == 1
+
+    pred["doors"][0]["swing"] = "outward"                                   # same fuller label, now with a wrong value
+    r = ev.evaluate_case(case, pred)
+    assert [w["field"] for w in r["wrong"]] == ["Door 1: swing"] and r["problems"]["missed"] == ["Exit door swings inward: Door 1"]
+
+
+def test_outcomes_are_counted_four_ways():
+    """Caught as a problem, flagged to confirm, missed, and false alarms are reported separately."""
+    case = {c["id"]: c for c in ev.load_cases()}["cafe_flawed"]
+    truth = ev.load_truth(case)
+    assert (truth["fire_safety"]["exit_signs_shown"], truth["kitchen"]["hand_sinks"]) == (0, 0)
+    pred = copy.deepcopy(truth)
+    pred["fire_safety"]["exit_signs_shown"] = None        # "not stated" where the truth is 0: the rule can only ask to confirm
+    pred["kitchen"]["hand_sinks"] = None
+    pred["doors"][1]["clear_width_in"] = 34               # a 30 in. door read as 34: the problem disappears
+    pred["restrooms"][0]["door_clear_width_in"] = 34
+    pred["doors"][2]["clear_width_in"] = None             # could not read the other door: asked to confirm instead
+    pred["restrooms"][1]["door_clear_width_in"] = None
+    pred["aisles"][1]["min_width_in"] = 30                # a 36 in. corridor read as 30: a problem that is not there
+    r = ev.evaluate_case(case, pred)
+    p = r["problems"]
+    assert p["real_problems"] == 11 and p["caught"] == 7
+    assert p["to_confirm"] == ["Door too narrow: Restroom 2 door (Restroom 2)", "Missing exit signs",
+                               "No handwashing sink in the food prep area"]
+    assert p["missed"] == ["Door too narrow: Restroom 1 door (Restroom 1)"]
+    assert p["false_alarms"] == ["Aisle too narrow: Corridor to restrooms"]
+    assert p["caught"] + len(p["to_confirm"]) + len(p["missed"]) == p["real_problems"]
+    # at the fact level, 0 read as "not stated" is a misread, like any other wrong value
+    wrong = {w["field"]: (w["pred"], w["truth"]) for w in r["wrong"]}
+    assert wrong["fire_safety: exit_signs_shown"] == (None, 0) and wrong["kitchen: hand_sinks"] == (None, 0)
+    assert len(wrong) == 7 and r["correct"] == 31
+    md = ev.to_markdown([r], "test")
+    assert "| Real problems | Caught as a problem | Flagged to confirm | Missed | False alarms |" in md
+    assert "| Café with planted problems | 38 | 31 | 82% | 11 | 7 | 3 | 1 | 1 |" in md
+    assert "- Flagged to confirm, not as a problem: Missing exit signs" in md and "- False alarm: Aisle too narrow: Corridor to restrooms" in md
+    assert "Misread fire_safety: exit_signs_shown: read None, should be 0" in md
+
+
+def test_saved_readings_can_be_rescored_without_a_model_call(tmp_path, monkeypatch, capsys):
+    import json
+
+    (tmp_path / "reports").mkdir()
+    for case in ev.load_cases():
+        reading = ev.load_truth(case)
+        reading["doors"][0]["label"] = "Door 1 - Main Entry / Exit"
+        (tmp_path / "reports" / f"{case['id']}_vision_extraction.json").write_text(json.dumps(reading), encoding="utf-8")
+    monkeypatch.setattr(ev, "ROOT", tmp_path)
+    monkeypatch.setattr(extract, "extract_floor_plan", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no model call")))
+    out = tmp_path / "eval.md"
+    assert ev.main(["--saved", "--label", "a saved run", "--out", str(out)]) == 0
+    report = out.read_text(encoding="utf-8")
+    assert capsys.readouterr().out.strip() == report.strip() and "Extractions scored: a saved run." in report
+    assert "| Café with planted problems | 38 | 38 | 100% | 11 | 11 | 0 | 0 | 0 |" in report
+    assert "| Hair salon with planted problems | 25 | 25 | 100% | 3 | 3 | 0 | 0 | 0 |" in report
+    assert "by type and number" in report and "Misread" not in report
