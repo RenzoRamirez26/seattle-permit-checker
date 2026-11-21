@@ -7,7 +7,6 @@ Five steps on one page:
 from __future__ import annotations
 
 import hashlib
-import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -134,9 +133,8 @@ if st.button("Read the plan", type="primary", key="btn_read"):
         elif not ac.has_api_key():
             st.error("No Claude API key is set, so an uploaded plan cannot be read. Use a demo plan, or add the key.")
         else:
-            with tempfile.NamedTemporaryFile(suffix=Path(uploaded.name).suffix, delete=False) as f:
-                f.write(uploaded.getvalue())
-            st.session_state[ac.KEY_EXTRACTION] = _read_with_model(Path(f.name))
+            # written to a temporary file for the reader and deleted straight after (see app_common)
+            st.session_state[ac.KEY_EXTRACTION] = ac.read_uploaded_plan(uploaded.getvalue(), uploaded.name, _read_with_model)
             st.session_state[ac.KEY_EXTRACTION_SOURCE] = "the vision model"
     except Exception as e:  # a failed model call should explain itself, not crash the page
         st.error(f"The plan could not be read: {e}")

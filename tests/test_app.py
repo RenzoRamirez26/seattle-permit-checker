@@ -90,6 +90,31 @@ def test_upload_without_a_key_explains_itself(app):
     assert any("Upload a floor plan first" in e.value for e in at.error)
 
 
+def test_uploaded_plan_file_is_deleted_after_it_is_read():
+    """An uploaded floor plan is written to a temporary file for the reader; no copy may be left behind."""
+    from pathlib import Path
+
+    from app import app_common
+
+    seen = []
+
+    def reader(path: Path) -> dict:
+        seen.append(path)
+        assert path.exists() and path.suffix == ".pdf" and path.read_bytes() == b"%PDF-plan"   # the reader gets the upload
+        return {"spaces": []}
+
+    assert app_common.read_uploaded_plan(b"%PDF-plan", "My Plan.pdf", reader) == {"spaces": []}
+    assert len(seen) == 1 and not seen[0].exists()
+
+    def failing_reader(path: Path) -> dict:
+        seen.append(path)
+        raise RuntimeError("the model call failed")
+
+    with pytest.raises(RuntimeError, match="the model call failed"):       # the error still reaches the page...
+        app_common.read_uploaded_plan(b"png-bytes", "plan.png", failing_reader)
+    assert len(seen) == 2 and seen[1].suffix == ".png" and not seen[1].exists()   # ...and the file is gone anyway
+
+
 def test_other_pages_load_without_a_database(app):
     at = app
     at.switch_page("pages_app/seattle_data.py").run()
