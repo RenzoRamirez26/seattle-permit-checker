@@ -1,5 +1,13 @@
 """Shared test helpers."""
-import json
+import os
+
+# No test needs a key, and no test may use one. The app and checker/ load a local .env file when they
+# start; with a real key in it, tests would call the real model. This switch (python-dotenv's own) turns
+# that loading off for the test run. It must be set before anything below imports checker/.
+os.environ["PYTHON_DOTENV_DISABLED"] = "1"
+os.environ.pop("ANTHROPIC_API_KEY", None)
+
+import json  # noqa: E402
 from pathlib import Path
 from types import SimpleNamespace
 
