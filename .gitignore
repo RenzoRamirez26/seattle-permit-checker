@@ -1,0 +1,29 @@
+# secrets: never commit keys
+.env
+
+# environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+.vscode/
+.claude/
+
+# data: downloaded from Seattle, not committed
+data/raw/*
+!data/raw/.gitkeep
+data/*.sqlite
+data/*.csv
+
+# outputs of one-off runs
+report.json
+report.md
+voice_test.wav
+reports/*_vision_extraction.json
+
+# personal scratch
+scratch/
+notes.md

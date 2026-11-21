@@ -1,0 +1,20 @@
+# Python 3.12 or newer (built and tested on 3.13)
+
+#app
+streamlit==1.67.0       # the website, including the microphone input and the spoken-answer frame
+pandas==3.1.1           # tables in the app
+
+#reading plans and answering questions
+anthropic==2.12.0       # Claude API: vision (checker/extract.py) and the agent (checker/agent.py)
+pillow==13.0.0          # resize the plan image before sending it
+pypdfium2==5.15.2       # first page of a PDF plan -> image
+
+#Seattle data
+requests==2.34.2        # open data downloads, geocoder, zoning layer
+
+#demo drawings
+matplotlib==3.11.2      # demo/make_plans.py draws the demo floor plans
+
+#config and tests
+python-dotenv==1.2.4    # .env file for the API key
+pytest==9.2.0

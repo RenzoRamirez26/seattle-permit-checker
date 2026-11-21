@@ -1,0 +1,147 @@
+"""
+Shared pieces of the app: page paths, session-state keys, cached loads and the notes shown on
+the Limits and About pages. Used by the entrypoint (app/streamlit_app.py) and the pages in
+app/pages_app/.
+
+The app holds no rules of its own. Everything it shows comes from checker/ and pipeline/.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+import streamlit as st
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from checker import audit, rules_engine  # noqa: E402
+from pipeline.classify import CATEGORY_FOR_BUSINESS  # noqa: E402
+
+DEMO_DIR = ROOT / "demo"
+REPORTS_DIR = ROOT / "reports"
+DB_PATH = ROOT / "data" / "permits.sqlite"
+
+# Page files, relative to the entrypoint.
+PAGE_CHECK = "pages_app/check.py"
+PAGE_DATA = "pages_app/seattle_data.py"
+PAGE_EVIDENCE = "pages_app/evidence.py"
+PAGE_LIMITS = "pages_app/limits.py"
+PAGE_ABOUT = "pages_app/about.py"
+
+# Session-state keys.
+KEY_SOURCE = "plan_source"          # "demo" or "upload"
+KEY_CASE = "demo_case"              # selected demo case id
+KEY_BUSINESS = "business_type"
+KEY_COOKING = "cooking"
+KEY_ALCOHOL = "alcohol"
+KEY_OUTDOOR = "outdoor"
+KEY_UPPER = "upper_floor"
+KEY_HISTORIC = "historic"
+KEY_ZONE_MODE = "zone_mode"         # "zone" or "address"
+KEY_ZONE = "zone_text"
+KEY_ADDRESS = "address_text"
+KEY_USE_VISION = "use_vision"
+KEY_EXTRACTION = "extraction"       # facts read from the plan (dict)
+KEY_EXTRACTION_SOURCE = "extraction_source"
+KEY_RESULT = "result"               # the last audit result
+KEY_CHAT = "chat"                   # list of {"role", "content", "by"}
+KEY_QUESTION = "question"
+KEY_SPEAK = "speak_text"            # answer waiting to be spoken on this run
+
+ZONE_BY_HAND, ZONE_BY_ADDRESS = "Enter the zone", "Look up an address"
+SOURCE_DEMO, SOURCE_UPLOAD = "Use a demo plan", "Upload my own plan"
+
+
+@st.cache_data(show_spinner=False)
+def rules() -> dict:
+    return rules_engine.load_rules()
+
+
+@st.cache_data(show_spinner=False)
+def cases() -> dict[str, dict]:
+    return {c["id"]: c for c in json.loads((DEMO_DIR / "cases.json").read_text(encoding="utf-8"))}
+
+
+def business_labels() -> dict[str, str]:
+    return {k: v["label"] for k, v in rules()["business_types"].items()}
+
+
+def truth_extraction(case_id: str) -> dict:
+    return json.loads((DEMO_DIR / cases()[case_id]["extraction"]).read_text(encoding="utf-8"))
+
+
+def has_api_key() -> bool:
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def has_database() -> bool:
+    return DB_PATH.exists()
+
+
+def category_for(business_type: str):
+    return CATEGORY_FOR_BUSINESS.get(business_type)
+
+
+def run_audit(extraction: dict, intake: dict, *, zone: str | None, address: str | None) -> dict:
+    """One call into the engine: the same function the command line and the tests use."""
+    return audit.audit(None, intake, extraction=extraction, zoning_override=zone or None, address=address or None,
+                       db_path=str(DB_PATH) if has_database() else None)
+
+
+def reviewer_examples(result: dict, per_chapter: int = 2) -> list[dict]:
+    """A few real reviewer comments on the code chapters this plan failed, for the agent to draw on."""
+    if not has_database():
+        return []
+    from pipeline import db, query
+
+    routing = rules().get("review_routing", {})
+    chapters: list[int] = []
+    for f in result["findings"]:
+        route = routing.get(f["rule_id"]) or routing.get(f["rule_id"].split("-")[0]) or {}
+        if f["status"] == "fail" and route.get("chapter") and route["chapter"] not in chapters:
+            chapters.append(route["chapter"])
+    con = db.connect(DB_PATH)
+    try:
+        category = category_for(result["summary"]["business_type"])
+        return [c for ch in chapters[:2] for c in query.example_comments(con, ch, category, limit=per_chapter)]
+    finally:
+        con.close()
+
+
+LIMITS_NOTE = """
+- **This is a pre-submission check, not a code determination.** A licensed design professional and
+  the city's plan reviewer decide what complies.
+- **It checks a short list of items**: occupant load, exits, door widths and swing, aisle widths,
+  restroom count and turning space, sprinklers, the kitchen hood and sinks, and zoning. A real
+  review covers far more (structure, energy, ventilation, electrical, signage, parking).
+- **The reading of the drawing can be wrong.** That is why step 3 shows what was read and lets you
+  correct it before the check runs.
+- **The demo plans are fictional**, drawn with printed dimensions so they are easy to read. Real
+  drawings are harder.
+- **Part of the rulebook is unverified.** `docs/rulebook.md` lists which numbers were checked against
+  Seattle's code and which were entered from memory.
+- **Seattle only.** Other cities have different codes, zones and agencies.
+- **Not affiliated with the City of Seattle** or any agency named here.
+"""
+
+ABOUT_NOTE = """
+**What this is.** A pre-check for someone opening a small business in Seattle: a café, bar, shop,
+salon, office or gym. It reads a floor plan, lists what a plan reviewer would likely send back,
+and names the permits to expect.
+
+**How it decides.** A vision model reads facts off the drawing (areas, door widths, fixtures). It
+does not judge anything. Plain Python then compares those facts with a rulebook built from the
+Seattle Building Code, and every problem is tied to a code section and to the reviewer who checks it.
+
+**Where the numbers on the data page come from.** Seattle publishes every permit's review history:
+how many rounds it took, how long, and the reviewers' comments. The app only repeats those records.
+
+**The agent.** You can ask questions about your result by typing or speaking. The agent answers only
+from your result, and an answer that cites a rule your result does not contain is thrown away.
+
+**Built with.** Python, Streamlit, the Claude API for reading plans and answering questions, and
+Seattle's open data. Source and status are in the repository README.
+"""

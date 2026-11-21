@@ -1,0 +1,86 @@
+[
+ {
+  "permitnum": "TEST-0003-CN",
+  "documenttitle": "Correction Letter-Ordinance-Cycle1",
+  "url": {
+   "url": "https://example.invalid/letter"
+  },
+  "commentsubject": "11 Accessibility",
+  "reviewtype": "Ordinance",
+  "reviewcycle": "1",
+  "comment": "Paraphrased for the test: provide an accessible route through the dining area.",
+  "documentdate": "2024-08-20T13:50:00.000"
+ },
+ {
+  "permitnum": "TEST-0003-CN",
+  "documenttitle": "Correction Letter-Ordinance-Cycle1",
+  "url": {
+   "url": "https://example.invalid/letter"
+  },
+  "commentsubject": "10 Means of Egress",
+  "reviewtype": "Ordinance",
+  "reviewcycle": "1",
+  "comment": "Paraphrased for the test: show the occupant load and classify the space as Group B if it is under 50.",
+  "documentdate": "2024-08-20T13:50:00.000"
+ },
+ {
+  "permitnum": "TEST-0003-CN",
+  "documenttitle": "Correction Letter-Ordinance-Cycle2",
+  "url": {
+   "url": "https://example.invalid/letter"
+  },
+  "commentsubject": "10 Means of Egress",
+  "reviewtype": "Ordinance",
+  "reviewcycle": "2",
+  "comment": "Paraphrased for the test: exit door must swing in the direction of egress travel.",
+  "documentdate": "2024-10-20T10:02:00.000"
+ },
+ {
+  "permitnum": "TEST-0003-CN",
+  "documenttitle": "Correction Letter-Ordinance-Cycle1",
+  "url": {
+   "url": "https://example.invalid/letter"
+  },
+  "commentsubject": "00 Code Edition",
+  "reviewtype": "Ordinance",
+  "reviewcycle": "1",
+  "comment": "Paraphrased for the test: project reviewed against the 2021 Seattle Building Code.",
+  "documentdate": "2024-08-20T13:50:00.000"
+ },
+ {
+  "permitnum": "TEST-0003-CN",
+  "documenttitle": "Correction Letter-Ordinance-Cycle1",
+  "url": {
+   "url": "https://example.invalid/letter"
+  },
+  "commentsubject": "SBC Ch29",
+  "reviewtype": "Ordinance",
+  "reviewcycle": "1",
+  "comment": "Paraphrased for the test: show the plumbing fixture count calculation.",
+  "documentdate": "2024-08-20T13:50:00.000"
+ },
+ {
+  "permitnum": "6524888-CN",
+  "documenttitle": "Correction Letter-Structural Engineer-Cycle2",
+  "url": {
+   "url": "https://web.seattle.gov/dpd/edms/GetDocument?id=8259369"
+  },
+  "commentsubject": "16 Gravity Design",
+  "reviewtype": "Structural Engineer",
+  "reviewcycle": "2",
+  "comment": "Paraphrased for the test: confirm the load path for the awning loads.",
+  "documentdate": "2022-07-19T11:20:00.000"
+ },
+ {
+  "permitnum": "TEST-0005-CN",
+  "documenttitle": "Correction Letter-Ordinance-Cycle1",
+  "url": {
+   "url": "https://example.invalid/letter"
+  },
+  "commentsubject": "11 Accessibility",
+  "reviewtype": "Ordinance",
+  "reviewcycle": "1",
+  "comment": "Paraphrased for the test: show the turning space in the restroom.",
+  "documentdate": "2024-02-20T09:00:00.000"
+ }
+]

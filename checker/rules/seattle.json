@@ -1,0 +1,627 @@
+{
+  "_meta": {
+    "jurisdiction": "City of Seattle, Washington",
+    "use_case": "Small-business tenant spaces: cafés and restaurants, bars, retail shops, salons, offices and fitness studios",
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
+    "checked_against_city_sources": [
+      "Code edition: SDCI's code adoption page lists the 2021 editions as adopted and the 2024 editions no sooner than May 2027.",
+      "Occupant load factors (2021 SBC Table 1004.5); one exit up to 49 occupants for Groups A, B and M (Table 1006.2.1); 32 in. door clear width (1010.1.1); door swing at 50 occupants (1010.1.2.1); 0.2 in. of exit width per occupant (1005.3.2); exit signs not required where only one exit is required (1013.1 exception 1). Read from the 2021 Seattle Building Code Chapter 10 PDF.",
+      "Sprinkler triggers for Groups A-2, A-3 and M (903.2.1.2, 903.2.1.3, 903.2.7), read from the 2021 SBC Chapter 9 PDF.",
+      "Toilet and lavatory ratios for restaurants, bars, A-3, business and mercantile; the separate-facility exceptions (15, 25, 30 and 100 occupants); the struck-out service sink; the Uniform Plumbing Code. Read from the 2021 SBC Chapter 29 PDF. The business and mercantile rows were partly garbled in the extract, so re-check those two.",
+      "The 100-person Fire Department assembly permit, the permit list and the agencies: Seattle Office of Economic Development food business handbook and tenant improvement checklist.",
+      "Group B under 50 occupants: stated in a real SDCI Ordinance-review correction comment.",
+      "Zoning layer URL and field names: read from the live layer. Ground-floor shops and restaurants up to 2,500 sq ft in Neighborhood Residential zones: Ordinance 127376, SMC 23.44.020.E. NC1/NC2 size limits: SDCI Commercial Zoning Summary (October 2019)."
+    ],
+    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Check each before relying on it."
+  },
+  "occupant_load_factors_sqft_per_person": {
+    "dining": {
+      "factor": 15,
+      "basis": "net",
+      "cite": "SBC Table 1004.5 (Assembly, unconcentrated: tables and chairs)"
+    },
+    "standing": {
+      "factor": 5,
+      "basis": "net",
+      "cite": "SBC Table 1004.5 (Assembly, standing space)"
+    },
+    "counter_service": {
+      "factor": 15,
+      "basis": "net",
+      "cite": "SBC Table 1004.5 (treated as unconcentrated assembly)"
+    },
+    "kitchen": {
+      "factor": 200,
+      "basis": "gross",
+      "cite": "SBC Table 1004.5 (Kitchens, commercial)"
+    },
+    "storage": {
+      "factor": 300,
+      "basis": "gross",
+      "cite": "SBC Table 1004.5 (Storage/stock)"
+    },
+    "office": {
+      "factor": 150,
+      "basis": "gross",
+      "cite": "SBC Table 1004.5 (Business areas)"
+    },
+    "retail": {
+      "factor": 60,
+      "basis": "gross",
+      "cite": "SBC Table 1004.5 (Mercantile)"
+    },
+    "service": {
+      "factor": 150,
+      "basis": "gross",
+      "cite": "SBC Table 1004.5 (Business areas)"
+    },
+    "exercise": {
+      "factor": 50,
+      "basis": "gross",
+      "cite": "SBC Table 1004.5 (Exercise rooms)"
+    },
+    "waiting": {
+      "factor": 15,
+      "basis": "net",
+      "cite": "SBC Table 1004.5 (treated as unconcentrated assembly)"
+    }
+  },
+  "occupancy": {
+    "assembly_threshold": 50,
+    "cite": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M"
+  },
+  "egress": {
+    "two_exits_above_occupant_load": 49,
+    "three_exits_above_occupant_load": 500,
+    "exits_cite": "SBC Table 1006.2.1 and Section 1006.3",
+    "outward_swing_at_occupant_load": 50,
+    "swing_cite": "SBC 1010.1.2.1",
+    "door_min_clear_width_in": 32,
+    "door_cite": "SBC 1010.1.1; ADA 404.2.3",
+    "egress_width_in_per_occupant": 0.2,
+    "egress_width_cite": "SBC 1005.3.2",
+    "exit_signs_when_exits_required": 2,
+    "exit_sign_cite": "SBC 1013.1"
+  },
+  "accessibility": {
+    "route_min_width_in": 36,
+    "route_cite": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
+    "turning_space_diameter_in": 60,
+    "turning_cite": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
+    "accessible_seating_share": 0.05,
+    "seating_cite": "SBC Chapter 11; ADA 226.1"
+  },
+  "plumbing": {
+    "fixture_profiles": {
+      "restaurant": {
+        "label": "A-2 restaurants",
+        "wc_per_male": 75,
+        "wc_per_female": 75,
+        "lav_per": 200
+      },
+      "bar": {
+        "label": "A-2 bars and taverns",
+        "wc_per_male": 40,
+        "wc_per_female": 40,
+        "lav_per": 75
+      },
+      "a3": {
+        "label": "A-3 (gyms, galleries, studios)",
+        "wc_per_male": 125,
+        "wc_per_female": 65,
+        "lav_per": 200
+      },
+      "business": {
+        "label": "Business",
+        "wc_tiers": [
+          [
+            50,
+            25
+          ],
+          [
+            null,
+            50
+          ]
+        ],
+        "lav_tiers": [
+          [
+            80,
+            40
+          ],
+          [
+            null,
+            80
+          ]
+        ]
+      },
+      "mercantile": {
+        "label": "Mercantile",
+        "wc_per_male": 500,
+        "wc_per_female": 500,
+        "lav_per": 750
+      }
+    },
+    "separate_facilities_exempt_default": 15,
+    "service_sink_required": false,
+    "cite": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)"
+  },
+  "fire": {
+    "assembly_permit_occupant_load": 100,
+    "extinguisher_cite": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
+    "hood_cite": "Seattle Mechanical Code 507 (Type I hood over grease- or smoke-producing appliances); Seattle Fire Code 904 (hood fire suppression)",
+    "sprinklers": {
+      "A-2": {
+        "occupant_load": 100,
+        "fire_area_sqft": 5000,
+        "upper_floor": true,
+        "cite": "SBC 903.2.1.2 (Group A-2)"
+      },
+      "A-3": {
+        "occupant_load": 300,
+        "fire_area_sqft": 12000,
+        "upper_floor": true,
+        "cite": "SBC 903.2.1.3 (Group A-3)"
+      },
+      "M": {
+        "fire_area_sqft": 12000,
+        "cite": "SBC 903.2.7 (Group M)"
+      },
+      "B": null
+    },
+    "sprinkler_cite_default": "SBC 903.2"
+  },
+  "health": {
+    "service_sink_required": true,
+    "cite": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County."
+  },
+  "review_routing": {
+    "_note": "Which reviewer checks each kind of finding in Seattle. 'review' matches the reviewtype column and 'chapter' matches the chapter number at the start of commentsubject in the city's Plan Review and Plan Comments datasets.",
+    "OL": {
+      "review": "Ordinance",
+      "chapter": 10,
+      "label": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress"
+    },
+    "OCC": {
+      "review": "Ordinance",
+      "chapter": 3,
+      "label": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy"
+    },
+    "EG": {
+      "review": "Ordinance",
+      "chapter": 10,
+      "label": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress"
+    },
+    "ADA": {
+      "review": "Ordinance",
+      "chapter": 11,
+      "label": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility"
+    },
+    "PL": {
+      "review": "Ordinance",
+      "chapter": 29,
+      "label": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems"
+    },
+    "FS": {
+      "review": "Fire",
+      "chapter": 9,
+      "label": "Seattle Fire Department review, SBC Ch. 9 Fire Protection"
+    },
+    "FS-1": {
+      "review": "Ordinance",
+      "chapter": 10,
+      "label": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress"
+    },
+    "MECH": {
+      "review": "Mechanical",
+      "chapter": null,
+      "label": "SDCI Mechanical review"
+    },
+    "ZN": {
+      "review": "Zoning",
+      "chapter": null,
+      "label": "SDCI Zoning review"
+    },
+    "HLTH": {
+      "review": null,
+      "chapter": null,
+      "label": "Public Health - Seattle & King County food plan review (separate from SDCI)"
+    }
+  },
+  "zoning": {
+    "use": "business",
+    "cite": "Seattle Municipal Code Title 23 (Land Use Code)",
+    "source": "District statuses below are a first screen for the demo, not a zoning determination. Overlays, pedestrian (P) designations, shoreline and historic districts add their own rules.",
+    "contact": "SDCI land use coaching (free) or the Office of Economic Development, (206) 684-8090",
+    "map_name": "the Seattle zoning map (SDCI GIS)",
+    "lookup": {
+      "layer": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Current_Land_Use_Zoning_Detail_2/FeatureServer/0/query",
+      "source_name": "City of Seattle, Current Land Use Zoning Detail",
+      "district_field": "ZONING",
+      "code_field": "ZONELUT",
+      "description_field": "ZONELUT_DESC",
+      "chapter_link_field": "CHAPTER_LINK",
+      "overlay_fields": {
+        "historic": "HISTORIC",
+        "pedestrian": "PEDESTRIAN",
+        "shoreline": "SHORELINE",
+        "other": "OVERLAY"
+      },
+      "out_fields": "ZONING,ZONELUT,ZONELUT_DESC,CLASS_DESC,CATEGORY_DESC,HISTORIC,PEDESTRIAN,SHORELINE,OVERLAY,CHAPTER,CHAPTER_LINK"
+    },
+    "residential_commercial_marker": "RC",
+    "residential_commercial_status": "needs_review",
+    "residential_commercial_note": "Residential-Commercial (RC) zones allow limited ground-floor commercial uses.",
+    "zones": {
+      "NC1": {
+        "status": "likely_permitted",
+        "max_sqft": 10000,
+        "note": "Neighborhood Commercial 1. Most uses are limited to 10,000 sq ft.",
+        "cite": "SMC 23.47A",
+        "uses": {
+          "drinking_establishment": {
+            "status": "needs_review",
+            "note": "Bars and taverns need a conditional use approval here and are limited to 10,000 sq ft."
+          }
+        }
+      },
+      "NC2": {
+        "status": "likely_permitted",
+        "max_sqft": 25000,
+        "note": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft.",
+        "cite": "SMC 23.47A",
+        "uses": {
+          "drinking_establishment": {
+            "status": "needs_review",
+            "note": "Bars and taverns need a conditional use approval here and are limited to 25,000 sq ft."
+          }
+        }
+      },
+      "NC3": {
+        "status": "likely_permitted",
+        "note": "Neighborhood Commercial 3.",
+        "cite": "SMC 23.47A"
+      },
+      "C1": {
+        "status": "likely_permitted",
+        "note": "Commercial 1.",
+        "cite": "SMC 23.47A"
+      },
+      "C2": {
+        "status": "likely_permitted",
+        "note": "Commercial 2.",
+        "cite": "SMC 23.47A"
+      },
+      "SM": {
+        "status": "likely_permitted",
+        "note": "Seattle Mixed.",
+        "cite": "SMC 23.48"
+      },
+      "DOC1": {
+        "status": "likely_permitted",
+        "note": "Downtown Office Core 1.",
+        "cite": "SMC 23.49"
+      },
+      "DOC2": {
+        "status": "likely_permitted",
+        "note": "Downtown Office Core 2.",
+        "cite": "SMC 23.49"
+      },
+      "DRC": {
+        "status": "likely_permitted",
+        "note": "Downtown Retail Core.",
+        "cite": "SMC 23.49"
+      },
+      "DMC": {
+        "status": "likely_permitted",
+        "note": "Downtown Mixed Commercial.",
+        "cite": "SMC 23.49"
+      },
+      "DMR": {
+        "status": "needs_review",
+        "note": "Downtown Mixed Residential; commercial use depends on the R or C suffix.",
+        "cite": "SMC 23.49"
+      },
+      "DH1": {
+        "status": "needs_review",
+        "note": "Downtown Harborfront 1; shoreline rules apply.",
+        "cite": "SMC 23.49"
+      },
+      "DH2": {
+        "status": "needs_review",
+        "note": "Downtown Harborfront 2; shoreline rules apply.",
+        "cite": "SMC 23.49"
+      },
+      "PSM": {
+        "status": "needs_review",
+        "note": "Pioneer Square Mixed, a preservation district. Changes need a Certificate of Approval from the Department of Neighborhoods.",
+        "cite": "SMC 23.49; SMC 23.66"
+      },
+      "IDM": {
+        "status": "needs_review",
+        "note": "International District Mixed, a special review district. Changes need a Certificate of Approval from the Department of Neighborhoods.",
+        "cite": "SMC 23.49; SMC 23.66"
+      },
+      "IDR": {
+        "status": "needs_review",
+        "note": "International District Residential, a special review district. Changes need a Certificate of Approval from the Department of Neighborhoods.",
+        "cite": "SMC 23.49; SMC 23.66"
+      },
+      "PMM": {
+        "status": "needs_review",
+        "note": "Pike Market Mixed; the Pike Place Market Historical Commission reviews uses and changes.",
+        "cite": "SMC 23.49"
+      },
+      "NR": {
+        "status": "needs_review",
+        "max_sqft": 2500,
+        "only_uses": [
+          "restaurant",
+          "retail",
+          "personal_service"
+        ],
+        "note": "Neighborhood Residential. Ground-floor restaurants and shops are allowed only up to 2,500 sq ft, on or below the ground floor, closed 10 p.m. to 6 a.m., with no drive-in and with exhaust vents at least 10 ft above the sidewalk.",
+        "cite": "SMC 23.44.020.E (Ordinance 127376)"
+      },
+      "LR1": {
+        "status": "not_permitted",
+        "note": "Lowrise 1 multifamily. Commercial uses are generally allowed only where the zone has an RC suffix.",
+        "cite": "SMC 23.45"
+      },
+      "LR2": {
+        "status": "not_permitted",
+        "note": "Lowrise 2 multifamily. Commercial uses are generally allowed only where the zone has an RC suffix.",
+        "cite": "SMC 23.45"
+      },
+      "LR3": {
+        "status": "not_permitted",
+        "note": "Lowrise 3 multifamily. Commercial uses are generally allowed only where the zone has an RC suffix.",
+        "cite": "SMC 23.45"
+      },
+      "MR": {
+        "status": "needs_review",
+        "note": "Midrise multifamily. Ground-floor commercial uses are limited.",
+        "cite": "SMC 23.45"
+      },
+      "HR": {
+        "status": "needs_review",
+        "note": "Highrise multifamily. Ground-floor commercial uses are limited.",
+        "cite": "SMC 23.45"
+      },
+      "UX": {
+        "status": "needs_review",
+        "note": "Urban Industrial; non-industrial uses have size limits.",
+        "cite": "SMC 23.50A"
+      },
+      "MML": {
+        "status": "needs_review",
+        "note": "Maritime Manufacturing and Logistics; non-industrial uses have tight size limits.",
+        "cite": "SMC 23.50A"
+      },
+      "II": {
+        "status": "needs_review",
+        "note": "Industry and Innovation; non-industrial uses have size limits.",
+        "cite": "SMC 23.50A"
+      },
+      "IC": {
+        "status": "needs_review",
+        "note": "Industrial Commercial; non-industrial uses have size limits.",
+        "cite": "SMC 23.50"
+      },
+      "IB": {
+        "status": "needs_review",
+        "note": "Industrial Buffer; non-industrial uses have size limits.",
+        "cite": "SMC 23.50"
+      },
+      "IG": {
+        "status": "needs_review",
+        "note": "General Industrial; non-industrial uses have size limits.",
+        "cite": "SMC 23.50"
+      },
+      "MIO": {
+        "status": "needs_review",
+        "note": "Major Institution Overlay; the underlying zone and the institution's master plan both apply.",
+        "cite": "SMC 23.69"
+      },
+      "MPC": {
+        "status": "needs_review",
+        "note": "Master Planned Community.",
+        "cite": "SMC 23.75"
+      }
+    }
+  },
+  "permits": [
+    {
+      "id": "building",
+      "name": "Construction permit (addition/alteration; also establishes the use of the space)",
+      "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
+      "when": "always"
+    },
+    {
+      "id": "co",
+      "name": "Certificate of Occupancy",
+      "agency": "SDCI, issued after the final inspection",
+      "when": "always"
+    },
+    {
+      "id": "electrical",
+      "name": "Electrical permit",
+      "agency": "SDCI",
+      "when": "always"
+    },
+    {
+      "id": "plumbing",
+      "name": "Plumbing, gas and backflow permits",
+      "agency": "Public Health - Seattle & King County",
+      "when": "always"
+    },
+    {
+      "id": "mechanical",
+      "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)",
+      "agency": "SDCI",
+      "when": "cooking"
+    },
+    {
+      "id": "hood_fire",
+      "name": "Range-hood fire suppression inspection",
+      "agency": "Seattle Fire Department",
+      "when": "cooking"
+    },
+    {
+      "id": "assembly",
+      "name": "Assembly permit (spaces holding 100 or more people)",
+      "agency": "Seattle Fire Department",
+      "when": "assembly_permit"
+    },
+    {
+      "id": "sprinkler",
+      "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate",
+      "agency": "SDCI with Seattle Fire Department plan review; Seattle Public Utilities for water availability",
+      "when": "sprinkler"
+    },
+    {
+      "id": "health",
+      "name": "Food service plan review (before construction) and annual food business permit",
+      "agency": "Public Health - Seattle & King County",
+      "when": "food"
+    },
+    {
+      "id": "grease",
+      "name": "Grease trap or interceptor approval (fats, oils and grease program)",
+      "agency": "Seattle Public Utilities",
+      "when": "food"
+    },
+    {
+      "id": "business",
+      "name": "Washington State business license and Seattle business license",
+      "agency": "Washington Business Licensing Service; City of Seattle",
+      "when": "always"
+    },
+    {
+      "id": "alcohol",
+      "name": "Liquor license",
+      "agency": "Washington State Liquor and Cannabis Board",
+      "when": "alcohol"
+    },
+    {
+      "id": "sign",
+      "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
+      "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
+      "when": "signage"
+    },
+    {
+      "id": "patio",
+      "name": "Sidewalk café or tables-and-chairs permit",
+      "agency": "Seattle Department of Transportation (SDOT)",
+      "when": "outdoor_seating"
+    },
+    {
+      "id": "salon_license",
+      "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)",
+      "agency": "Washington State Department of Licensing",
+      "when": "salon"
+    },
+    {
+      "id": "historic",
+      "name": "Certificate of Approval (landmark building or historic district)",
+      "agency": "Seattle Department of Neighborhoods",
+      "when": "historic"
+    }
+  ],
+  "business_types": {
+    "cafe_restaurant": {
+      "label": "Café or restaurant",
+      "assembly_group": "A-2",
+      "fixture_profile": "restaurant",
+      "separate_facilities_exempt_at_or_below": 30,
+      "food": true,
+      "seating": true,
+      "zoning_use": "restaurant",
+      "zoning_use_label": "restaurant",
+      "typical_spaces": [
+        "dining",
+        "counter_service",
+        "kitchen",
+        "storage"
+      ]
+    },
+    "bar_taproom": {
+      "label": "Bar, tavern or taproom",
+      "assembly_group": "A-2",
+      "fixture_profile": "bar",
+      "separate_facilities_exempt_at_or_below": 30,
+      "food": true,
+      "seating": true,
+      "alcohol": true,
+      "zoning_use": "drinking_establishment",
+      "zoning_use_label": "drinking establishment",
+      "typical_spaces": [
+        "dining",
+        "standing",
+        "counter_service",
+        "kitchen",
+        "storage"
+      ]
+    },
+    "retail": {
+      "label": "Retail shop",
+      "group": "M",
+      "fixture_profile": "mercantile",
+      "separate_facilities_exempt_at_or_below": 100,
+      "food": false,
+      "seating": false,
+      "zoning_use": "retail",
+      "zoning_use_label": "retail shop (general sales and services)",
+      "typical_spaces": [
+        "retail",
+        "storage",
+        "office"
+      ]
+    },
+    "salon": {
+      "label": "Salon, barbershop or spa",
+      "group": "B",
+      "fixture_profile": "business",
+      "separate_facilities_exempt_at_or_below": 25,
+      "food": false,
+      "seating": false,
+      "zoning_use": "personal_service",
+      "zoning_use_label": "salon (general sales and services)",
+      "typical_spaces": [
+        "service",
+        "waiting",
+        "storage"
+      ]
+    },
+    "office_studio": {
+      "label": "Office or professional studio",
+      "group": "B",
+      "fixture_profile": "business",
+      "separate_facilities_exempt_at_or_below": 25,
+      "food": false,
+      "seating": false,
+      "zoning_use": "office",
+      "zoning_use_label": "office",
+      "typical_spaces": [
+        "office",
+        "waiting",
+        "storage"
+      ]
+    },
+    "fitness": {
+      "label": "Gym or fitness studio",
+      "assembly_group": "A-3",
+      "fixture_profile": "a3",
+      "separate_facilities_exempt_at_or_below": 15,
+      "food": false,
+      "seating": false,
+      "zoning_use": "indoor_recreation",
+      "zoning_use_label": "fitness studio (indoor sports and recreation)",
+      "typical_spaces": [
+        "exercise",
+        "waiting",
+        "storage",
+        "office"
+      ]
+    }
+  }
+}

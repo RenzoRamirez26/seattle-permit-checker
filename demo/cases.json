@@ -1,0 +1,14 @@
+[
+  {"id": "cafe_flawed", "title": "Café with planted problems", "plan": "flawed_plan.png",
+   "extraction": "flawed_extraction.json", "zoning": "NC2-55 (M)",
+   "intake": {"business_type": "cafe_restaurant", "cooking_on_site": true},
+   "planted": ["EG-1", "EG-2", "EG-3", "FS-1", "FS-2", "ADA-1", "ADA-2", "MECH-1", "HLTH-1"]},
+  {"id": "cafe_compliant", "title": "Café that passes", "plan": "compliant_plan.png",
+   "extraction": "compliant_extraction.json", "zoning": "NC2-55 (M)",
+   "intake": {"business_type": "cafe_restaurant", "cooking_on_site": true},
+   "planted": []},
+  {"id": "salon_flawed", "title": "Hair salon with planted problems", "plan": "salon_flawed_plan.png",
+   "extraction": "salon_flawed_extraction.json", "zoning": "NR3",
+   "intake": {"business_type": "salon"},
+   "planted": ["EG-3", "ADA-1", "ADA-2"]}
+]

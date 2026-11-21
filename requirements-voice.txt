@@ -1,0 +1,11 @@
+# Optional: local speech models for the voice feature. The app works without them
+# (typed questions, and the browser reads answers aloud).
+#
+#   python -m pip install -r requirements-voice.txt
+#   python -m checker.voice          # quick check of both
+#
+# Both download their model from Hugging Face on first use (no account needed).
+# NOT installed or run in the build sandbox: treat these two pins as a starting point.
+
+faster-whisper==1.2.1   # speech to text on a laptop CPU (checker/voice.py: transcribe)
+kokoro==0.7.16          # text to speech, used when PERMIT_TTS=kokoro (checker/voice.py: synthesize)

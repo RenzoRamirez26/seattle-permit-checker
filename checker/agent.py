@@ -1,0 +1,182 @@
+"""The agent: answers an owner's questions about their pre-check, in plain language.
+
+In:  a question (typed, or transcribed from speech by voice.py) and one audit result.
+Out: a short answer that can be shown or spoken, with the rule ids it relied on.
+
+How it stays reliable: it is not trained on anything and it does not decide compliance.
+It is given the audit result (the facts read from the plan, the findings, the permits,
+Seattle's review data) and told to answer only from that. check_grounded() then rejects
+an answer that cites a rule or code section the audit does not contain, and the template
+answer is used instead.
+
+Without ANTHROPIC_API_KEY the template answers every question, so the app still works.
+
+STATUS: the request and the grounding check are tested with the API mocked. No real
+model call has been made from this code yet.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+from typing import Any, Optional
+
+DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
+MAX_HISTORY_TURNS = 6
+
+SYSTEM = (
+    "You explain a permit pre-check to a small-business owner in Seattle. They are not an "
+    "architect. Answer only from the audit inside the <audit> tags: the facts read from their "
+    "floor plan, the findings, the permit list and the city's review data.\n"
+    "- When you rely on a finding, put its rule id in square brackets, like [EG-1].\n"
+    "- Quote code sections only as they appear in the audit. Never add a section, number or "
+    "requirement that is not there.\n"
+    "- If the audit does not answer the question, say so and name who to ask, using the "
+    "agencies listed in the audit.\n"
+    "- This is a pre-submission check, not a code determination. Do not tell them the plan "
+    "will be approved.\n"
+    "- Your answer may be read aloud: two to five plain sentences, no lists, no markdown."
+)
+
+# Words in a question -> rule-id families, used by the template answer.
+TOPICS = {
+    "EG": ("exit", "door", "egress", "swing", "way out"),
+    "ADA": ("accessib", "wheelchair", "ada", "aisle", "turning", "seat"),
+    "PL": ("toilet", "restroom", "bathroom", "lavator", "plumb"),
+    "FS": ("sprinkler", "fire", "extinguisher", "alarm", "exit sign"),
+    "MECH": ("hood", "kitchen", "cook", "fryer", "range", "grill"),
+    "HLTH": ("health", "sink", "hand", "food"),
+    "ZN": ("zon", "allowed here", "location", "address", "lease"),
+    "OCC": ("occupan", "how many people", "capacity"),
+}
+_STOPWORDS = {"what", "when", "where", "which", "does", "need", "have", "that", "this", "with", "about", "should",
+              "would", "could", "there", "plan", "problem", "problems", "wrong", "okay", "pass", "fail", "much",
+              "many", "more", "tell", "show", "shown", "enough", "required", "from", "your", "mine"}
+_RULE_ID = re.compile(r"\[([A-Z]{2,5}-\d+)\]")
+_SECTION = re.compile(r"\b(?:SBC|SMC|IBC|ADA)\s+(?:Table\s+|Chapter\s+|Section\s+)?\d[\w.]*", re.I)
+
+
+# ---------------------------------------------------------------- context
+def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
+    """The audit, trimmed to what an answer needs, as JSON."""
+    ctx: dict[str, Any] = {
+        "summary": result["summary"],
+        "findings": [{k: f[k] for k in ("rule_id", "title", "status", "severity", "detail", "fix", "citation", "reviewed_by")}
+                     for f in result["findings"]],
+        "permits_likely_required": result["permits_likely_required"],
+        "occupant_load_by_space": result["occupant_load"]["by_space"],
+        "toilets_required": result.get("fixtures_required"),
+        "code_basis": result["code_basis"],
+        "disclaimer": result["disclaimer"],
+    }
+    if result.get("zoning"):
+        ctx["zoning"] = {k: result["zoning"].get(k) for k in ("district", "status", "detail", "fix", "overlays")}
+    if result.get("local_review_data"):
+        d = result["local_review_data"]
+        ctx["seattle_review_records"] = {k: d.get(k) for k in ("category_label", "source", "summary",
+                                                               "corrections_by_review_type", "top_comment_subjects")}
+    if examples:
+        ctx["real_reviewer_comments"] = [{k: e.get(k) for k in ("Review_Type", "Subject_Raw", "Comment")} for e in examples]
+    return json.dumps(ctx, indent=1, default=str)
+
+
+# ---------------------------------------------------------------- template (no model)
+def _say(f: dict) -> str:
+    fix = f" {f['fix']}" if f.get("fix") else ""
+    return f"{f['title']}: {f['detail']}{fix} [{f['rule_id']}]"
+
+
+def spoken_summary(result: dict, limit: int = 3) -> str:
+    """A short spoken overview of the result. No model involved."""
+    s = result["summary"]
+    open_items = [f for f in result["findings"] if f["status"] != "pass"]
+    if not open_items:
+        return (f"I checked this {s['business_label'].lower()} plan and found nothing to fix on the items I check. "
+                f"The occupant load is {s['occupant_load']}. {result['disclaimer']}")
+    head = (f"I found {s['fails']} problem{'s' if s['fails'] != 1 else ''} and {s['reviews']} "
+            f"item{'s' if s['reviews'] != 1 else ''} to confirm. The occupant load is {s['occupant_load']}, "
+            f"which makes this Group {s['occupancy_group']}. The most serious: ")
+    top = " ".join(f"{f['title']}. [{f['rule_id']}]" for f in open_items[:limit])
+    more = f" There are {len(open_items) - limit} more in the fix list." if len(open_items) > limit else ""
+    return head + top + more
+
+
+def template_answer(question: str, result: dict) -> str:
+    """Answer from the findings by matching the question's topic. Used with no API key and as the fallback."""
+    q = question.lower()
+    if any(w in q for w in ("permit", "licen", "approval", "who do i", "which agenc")):
+        names = "; ".join(f"{p['name']} from {p['agency']}" for p in result["permits_likely_required"][:5])
+        more = len(result["permits_likely_required"]) - 5
+        return f"You will likely need: {names}" + (f"; and {more} more in the permit list." if more > 0 else ".")
+    if any(w in q for w in ("how long", "how many rounds", "wait", "timeline", "delay")):
+        d = result.get("local_review_data")
+        if d:
+            sm = d["summary"]
+            return (f"In Seattle's records, {sm['share_two_or_more_cycles']:.0%} of {sm['permits']} {d['category_label']} "
+                    f"build-outs needed two or more review rounds, and half spent {sm['median_days_plan_review']:g} "
+                    f"days or more in plan review.")
+        return "I have no Seattle review data loaded, so I cannot say how long review takes. Run the data pipeline first."
+    families = [fam for fam, words in TOPICS.items() if any(w in q for w in words)]
+    words = set(re.findall(r"[a-z]{4,}", q)) - _STOPWORDS
+    hits = [f for f in result["findings"]
+            if f["rule_id"].split("-")[0] in families or any(w in f["title"].lower() for w in words)]
+    open_hits = [f for f in hits if f["status"] != "pass"]
+    if open_hits:
+        return " ".join(_say(f) for f in open_hits[:3])
+    if hits:
+        return "That part passed. " + " ".join(f"{f['title']}: {f['detail']} [{f['rule_id']}]" for f in hits[:2])
+    return spoken_summary(result)
+
+
+# ---------------------------------------------------------------- grounding check
+def check_grounded(text: str, result: dict) -> list[str]:
+    """Things the answer cites that the audit does not contain. Empty list = grounded."""
+    known_rules = {f["rule_id"] for f in result["findings"]}
+    haystack = build_context(result).lower()
+    problems = [f"unknown rule id {r}" for r in _RULE_ID.findall(text) if r not in known_rules]
+    for section in _SECTION.findall(text):
+        if section.lower().rstrip(".") not in haystack:
+            problems.append(f"code section not in the audit: {section}")
+    return problems
+
+
+# ---------------------------------------------------------------- answer
+def answer(question: str, result: dict, *, client=None, model: str = DEFAULT_MODEL,
+           history: Optional[list[dict]] = None, examples: Optional[list[dict]] = None) -> dict[str, Any]:
+    """Answer one question about one audit.
+
+    Returns {"text", "cited_rules", "generated_by", "problems"}. generated_by is the model
+    name, or "template" when no model was used or its answer failed the grounding check.
+    """
+    question = (question or "").strip()
+    if not question:
+        return _out(spoken_summary(result), "template", [])
+    if client is None and not os.environ.get("ANTHROPIC_API_KEY"):
+        return _out(template_answer(question, result), "template", [])
+    try:
+        if client is None:
+            import anthropic
+
+            client = anthropic.Anthropic()
+        messages = [{"role": m["role"], "content": m["content"]} for m in (history or [])[-MAX_HISTORY_TURNS:]]
+        messages.append({"role": "user",
+                         "content": f"<audit>\n{build_context(result, examples)}\n</audit>\n\nQuestion: {question}"})
+        resp = client.messages.create(model=model, max_tokens=500, system=SYSTEM, messages=messages)
+        text = " ".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    except Exception as e:  # network, key or quota trouble must not break the demo
+        return _out(template_answer(question, result), "template", [f"model call failed: {e.__class__.__name__}"])
+    problems = check_grounded(text, result)
+    if not text or problems:
+        return _out(template_answer(question, result), "template", problems or ["empty answer"])
+    return _out(text, model, [])
+
+
+def _out(text: str, generated_by: str, problems: list[str]) -> dict[str, Any]:
+    return {"text": text, "cited_rules": sorted(set(_RULE_ID.findall(text))),
+            "generated_by": generated_by, "problems": problems}
+
+
+def for_speech(text: str) -> str:
+    """Strip the bracketed rule ids and markdown so a voice does not read them out."""
+    text = _RULE_ID.sub("", text)
+    return re.sub(r"\s{2,}", " ", re.sub(r"[*_#`]", "", text)).strip()

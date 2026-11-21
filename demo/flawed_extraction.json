@@ -1,0 +1,140 @@
+{
+  "plan_title": "Caf\u00e9 Tenant Improvement - Floor Plan B",
+  "scale_note": "All dimensions printed; do not scale.",
+  "overall_width_ft": 40,
+  "overall_length_ft": 60,
+  "gross_area_sqft": 2400,
+  "spaces": [
+    {
+      "name": "Dining Room",
+      "use": "dining",
+      "area_sqft": 1280,
+      "width_ft": 40,
+      "length_ft": 32
+    },
+    {
+      "name": "Service Counter",
+      "use": "counter_service",
+      "area_sqft": 240,
+      "width_ft": 40,
+      "length_ft": 6
+    },
+    {
+      "name": "Kitchen",
+      "use": "kitchen",
+      "area_sqft": 528,
+      "width_ft": 24,
+      "length_ft": 22
+    },
+    {
+      "name": "Storage",
+      "use": "storage",
+      "area_sqft": 128,
+      "width_ft": 16,
+      "length_ft": 8
+    },
+    {
+      "name": "Restroom 1",
+      "use": "restroom",
+      "area_sqft": null,
+      "width_ft": null,
+      "length_ft": null
+    },
+    {
+      "name": "Restroom 2",
+      "use": "restroom",
+      "area_sqft": null,
+      "width_ft": null,
+      "length_ft": null
+    },
+    {
+      "name": "Corridor",
+      "use": "corridor",
+      "area_sqft": null,
+      "width_ft": 3.0,
+      "length_ft": 16
+    }
+  ],
+  "seat_count": 56,
+  "accessible_seat_count": null,
+  "doors": [
+    {
+      "label": "Door 1",
+      "location": "main entry, south wall",
+      "clear_width_in": 36,
+      "is_exit": true,
+      "swing": "inward",
+      "serves": "Dining Room"
+    },
+    {
+      "label": "Restroom 1 door",
+      "location": "off corridor",
+      "clear_width_in": 30,
+      "is_exit": false,
+      "swing": "unknown",
+      "serves": "Restroom 1"
+    },
+    {
+      "label": "Restroom 2 door",
+      "location": "off corridor",
+      "clear_width_in": 30,
+      "is_exit": false,
+      "swing": "unknown",
+      "serves": "Restroom 2"
+    }
+  ],
+  "aisles": [
+    {
+      "label": "Aisle A (between tables)",
+      "min_width_in": 30
+    },
+    {
+      "label": "Corridor to restrooms",
+      "min_width_in": 36
+    }
+  ],
+  "restrooms": [
+    {
+      "label": "Restroom 1",
+      "designation": "women",
+      "water_closets": 1,
+      "urinals": 0,
+      "lavatories": 1,
+      "turning_circle_diameter_in": 54,
+      "door_clear_width_in": 30
+    },
+    {
+      "label": "Restroom 2",
+      "designation": "men",
+      "water_closets": 1,
+      "urinals": 0,
+      "lavatories": 1,
+      "turning_circle_diameter_in": 54,
+      "door_clear_width_in": 30
+    }
+  ],
+  "kitchen": {
+    "cooking_appliances": [
+      "range",
+      "fryer",
+      "espresso prep"
+    ],
+    "grease_producing_cooking": true,
+    "type1_hood_shown": false,
+    "hand_sinks": 0,
+    "three_compartment_sink": true,
+    "mop_or_service_sink": true,
+    "grease_interceptor_shown": null
+  },
+  "fire_safety": {
+    "exit_signs_shown": 0,
+    "fire_extinguishers_shown": 0,
+    "class_k_extinguisher_shown": false,
+    "sprinklers_noted": false,
+    "emergency_lighting_noted": null
+  },
+  "outdoor_seating_shown": false,
+  "uncertainties": [
+    "Restroom room dimensions are not printed."
+  ]
+}
