@@ -54,7 +54,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
 | Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
-| Permit form pre-fill | not built | | Phase 7 |
+| Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. One page gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
 
 Unfinished parts say `STATUS:` in their docstring. `grep -rn "STATUS:" checker pipeline evaluation` lists them.
 
@@ -138,6 +138,7 @@ checker/                  the engine
 ├── zoning.py             address or zone -> allowed, needs review, or not allowed, per business type
 ├── audit.py              runs the steps above in order; also the command-line tool
 ├── agent.py              answers questions about one result, with a grounding check
+├── permit_draft.py       one result -> a one-page permit application preparation sheet (adds no rules)
 └── voice.py              speech to text and text to speech around the agent
 pipeline/                 Seattle open data
 ├── seattle.py            download and map permits, plan reviews, reviewer comments
@@ -153,7 +154,8 @@ evaluation/               evaluate_extraction.py: how accurately the model reads
 demo/                     three fictional plans, their ground truth, cases.json, make_plans.py
 data/raw/                 downloads go here (not committed)
 reports/                  evaluation output for the slides
-docs/                     rulebook status, data sources, demo script, voice options
+docs/                     rulebook status, data sources, demo script, voice options,
+                          permit_draft.md: the city source for each field on the preparation sheet
 tests/                    one file per part, plus a headless test of the website
 CLAUDE.md                 project rules for Claude Code
 ```
@@ -188,7 +190,7 @@ Queried directly from the city's portal on 20 November 2026, using its text sear
 - [ ] **Phase 4: Plan reading with the model.** Run `--vision`, record the accuracy table, fix the prompt where it misreads
 - [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
 - [ ] **Phase 6: More plans.** A retail and a gym demo plan, and one real (permission given) plan
-- [ ] **Phase 7: Permit form pre-fill.** Fill SDCI's application fields from the result
+- [x] **Phase 7: Permit application preparation sheet.** One page gathering what the city's application asks for, filled from the result where it can be; a preparation aid, not the city's form ([docs/permit_draft.md](docs/permit_draft.md))
 - [ ] **Phase 8: Demo and write-up.** Results table, limits, slides ([docs/demo_script.md](docs/demo_script.md))
 
 Phase 4 is the evidence judges will ask for. If time runs short, cut from the bottom.
