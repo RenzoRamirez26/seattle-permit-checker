@@ -19,7 +19,7 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from checker import audit, rules_engine  # noqa: E402
+from checker import audit, permit_draft, rules_engine  # noqa: E402
 from pipeline.classify import CATEGORY_FOR_BUSINESS  # noqa: E402
 
 DEMO_DIR = ROOT / "demo"
@@ -107,6 +107,11 @@ def run_audit(extraction: dict, intake: dict, *, zone: str | None, address: str 
     """One call into the engine: the same function the command line and the tests use."""
     return audit.audit(None, intake, extraction=extraction, zoning_override=zone or None, address=address or None,
                        db_path=str(DB_PATH) if has_database() else None)
+
+
+def permit_sheet(result: dict) -> str:
+    """The permit application preparation sheet for this result (checker/permit_draft.py), as Markdown."""
+    return permit_draft.to_markdown(result)
 
 
 def reviewer_examples(result: dict, per_chapter: int = 2) -> list[dict]:

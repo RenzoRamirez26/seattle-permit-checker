@@ -275,6 +275,10 @@ if result:
                                       "factor": "Sq ft per person", "load": "People"}), hide_index=True, width="stretch")
         st.caption(result["code_basis"])
 
+    st.download_button("Download the permit draft", ac.permit_sheet(result), file_name="permit_application_preparation.md",
+                       mime="text/markdown", key="dl_permit_draft",
+                       help="A one-page preparation sheet: what the city's application asks for, filled in from this "
+                            "result where it can be. It is not the city's form.")
     st.download_button("Download the report (Markdown)", rules_engine.to_markdown(result), file_name="permit_precheck.md",
                        mime="text/markdown")
     st.caption(result["disclaimer"])

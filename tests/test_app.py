@@ -72,6 +72,21 @@ def test_salon_flow_and_questions(app):
     assert not at.metric and [b.label for b in at.button] == ["Read the plan"]
 
 
+def test_permit_draft_download_is_offered_with_the_results(app):
+    from checker import permit_draft
+
+    at = app
+    assert not at.get("download_button")                                   # nothing to download before a check
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert not at.exception
+    labels = [b.proto.label for b in at.get("download_button")]
+    assert labels == ["Download the permit draft", "Download the report (Markdown)"]
+    sheet = permit_draft.to_markdown(at.session_state["result"])
+    assert sheet.startswith("# Permit application preparation sheet: Café or restaurant")
+    assert "preparation aid, not the City of Seattle's official form" in sheet and "106 people" in sheet
+
+
 def test_business_type_changes_the_answer(app):
     at = app
     at.selectbox(key="demo_case").set_value("salon_flawed").run()
