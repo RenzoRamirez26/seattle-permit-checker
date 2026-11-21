@@ -282,6 +282,11 @@ if extraction:
 # 4. Results
 # ----------------------------------------------------------------------------------
 ICON = {"fail": "❌", "review": "❓", "pass": "✅"}
+# One colour per status, used the same way everywhere on this page, and never as the only signal: each status
+# also has its icon and its words. The colours themselves are set in .streamlit/config.toml (red, orange, green).
+# These are fixed strings; nothing read from a plan or typed by the owner is ever placed inside a colour.
+STATUS_WORDS = {"fail": "Fix", "review": "Check with the city", "pass": "OK"}
+STATUS_LABEL = {"fail": ":red[**Fix**]", "review": ":orange[**Check with the city**]", "pass": ":green[**OK**]"}
 
 result = st.session_state.get(ac.KEY_RESULT)
 if result:
@@ -289,9 +294,11 @@ if result:
     with st.container(border=True):
         st.subheader("4. Results")
         m1, m2, m3 = st.columns(3)
-        m1.metric("Fix", s["fails"], help="Problems the rules found. Fix these before you submit.")
-        m2.metric("Check with the city", s["reviews"], help="The plan does not show enough to decide. Confirm these.")
-        m3.metric("OK", s["passes"], help="Checks the plan passed.")
+        m1.metric(f"{ICON['fail']} {STATUS_LABEL['fail']}", s["fails"], border=True,
+                  help="Problems the rules found. Fix these before you submit.")
+        m2.metric(f"{ICON['review']} {STATUS_LABEL['review']}", s["reviews"], border=True,
+                  help="The plan does not show enough to decide. Confirm these.")
+        m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks the plan passed.")
         st.caption(f"Occupant load {s['occupant_load']} · Group {s['occupancy_group']} · "
                    f"Exits: {s['exits_shown']} shown, {s['exits_required']} required")
 
@@ -303,7 +310,8 @@ if result:
                 st.success("Nothing to fix on the items this tool checks.", icon="✅")
             for f in open_items:
                 with st.container(border=True):
-                    st.markdown(f"{ICON[f['status']]} **{f['title']}** &nbsp; `{f['rule_id']}` · {f['severity']}")
+                    st.markdown(f"{ICON[f['status']]} {STATUS_LABEL[f['status']]} &nbsp; **{f['title']}** &nbsp; "
+                                f"`{f['rule_id']}` · {f['severity']}")
                     st.write(f["detail"])
                     if f["fix"]:
                         st.markdown(f"**Fix:** {f['fix']}")
@@ -312,7 +320,8 @@ if result:
             with st.expander(f"Checks passed ({s['passes']})"):
                 for f in result["findings"]:
                     if f["status"] == "pass":
-                        st.markdown(f"{ICON['pass']} **{f['title']}**: {f['detail']}  \n:gray[{f['citation']}]")
+                        st.markdown(f"{ICON['pass']} {STATUS_LABEL['pass']} &nbsp; **{f['title']}**: {f['detail']}  \n"
+                                    f":gray[{f['citation']}]")
 
         with side_col:
             st.markdown("**Permits and approvals you will likely need**")

@@ -19,8 +19,15 @@ def app(monkeypatch, tmp_path):
     return AppTest.from_file(APP, default_timeout=30).run()
 
 
+def _plain(label: str) -> str:
+    """A count's label without its icon and colour: '❌ :red[**Fix**]' -> 'Fix'."""
+    import re
+
+    return re.sub(r":\w+\[\*\*(.*?)\*\*\]", r"\1", label).lstrip("❌❓✅ ").strip()
+
+
 def _metrics(at):
-    return {m.label: m.value for m in at.metric}
+    return {_plain(m.label): m.value for m in at.metric}
 
 
 def _permits(at):
@@ -238,13 +245,21 @@ def test_layout_of_the_check_page(app):
     assert not at.exception
     assert [h.value for h in at.subheader] == ["1. Your floor plan", "2. Your business", "3. What was read from the plan",
                                                "4. Results", "5. Ask about your results"]
-    assert [m.label for m in at.metric][:3] == ["Fix", "Check with the city", "OK"]          # the top row, in this order
+    assert [_plain(m.label) for m in at.metric][:3] == ["Fix", "Check with the city", "OK"]  # the top row, in this order
+    # colour is never the only signal: each count carries its icon, its words and its colour
+    assert [m.label for m in at.metric][:3] == ["❌ :red[**Fix**]", "❓ :orange[**Check with the city**]", "✅ :green[**OK**]"]
     assert [m.value for m in at.metric][:3] == ["11", "2", "6"]
     assert any(c.value.startswith("Occupant load 106 · Group A-2 · Exits: 1 shown, 2 required") for c in at.caption)
 
     # the fix list: problems first, then items to confirm; passed checks are not in it
     titles = [m.value for m in at.markdown if m.value.startswith(("❌", "❓"))]
     assert len(titles) == 13 and [t[0] for t in titles] == ["❌"] * 11 + ["❓"] * 2
+    assert all(t.startswith("❌ :red[**Fix**] ") for t in titles[:11])                         # icon, colour and words on each finding
+    assert all(t.startswith("❓ :orange[**Check with the city**] ") for t in titles[11:])
+    # red and amber are used for nothing else on the page, and no finding's own text sits inside a colour
+    page_text = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
+    import re
+    assert set(re.findall(r":(red|orange|green)\[(.*?)\]", page_text)) == {("red", "**Fix**"), ("orange", "**Check with the city**"), ("green", "**OK**")}
     assert any(e.label == "Checks passed (6)" for e in at.expander)
 
     # one primary button per step: read (1), run (3), download the report (4), ask (5); everything else is secondary
