@@ -10,7 +10,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
+from typing import Callable
 
 import streamlit as st
 
@@ -71,6 +73,22 @@ def business_labels() -> dict[str, str]:
 
 def truth_extraction(case_id: str) -> dict:
     return json.loads((DEMO_DIR / cases()[case_id]["extraction"]).read_text(encoding="utf-8"))
+
+
+def read_uploaded_plan(data: bytes, filename: str, reader: Callable[[Path], dict]) -> dict:
+    """Read an uploaded floor plan and leave no copy behind.
+
+    The reader needs a file path (a PDF cannot be read from memory by the plan reader), so the
+    upload is written to a temporary file. That file is deleted as soon as the read ends,
+    whether it worked or failed: an owner's floor plan must not stay on the disk.
+    """
+    with tempfile.NamedTemporaryFile(suffix=Path(filename).suffix, delete=False) as f:
+        f.write(data)
+    path = Path(f.name)
+    try:
+        return reader(path)
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def has_api_key() -> bool:
