@@ -52,7 +52,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested | **No results yet**: run `--vision` |
 | Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
-| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | **Try real voices through the microphone**; machine speech is easier than people |
+| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
 | Permit form pre-fill | not built | | Phase 7 |
 
@@ -186,7 +186,7 @@ Queried directly from the city's portal on 20 November 2026, using its text sear
 - [x] **Phase 2: Seattle data.** Download, database, queries (live download still to run)
 - [x] **Phase 3: Website.** Five pages, editable reading, results, download
 - [ ] **Phase 4: Plan reading with the model.** Run `--vision`, record the accuracy table, fix the prompt where it misreads
-- [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); try the microphone with real voices
+- [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
 - [ ] **Phase 6: More plans.** A retail and a gym demo plan, and one real (permission given) plan
 - [ ] **Phase 7: Permit form pre-fill.** Fill SDCI's application fields from the result
 - [ ] **Phase 8: Demo and write-up.** Results table, limits, slides ([docs/demo_script.md](docs/demo_script.md))
@@ -240,6 +240,13 @@ Press <b>Play answer</b> under the answer: some browsers block speech that a cli
 <summary><b>The microphone box does not appear</b></summary>
 
 It appears only when `faster-whisper` is installed (`requirements-voice.txt`), and the browser must be allowed to use the microphone. The first recording downloads the speech model, which takes a minute.
+
+</details>
+
+<details>
+<summary><b>A spoken question does not get through in Safari</b></summary>
+
+Use Chrome for spoken questions. In Safari, typed questions and spoken answers work, but a question recorded with the microphone box does not reach the agent yet. This is a known issue, not yet fixed: see [docs/voice.md](docs/voice.md#known-issues).
 
 </details>
 

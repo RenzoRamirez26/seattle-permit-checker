@@ -82,6 +82,18 @@ def test_business_type_changes_the_answer(app):
     assert any("Liquor license" in p for p in _permits(at))
 
 
+def test_microphone_box_says_which_browser_to_use(app, monkeypatch):
+    from checker import voice
+
+    at = app
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert not any("Use Chrome for spoken questions" in c.value for c in at.caption)      # no microphone box, no note
+    monkeypatch.setattr(voice, "stt_available", lambda: True)                            # as if faster-whisper were installed
+    at.run()
+    assert not at.exception and any("Use Chrome for spoken questions" in c.value and "Safari" in c.value for c in at.caption)
+
+
 def test_upload_without_a_key_explains_itself(app):
     at = app
     at.radio(key="plan_source").set_value("Upload my own plan").run()

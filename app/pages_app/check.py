@@ -307,6 +307,8 @@ if result:
 
     if voice.stt_available():
         recording = st.audio_input("Or ask by voice", key="mic")
+        st.caption("Use Chrome for spoken questions. Recording does not work in Safari yet; there you can type the "
+                   "question and the answer is still read aloud.")
         if recording is not None:
             audio = recording.getvalue()
             digest = hashlib.sha1(audio).hexdigest()

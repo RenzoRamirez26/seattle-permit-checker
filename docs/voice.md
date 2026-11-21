@@ -34,7 +34,8 @@ The browser voice and the fallbacks are tested. Both models were installed and r
 
 - `PERMIT_TTS=kokoro python -m checker.voice` speaks a sentence and hears it back correctly.
 - `python -m evaluation.evaluate_voice` speaks ten typical owner questions with Kokoro and transcribes them: 9 of 10 came back word for word and all 10 would get the same answer from the agent. Speaking took about 0.8 s per question and transcribing about 0.7 s. The table is in [reports/voice_eval.md](../reports/voice_eval.md).
-- **The questions were machine-spoken, so real voices will do worse.** A person speaking into the app's microphone box has not been measured yet.
+- **The questions were machine-spoken, so real voices will do worse.**
+- On 21 November 2026 a person asked questions through the app's microphone box. **In Chrome it worked**: the question was heard and answered aloud. **In Safari the spoken question did not get through** (see Known issues). This was one person trying it, not a measurement: there is no accuracy number for real voices yet.
 
 Two things had to change to make the models run, both recorded in `requirements-voice.txt`:
 
@@ -44,3 +45,12 @@ Two things had to change to make the models run, both recorded in `requirements-
 ### Does the word list help Whisper?
 
 Yes, on harder audio. A one-off check on this laptop used ten questions full of code words, six machine voices (three Kokoro voices and three of macOS's own), as spoken and with loud hiss added: 120 clips. Word-for-word transcripts rose from 80 to 100 with the word list. Typical repairs: "regrets" back to "egress", "laboratories" to "lavatories", "SBCI" to "SDCI". On Kokoro's clean voice alone it made no difference (29 of 30 either way), which is why the report's main table looks the same with and without it. `evaluate_voice.py` repeats a small version of this check (ten clips, with and without hiss) on every run.
+
+## Known issues
+
+### A spoken question does not get through in Safari
+
+- **What happens.** In Safari, typed questions work and answers are spoken, but a question recorded with the microphone box does not reach the agent. The same steps work in Chrome. Seen on 21 November 2026 on macOS.
+- **What to do for now.** Use Chrome for spoken questions, or type the question. The app says this under the microphone box.
+- **Cause.** Not known yet, and no fix has been tried. It has not been established whether Safari records nothing, records something the page never receives, or sends audio that the speech-to-text step cannot read.
+- **Where to start.** Record a question in Safari while watching the terminal that runs Streamlit. If it prints "speech to text failed, falling back to typing" the recording arrived and could not be read, and the line names the error. If it prints nothing, the recording never reached `voice.transcribe()` and the problem is in the browser or the microphone box. Also note whether the page shows "I could not make out that recording".

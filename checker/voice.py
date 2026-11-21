@@ -19,9 +19,10 @@ Both models are optional. Install them with `pip install -r requirements-voice.t
 run `PERMIT_TTS=kokoro python -m checker.voice`: it speaks a sentence into voice_test.wav
 and prints what it heard back. Measured results: reports/voice_eval.md.
 
-STATUS: both models have run on one computer (macOS 14, Intel, Python 3.13, 20 November
-2026), on machine-spoken audio only. A question recorded by a person through the app's
-microphone box has NOT been tried yet.
+STATUS: both models have run on one computer (macOS 14, Intel, Python 3.13, November 2026).
+A person has asked questions through the app's microphone box in Chrome and it worked
+(21 November 2026; one person, not measured). In Safari a spoken question does NOT get
+through yet; the cause is not known. See "Known issues" in docs/voice.md.
 """
 from __future__ import annotations
 
