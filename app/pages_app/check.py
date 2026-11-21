@@ -25,7 +25,18 @@ types = ac.rules()["business_types"]
 # State
 # ----------------------------------------------------------------------------------
 def _reset_results() -> None:
+    """A different plan (source, demo plan or uploaded file): the reading and everything built on it go."""
     for key in (ac.KEY_EXTRACTION, ac.KEY_EXTRACTION_SOURCE, ac.KEY_RESULT, ac.KEY_CHAT, ac.KEY_SPEAK):
+        st.session_state.pop(key, None)
+
+
+def _reset_check() -> None:
+    """A step 2 answer changed (business, location): the old result no longer applies, but the reading of the plan does.
+
+    Keeping the reading matters: typing in the zone box and then clicking "Run the check" reaches the app as one
+    step, with this callback first. If it deleted the reading, step 3 and its button would vanish before the click counted.
+    """
+    for key in (ac.KEY_RESULT, ac.KEY_CHAT, ac.KEY_SPEAK):
         st.session_state.pop(key, None)
 
 
@@ -76,30 +87,30 @@ else:
 # 2. Business and location
 # ----------------------------------------------------------------------------------
 st.subheader("2. Your business")
-st.selectbox("Kind of business", list(labels), format_func=labels.get, key=ac.KEY_BUSINESS, on_change=_reset_results)
+st.selectbox("Kind of business", list(labels), format_func=labels.get, key=ac.KEY_BUSINESS, on_change=_reset_check)
 bt = types[st.session_state[ac.KEY_BUSINESS]]
 c1, c2 = st.columns(2)
 with c1:
     if bt.get("food"):
-        st.checkbox("Cooking with a range, fryer or grill", key=ac.KEY_COOKING, on_change=_reset_results)
+        st.checkbox("Cooking with a range, fryer or grill", key=ac.KEY_COOKING, on_change=_reset_check)
     if bt.get("alcohol"):
         st.checkbox("Serves alcohol", value=True, disabled=True, key="alcohol_fixed")
     else:
-        st.checkbox("Serves alcohol", key=ac.KEY_ALCOHOL, on_change=_reset_results)
-    st.checkbox("Outdoor seating on the sidewalk", key=ac.KEY_OUTDOOR, on_change=_reset_results)
+        st.checkbox("Serves alcohol", key=ac.KEY_ALCOHOL, on_change=_reset_check)
+    st.checkbox("Outdoor seating on the sidewalk", key=ac.KEY_OUTDOOR, on_change=_reset_check)
 with c2:
-    st.checkbox("Not on the ground floor", key=ac.KEY_UPPER, on_change=_reset_results)
-    st.checkbox("Landmark building or historic district", key=ac.KEY_HISTORIC, on_change=_reset_results)
+    st.checkbox("Not on the ground floor", key=ac.KEY_UPPER, on_change=_reset_check)
+    st.checkbox("Landmark building or historic district", key=ac.KEY_HISTORIC, on_change=_reset_check)
 
 zone_mode = st.radio("Location", [ac.ZONE_BY_HAND, ac.ZONE_BY_ADDRESS], key=ac.KEY_ZONE_MODE, horizontal=True,
-                     on_change=_reset_results)
+                     on_change=_reset_check)
 if zone_mode == ac.ZONE_BY_HAND:
     st.text_input("Zone, as printed on the Seattle zoning map", key=ac.KEY_ZONE, placeholder='for example "NC2-55 (M)" or NR3',
-                  on_change=_reset_results)
+                  on_change=_reset_check)
 else:
     st.text_input("Street address in Seattle", key=ac.KEY_ADDRESS, placeholder="123 Example St, Seattle, WA",
                   help="Looked up with the US Census geocoder and Seattle's zoning map. Needs internet.",
-                  on_change=_reset_results)
+                  on_change=_reset_check)
 
 
 def _intake() -> dict:

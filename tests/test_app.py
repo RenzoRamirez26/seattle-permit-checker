@@ -68,9 +68,11 @@ def test_salon_flow_and_questions(app):
     _click(at, "Read my results aloud")
     assert "I found 3 problems and 2 items to confirm" in at.chat_message[2].markdown[0].value
 
-    # changing the business clears the old result instead of showing it under the wrong heading
+    # changing the business clears the old result (and the chat) instead of showing it under the wrong heading,
+    # and keeps the reading of the plan, so the check can be run again without reading the plan a second time
     at.selectbox(key="business_type").set_value("retail").run()
-    assert not at.metric and [b.label for b in at.button] == ["Read the plan"]
+    assert not at.metric and not at.chat_message
+    assert [b.label for b in at.button] == ["Read the plan", "Run the check"]
 
 
 def test_pdf_downloads_are_offered_with_the_results(app):
@@ -97,6 +99,72 @@ def test_pdf_downloads_are_offered_with_the_results(app):
     page = (Path(app_common.ROOT) / "app" / "pages_app" / "check.py").read_text(encoding="utf-8")
     assert 'file_name="permit_precheck.pdf"' in page and 'file_name="permit_preparation_sheet.pdf"' in page
     assert page.count('mime="application/pdf"') == 2 and "text/markdown" not in page
+
+
+def test_editing_step_2_and_clicking_run_the_check_in_one_go_still_runs_the_check(app):
+    """In a browser, typing in the zone box and then clicking "Run the check" arrives as one step:
+    the text is committed and the button is clicked together. The reading must survive that."""
+    at = app
+    at.selectbox(key="demo_case").set_value("salon_flawed").run()
+    at.button(key="btn_read").click().run()
+    assert any(h.value == "3. What was read from the plan" for h in at.subheader)
+    at.text_input(key="zone_text").set_value("NC2-55 (M)")       # typed, not yet committed...
+    at.button(key="btn_check").click()                           # ...then the button, in the same step
+    at.run()
+    assert not at.exception
+    assert any(h.value == "3. What was read from the plan" for h in at.subheader)      # step 3 is still there
+    assert _metrics(at)["Occupant load"] == "15"                                        # and the check ran
+    assert any("Zoning: NC2-55 (M)" in m.value for m in at.markdown)                    # with the zone just typed
+
+
+def test_step_2_changes_keep_the_reading_and_drop_the_old_result(app):
+    at = app
+    at.selectbox(key="demo_case").set_value("salon_flawed").run()
+    at.button(key="btn_read").click().run()
+    reading = at.session_state["extraction"]
+
+    def step_3_shown():
+        return any(h.value == "3. What was read from the plan" for h in at.subheader)
+
+    changes = (lambda: at.text_input(key="zone_text").set_value("NC2-55 (M)"),
+               lambda: at.checkbox(key="outdoor").set_value(True),
+               lambda: at.checkbox(key="upper_floor").set_value(True),
+               lambda: at.checkbox(key="historic").set_value(True),
+               lambda: at.selectbox(key="business_type").set_value("cafe_restaurant"),
+               lambda: at.checkbox(key="cooking").set_value(True),
+               lambda: at.checkbox(key="alcohol").set_value(True),
+               lambda: at.radio(key="zone_mode").set_value("Look up an address"),
+               lambda: at.text_input(key="address_text").set_value("123 Example St, Seattle, WA"),
+               lambda: at.radio(key="zone_mode").set_value("Enter the zone"))
+    for change in changes:                                   # every step 2 widget, one after another
+        at.button(key="btn_check").click().run()
+        at.text_input(key="question").set_value("What permits do I need?")
+        _click(at, "Ask")
+        assert at.metric and at.chat_message and "result" in at.session_state
+        change()
+        at.run()
+        assert not at.exception
+        assert step_3_shown() and at.session_state["extraction"] == reading          # the reading survives
+        assert not at.metric and not at.chat_message                                  # the old result and its chat do not
+        assert "result" not in at.session_state and "chat" not in at.session_state and "speak_text" not in at.session_state
+        assert "Run the check" in [b.label for b in at.button]
+
+
+def test_a_different_plan_still_clears_everything(app):
+    at = app
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert at.metric and "extraction" in at.session_state
+    at.selectbox(key="demo_case").set_value("salon_flawed").run()            # another demo plan
+    assert not at.metric and "extraction" not in at.session_state and "result" not in at.session_state
+    assert [b.label for b in at.button] == ["Read the plan"]
+
+    at.button(key="btn_read").click().run()
+    at.button(key="btn_check").click().run()
+    assert at.metric and "extraction" in at.session_state
+    at.radio(key="plan_source").set_value("Upload my own plan").run()        # another plan source
+    assert not at.metric and "extraction" not in at.session_state and "result" not in at.session_state
+    assert [b.label for b in at.button] == ["Read the plan"]
 
 
 def test_business_type_changes_the_answer(app):
