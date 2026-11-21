@@ -176,7 +176,98 @@ def _out(text: str, generated_by: str, problems: list[str]) -> dict[str, Any]:
             "generated_by": generated_by, "problems": problems}
 
 
+# ---------------------------------------------------------------- wording for a voice
+# A voice reads "32 in." as the word "in" and "SBC 1010.1.1" as a long number. for_speech()
+# rewrites these the way a person would say them. Only the spoken copy changes; the text
+# on the page (and the text check_grounded() sees) keeps the exact citation.
+_CODE_NAMES = {"SBC": "Seattle Building Code", "SMC": "Seattle Municipal Code", "IBC": "International Building Code",
+               "ADA": "A.D.A.", "ICC": "I.C.C."}
+_NUMBER = r"[A-Z]?\d[\w.]*"
+_SPOKEN_SECTION = re.compile(
+    rf"\b({'|'.join(_CODE_NAMES)})\s+(?:(Table|Chapter|Section)\s+)?({_NUMBER})"
+    rf"((?:\s*(?:,|and|or)\s+\d{{3,4}}(?:\.\w+)+)*)")           # "ADA 304.3.1 and 603.2.1"
+_BARE_SECTION = re.compile(rf"\b(Table|Chapter|Section)\s+({_NUMBER})", re.I)
+_SENTENCE_END = r"(?=\s+[A-Z(]|\s*$)"                             # the unit's full stop also ended the sentence
+_UNITS = [
+    (re.compile(r"(\d[\d,.]*)\s?(?:sq\.?\s?ft|sqft)\b\.?"), "square foot", "square feet"),
+    (re.compile(r"(\d[\d,.]*)\s?ft\b\.?"), "foot", "feet"),
+    (re.compile(r"(\d[\d,.]*)\s?in\."), "inch", "inches"),      # only with the full stop: "2 in the list" is a word
+]
+_ONES = ("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
+         "sixteen seventeen eighteen nineteen").split()
+_TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+
+def _two_digits(n: int) -> str:
+    if n < 20:
+        return _ONES[n]
+    return _TENS[n // 10] + (f"-{_ONES[n % 10]}" if n % 10 else "")
+
+
+def _pair(digits: str) -> str:
+    """The last two digits of a section number: 10 -> ten, 04 -> oh four, 00 -> hundred."""
+    n = int(digits)
+    return "hundred" if n == 0 else f"oh {_ONES[n]}" if n < 10 else _two_digits(n)
+
+
+def _say_number(part: str) -> str:
+    """One dot-separated piece of a section number, the way reviewers say it: 1010 -> ten ten, 2902 -> twenty-nine oh two."""
+    m = re.fullmatch(r"([A-Za-z]*)(\d*)([A-Za-z]*)", part)
+    if not m:
+        return part
+    before, digits, after = m.groups()
+    if not digits:
+        said = ""
+    elif digits.startswith("0") or len(digits) > 4:
+        said = " ".join(_ONES[int(d)] for d in digits)
+    elif len(digits) <= 2:
+        said = _two_digits(int(digits))
+    elif len(digits) == 3:
+        said = f"{_ONES[int(digits[0])]} {_pair(digits[1:])}"
+    else:
+        said = f"{_two_digits(int(digits[:2]))} {_pair(digits[2:])}"
+    return " ".join(x for x in (before.upper(), said, after.upper()) if x)
+
+
+def _say_section(number: str) -> tuple[str, str]:
+    """('ten ten point one point one', trailing full stop if the number ended the sentence)."""
+    stop = "." if number.endswith(".") else ""
+    return " point ".join(_say_number(p) for p in number.rstrip(".").split(".")), stop
+
+
+def _spoken_section(m: re.Match) -> str:
+    code, kind, number, more = m.groups()
+    said, stop = _say_section(number)
+    out = f"{_CODE_NAMES[code]} {(kind or 'section').lower()} {said}"
+    for joiner, extra in re.findall(r"(,|and|or)\s+(\S+)", more or ""):
+        said, stop = _say_section(extra)
+        out += ("," if joiner == "," else f" {joiner}") + f" {said}"
+    return out + stop
+
+
+def _bare_section(m: re.Match) -> str:
+    said, stop = _say_section(m.group(2))
+    return f"{m.group(1).lower()} {said}{stop}"
+
+
 def for_speech(text: str) -> str:
-    """Strip the bracketed rule ids and markdown so a voice does not read them out."""
-    text = _RULE_ID.sub("", text)
-    return re.sub(r"\s{2,}", " ", re.sub(r"[*_#`]", "", text)).strip()
+    """The same answer, worded for a voice: no rule ids or markdown, units and code sections spelled out.
+
+    "32 in." -> "32 inches", "800 sq ft" -> "800 square feet",
+    "SBC 1010.1.1" -> "Seattle Building Code section ten ten point one point one".
+    """
+    text = re.sub(r"[*_#`]", "", _RULE_ID.sub("", text))
+    text = _BARE_SECTION.sub(_bare_section, _SPOKEN_SECTION.sub(_spoken_section, text))
+    for pattern, one, many in _UNITS:
+        def unit(m: re.Match, one=one, many=many) -> str:
+            stop = "." if m.group(0).endswith(".") and re.match(_SENTENCE_END, m.string[m.end():]) else ""
+            before_noun = re.search(r"\b(?:a|an)\s$", m.string[:m.start()], re.I)     # "a 36 in. door" -> "a 36 inch door"
+            return f"{m.group(1)} {one if m.group(1) == '1' or before_noun else many}{stop}"
+        text = pattern.sub(unit, text)
+    text = text.replace("&", " and ").replace("e.g.", "for example")
+    text = re.sub(r"\b1 (\w+)\((?:s|ies)\)", r"1 \1", text)               # "1 exit(s)" -> "1 exit"
+    text = re.sub(r"y\(ies\)", "ies", text).replace("(s)", "s")           # "2 exit(s)", "2 lavatory(ies)"
+    text = re.sub(r"(?<=\d)/(?=\d)", " ", text)                           # "50/50 split"
+    text = re.sub(r"(?<=[A-Za-z])\s?/\s?(?=[A-Za-z])", " or ", text)       # "addition/alteration"
+    text = re.sub(r"\s+([.,;:?!])", r"\1", text)                          # the gap a removed rule id leaves
+    return re.sub(r"\s{2,}", " ", text).strip()

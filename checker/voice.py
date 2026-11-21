@@ -6,30 +6,56 @@ This is push-to-talk: the owner records a question, the app answers. It is not a
 two-way call; Streamlit reruns the page on each interaction, so a streaming pipeline
 (Pipecat, LiveKit) would have to run as its own service beside the app.
 
+In:  transcribe() takes the WAV bytes of a recorded question; synthesize() takes the answer text.
+Out: transcribe() returns the text heard; synthesize() returns (WAV bytes, mime type).
+     Either returns None when its model is missing or fails, and the page then falls back
+     to typed questions and the browser's voice. Neither ever raises.
+
 Speech to text: faster-whisper, an open Whisper implementation that runs on a laptop CPU.
 Text to speech: the browser's built-in voice by default (no model, no key, no download),
-or Kokoro, a small open model, when PERMIT_TTS=kokoro.
+or Kokoro, a small open model run with kokoro-onnx, when PERMIT_TTS=kokoro.
 
-Both models are optional. Install them with `pip install -r requirements-voice.txt`.
-Without them transcribe() and synthesize() return None and the app falls back to typed
-questions and the browser voice.
+Both models are optional. Install them with `pip install -r requirements-voice.txt`, then
+run `PERMIT_TTS=kokoro python -m checker.voice`: it speaks a sentence into voice_test.wav
+and prints what it heard back. Measured results: reports/voice_eval.md.
 
-STATUS: the fallbacks and the browser voice are tested. The faster-whisper and Kokoro
-calls are written from each library's documented usage and have NOT been run here (the
-build sandbox could not download the models). Run `python -m checker.voice` once to try them.
+STATUS: both models have run on one computer (macOS 14, Intel, Python 3.13, 20 November
+2026), on machine-spoken audio only. A question recorded by a person through the app's
+microphone box has NOT been tried yet.
 """
 from __future__ import annotations
 
 import html
 import io
 import json
+import logging
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
+
+log = logging.getLogger(__name__)
 
 STT_MODEL = os.environ.get("PERMIT_STT_MODEL", "base.en")   # tiny.en is faster, small.en more accurate
 TTS_VOICE = os.environ.get("PERMIT_TTS_VOICE", "af_heart")
 KOKORO_SAMPLE_RATE = 24000
+
+# Whisper takes a short text as "what was said just before" and leans towards its words. Without
+# it, building-code words are misheard on noisy audio: egress -> "regrets", lavatories ->
+# "laboratories", SDCI -> "SBCI" (measured; see reports/voice_eval.md). It holds words only,
+# no rules and no numbers. PERMIT_STT_PROMPT=off turns it off.
+STT_VOCABULARY = (
+    "Questions from a small-business owner in Seattle about a building permit pre-check: egress, exits, "
+    "exit door swing, occupancy group, occupant load, lavatory, water closet, restroom, accessible route, "
+    "wheelchair turning space, sprinklers, kitchen hood, zoning, change of use, plan review, SDCI."
+)
+
+# Kokoro's two files (the model and the voices) are not fetched by the kokoro-onnx library,
+# so _model_file() downloads them once from the library's release page into MODEL_DIR.
+MODEL_DIR = Path(os.environ.get("PERMIT_MODEL_DIR", Path(__file__).resolve().parents[1] / "data" / "models"))
+KOKORO_FILES_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
+KOKORO_MODEL_FILE = os.environ.get("PERMIT_TTS_MODEL", "kokoro-v1.0.onnx")   # 325 MB; kokoro-v1.0.int8.onnx is 92 MB
+KOKORO_VOICES_FILE = "voices-v1.0.bin"                                        # 28 MB
 
 
 def _setting(name: str, default: str) -> str:
@@ -54,30 +80,49 @@ def stt_available() -> bool:
         return False
 
 
-def transcribe(audio: bytes) -> Optional[str]:
-    """Text of a recorded question (WAV bytes from st.audio_input), or None if speech to text is unavailable."""
+def transcribe(audio: bytes, *, vocabulary: bool = True) -> Optional[str]:
+    """Text of a recorded question (WAV bytes from st.audio_input), or None if speech to text is unavailable.
+
+    vocabulary=False leaves out the code-word prompt; the evaluation uses it to measure the difference.
+    """
     if not audio or not stt_available():
         return None
+    prompt = STT_VOCABULARY if vocabulary and _setting("PERMIT_STT_PROMPT", "on") != "off" else None
     try:
-        segments, _info = _whisper().transcribe(io.BytesIO(audio), language="en")
+        segments, _info = _whisper().transcribe(io.BytesIO(audio), language="en", initial_prompt=prompt)
         return " ".join(s.text.strip() for s in segments).strip() or None
-    except Exception:
+    except Exception as e:   # no model, no internet, unreadable audio: the owner types instead
+        log.warning("speech to text failed, falling back to typing: %s: %s", e.__class__.__name__, e)
         return None
 
 
 # ---------------------------------------------------------------- text to speech
+def _model_file(name: str) -> Path:
+    """Path of a Kokoro file in MODEL_DIR, downloaded on first use."""
+    path = MODEL_DIR / name
+    if not path.exists():
+        import urllib.request
+
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        part = path.with_name(path.name + ".part")   # so a download that stops half-way is never used as a model
+        log.warning("downloading %s to %s (once)", name, MODEL_DIR)
+        urllib.request.urlretrieve(KOKORO_FILES_URL + name, part)
+        part.replace(path)
+    return path
+
+
 @lru_cache(maxsize=1)
 def _kokoro():
-    from kokoro import KPipeline   # downloads the model from Hugging Face on first use
+    from kokoro_onnx import Kokoro
 
-    return KPipeline(lang_code="a")   # "a" = American English
+    return Kokoro(str(_model_file(KOKORO_MODEL_FILE)), str(_model_file(KOKORO_VOICES_FILE)))
 
 
 def tts_backend() -> str:
     """'kokoro' if asked for and installed, else 'browser'."""
     if _setting("PERMIT_TTS", "browser") == "kokoro":
         try:
-            import kokoro  # noqa: F401
+            import kokoro_onnx  # noqa: F401
             return "kokoro"
         except ImportError:
             pass
@@ -93,14 +138,15 @@ def synthesize(text: str) -> Optional[tuple[bytes, str]]:
 
         import numpy as np
 
-        chunks = [np.asarray(audio, dtype="float32") for _, _, audio in _kokoro()(text, voice=TTS_VOICE)]
-        pcm = (np.clip(np.concatenate(chunks), -1, 1) * 32767).astype("<i2")
+        samples, sample_rate = _kokoro().create(text, voice=TTS_VOICE, speed=1.0, lang="en-us")
+        pcm = (np.clip(np.asarray(samples, dtype="float32"), -1, 1) * 32767).astype("<i2")
         buf = io.BytesIO()
         with wave.open(buf, "wb") as w:
-            w.setnchannels(1); w.setsampwidth(2); w.setframerate(KOKORO_SAMPLE_RATE)
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(sample_rate)
             w.writeframes(pcm.tobytes())
         return buf.getvalue(), "audio/wav"
-    except Exception:
+    except Exception as e:   # a missing file, no internet, a bad voice name: use the browser voice instead
+        log.warning("Kokoro failed, using the browser voice: %s: %s", e.__class__.__name__, e)
         return None
 
 
@@ -145,6 +191,7 @@ def status() -> dict[str, str]:
 
 
 if __name__ == "__main__":   # quick manual check of both optional models
+    logging.basicConfig(level=logging.WARNING)
     print(status())
     out = synthesize("This is the permit checker. Your plan has two problems to fix.")
     if out:

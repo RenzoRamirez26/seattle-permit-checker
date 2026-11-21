@@ -27,3 +27,6 @@ reports/*_vision_extraction.json
 # personal scratch
 scratch/
 notes.md
+
+# speech model files, downloaded on first use by checker/voice.py
+data/models/

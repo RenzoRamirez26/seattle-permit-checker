@@ -10,7 +10,8 @@ Everything the code talks to, what it is for, and whether you need to sign up.
 | Seattle open data (Socrata) | `cos-data.seattle.gov` | `pipeline/seattle.py` | None. Optional free app token (`SEATTLE_APP_TOKEN`) from data.seattle.gov raises the rate limit | Datasets below |
 | Seattle zoning layer (ArcGIS) | `services.arcgis.com` | `checker/zoning.py` | None | `Current_Land_Use_Zoning_Detail_2/FeatureServer/0` |
 | US Census geocoder | `geocoding.geo.census.gov` | `checker/zoning.py` | None | Turns a street address into a point |
-| Hugging Face (optional) | `huggingface.co` | `checker/voice.py` | None for these public models | Whisper and Kokoro models download on first use |
+| Hugging Face (optional) | `huggingface.co` | `checker/voice.py` | None for this public model | The Whisper model downloads on first use |
+| GitHub releases (optional) | `github.com/thewh1teagle/kokoro-onnx` | `checker/voice.py` | None | Kokoro's model and voices files download into `data/models/` on first use |
 | GitHub Actions | `github.com` | `.github/workflows/tests.yml` | Your GitHub account | Runs the tests on every pull request |
 
 ## Seattle datasets
