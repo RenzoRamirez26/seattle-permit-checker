@@ -54,6 +54,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
 | Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
+| Web API | `api/` | **Tested with the model and the network mocked.** Eight routes under `/api` for a future web front end: read a plan, screen zoning, run and store a check, fetch it, both PDFs, ask a question, delete. It adds no rules; it calls `checker/`. Docs page at `/docs` | **Read an uploaded plan with a key; try one real address through `/api/zoning`.** No login yet: add authentication and a rate limit before it is reachable from the internet. Known follow-up: reviewer examples in `/ask` (the Streamlit app gives the agent real reviewer comments; the API does not yet) |
 | Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. A short sheet (two or three printed pages) gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form |
 | PDF downloads | `checker/pdf.py` | **Real and tested.** The owner downloads the report and the preparation sheet as PDFs (US Letter, page numbers, black and white). The command line writes `report.pdf` next to `report.md` and `report.json`. Page 1 of each was rendered and checked by eye for accents, wrapping and margins | Print one on paper; open one in a screen reader | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
 
@@ -76,6 +77,16 @@ python -m streamlit run app/streamlit_app.py
 ```
 
 Pick a demo plan, press **Read the plan**, then **Run the check**. Start with *Café with planted problems*, then switch to the salon to see a different business type.
+
+**Run the web API** (for a front end; the Streamlit website does not need it):
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Then open http://localhost:8000/docs to see and try every route. It works with no key on the demo plans. Only a browser page served from `http://localhost:3000` may call it; change that with `PERMIT_CORS_ORIGIN`.
+
+What the API keeps: **uploaded plans are not saved.** A plan file is read and deleted straight away. **A check is stored**: the facts read from the plan, the answers about the business, the address or zone if one was given, and the result. It is kept for 30 days (`PERMIT_CHECK_DAYS`) in `data/checks.sqlite` on the server, or until it is deleted with `DELETE /api/checks/{id}`. The Claude API key stays on the server and is never sent to the browser.
 
 **Run the tests:**
 
@@ -149,6 +160,8 @@ pipeline/                 Seattle open data
 ├── db.py  schema.py      SQLite storage (data/permits.sqlite)
 ├── query.py              rounds, days, who sends plans back, what comments are about
 └── run_pipeline.py       command-line runner
+api/                      the web API for a front end (FastAPI): main.py routes, schemas.py the contract,
+                          store.py stored checks, uploads.py upload checks, geo.py zone outline for a map
 app/                      the Streamlit website
 ├── streamlit_app.py      entrypoint: header and navigation
 ├── app_common.py         page paths, session keys, cached loads, Limits and About text

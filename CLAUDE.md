@@ -9,6 +9,7 @@ Seattle only. Read `README.md` for the full picture and the build phases.
 ```bash
 python -m pytest                                   # tests
 python -m streamlit run app/streamlit_app.py       # the website
+uvicorn api.main:app --reload                      # the web API for a front end (docs page at /docs)
 python -m checker.audit --extraction demo/flawed_extraction.json --business cafe_restaurant --cooking --zoning "NC2-55 (M)"
 python -m pipeline.run_pipeline --seattle          # download Seattle's review records
 python -m evaluation.evaluate_extraction --vision  # score the vision model on the demo plans (needs a key)
