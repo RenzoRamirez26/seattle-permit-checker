@@ -2,10 +2,15 @@
 # (typed questions, and the browser reads answers aloud).
 #
 #   python -m pip install -r requirements-voice.txt
-#   python -m checker.voice          # quick check of both
+#   PERMIT_TTS=kokoro python -m checker.voice     # quick check of both
 #
-# Both download their model from Hugging Face on first use (no account needed).
-# NOT installed or run in the build sandbox: treat these two pins as a starting point.
+# faster-whisper downloads its model from Hugging Face on first use; checker/voice.py downloads
+# Kokoro's two files (about 350 MB) into data/models/ on first use. No account needed.
+# Installed and run on macOS 14 (Intel), Python 3.13, on 20 November 2026.
 
 faster-whisper==1.2.1   # speech to text on a laptop CPU (checker/voice.py: transcribe)
-kokoro==0.7.16          # text to speech, used when PERMIT_TTS=kokoro (checker/voice.py: synthesize)
+av==18.1.0              # audio decoding for faster-whisper. Pinned: faster-whisper 1.2.1 calls
+                        # av.open(metadata_errors=...), which av 19 removed (TypeError on every recording)
+kokoro-onnx==0.6.1      # text to speech, used when PERMIT_TTS=kokoro (checker/voice.py: synthesize).
+                        # Replaces kokoro==0.7.16: that package needs PyTorch, which has no build for
+                        # Python 3.13 on an Intel Mac. This runs the same Kokoro model on ONNX Runtime.

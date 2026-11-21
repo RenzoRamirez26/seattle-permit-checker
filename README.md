@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green"></a>
 </p>
 
-> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. Three things have **not** been run against the real services yet: the vision model on a plan, the live Seattle download, and the two local speech models. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
+> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. Two things have **not** been run against the real services yet: the vision model on a plan and the live Seattle download. The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
 
 ## Contents
 
@@ -52,7 +52,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested | **No results yet**: run `--vision` |
 | Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
-| Voice | `checker/voice.py` | Browser voice and fallbacks tested | **faster-whisper and Kokoro have not been run** |
+| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
 | Permit form pre-fill | not built | | Phase 7 |
 
@@ -95,14 +95,16 @@ python -m evaluation.evaluate_extraction --vision      # scores the model on all
 python -m checker.audit demo/flawed_plan.png --business cafe_restaurant --cooking --zoning "NC2-55 (M)"
 ```
 
-**Turn on spoken questions** (optional, large download):
+**Turn on spoken questions** (optional; downloads about 500 MB of speech models on first use):
 
 ```bash
 python -m pip install -r requirements-voice.txt
-python -m checker.voice
+PERMIT_TTS=kokoro python -m checker.voice               # speaks a sentence, prints what it heard back
+python -m evaluation.evaluate_voice                     # ten spoken questions -> reports/voice_eval.md
+PERMIT_TTS=kokoro python -m streamlit run app/streamlit_app.py
 ```
 
-Without it, questions are typed and the browser reads the answers aloud.
+Without the install, questions are typed and the browser reads the answers aloud. Without `PERMIT_TTS=kokoro`, the microphone works and the browser's voice reads the answers.
 
 ## How it works
 
@@ -147,7 +149,7 @@ app/                      the Streamlit website
 ├── streamlit_app.py      entrypoint: header and navigation
 ├── app_common.py         page paths, session keys, cached loads, Limits and About text
 └── pages_app/            check (the main page), seattle_data, evidence, limits, about
-evaluation/               evaluate_extraction.py: how accurately the model reads a plan
+evaluation/               evaluate_extraction.py: how accurately the model reads a plan; evaluate_voice.py: spoken questions
 demo/                     three fictional plans, their ground truth, cases.json, make_plans.py
 data/raw/                 downloads go here (not committed)
 reports/                  evaluation output for the slides
@@ -166,7 +168,7 @@ Only one key is needed, and only for reading uploaded plans and for model-writte
 | Seattle open data (permits, reviews, comments) | `cos-data.seattle.gov` | No. Optional free app token |
 | Seattle zoning layer | `services.arcgis.com` | No |
 | US Census geocoder (address to point) | `geocoding.geo.census.gov` | No |
-| Speech models, optional | `huggingface.co` | No (public models) |
+| Speech models, optional | `huggingface.co` (Whisper), `github.com` (Kokoro files) | No (public models) |
 
 ## What Seattle's data showed
 
@@ -184,7 +186,7 @@ Queried directly from the city's portal on 20 November 2026, using its text sear
 - [x] **Phase 2: Seattle data.** Download, database, queries (live download still to run)
 - [x] **Phase 3: Website.** Five pages, editable reading, results, download
 - [ ] **Phase 4: Plan reading with the model.** Run `--vision`, record the accuracy table, fix the prompt where it misreads
-- [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; try the two speech models
+- [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
 - [ ] **Phase 6: More plans.** A retail and a gym demo plan, and one real (permission given) plan
 - [ ] **Phase 7: Permit form pre-fill.** Fill SDCI's application fields from the result
 - [ ] **Phase 8: Demo and write-up.** Results table, limits, slides ([docs/demo_script.md](docs/demo_script.md))
@@ -237,7 +239,14 @@ Press <b>Play answer</b> under the answer: some browsers block speech that a cli
 <details>
 <summary><b>The microphone box does not appear</b></summary>
 
-It appears only when `faster-whisper` is installed (`requirements-voice.txt`). The first recording downloads the speech model, which takes a minute.
+It appears only when `faster-whisper` is installed (`requirements-voice.txt`), and the browser must be allowed to use the microphone. The first recording downloads the speech model, which takes a minute.
+
+</details>
+
+<details>
+<summary><b>A spoken question does not get through in Safari</b></summary>
+
+Use Chrome for spoken questions. In Safari, typed questions and spoken answers work, but a question recorded with the microphone box does not reach the agent yet. This is a known issue, not yet fixed: see [docs/voice.md](docs/voice.md#known-issues).
 
 </details>
 

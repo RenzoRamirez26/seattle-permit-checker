@@ -1,4 +1,6 @@
 """The agent (answers about one audit) and the voice helpers, with the model mocked."""
+import re
+
 import pytest
 
 from checker import agent, rules_engine, voice, zoning
@@ -67,7 +69,43 @@ def test_context_carries_review_records_and_real_comments(salon):
 
 
 def test_for_speech_drops_rule_ids_and_markdown():
-    assert agent.for_speech("**Door too narrow** [EG-3]. Fix it.  [ADA-2]") == "Door too narrow . Fix it."
+    assert agent.for_speech("**Door too narrow** [EG-3]. Fix it.  [ADA-2]") == "Door too narrow. Fix it."
+
+
+@pytest.mark.parametrize("written, spoken", [
+    # inches: only "in." with its full stop, and the stop is kept when it also ended the sentence
+    ("The door is 30 in. clear and needs 32 in. Widen it.", "The door is 30 inches clear and needs 32 inches. Widen it."),
+    ("The aisle is 21.2 in. wide, with a 1 in. gap.", "The aisle is 21.2 inches wide, with a 1 inch gap."),
+    ("There are 2 in the fix list.", "There are 2 in the fix list."),
+    ("Widen to 32 in. clear (a 36 in. door leaf does this).", "Widen to 32 inches clear (a 36 inch door leaf does this)."),
+    # square feet and feet
+    ("The space is 2,400 sq ft. Over 25,000 sq ft needs review.", "The space is 2,400 square feet. Over 25,000 square feet needs review."),
+    ("800 sqft, or 1 sq. ft. more", "800 square feet, or 1 square foot more"),
+    ("within 10 ft of the door", "within 10 feet of the door"),
+    # code sections: the code's name, then the number the way a reviewer says it
+    ("Widen it under SBC 1010.1.1.", "Widen it under Seattle Building Code section ten ten point one point one."),
+    ("SBC Table 2902.1 sets the count", "Seattle Building Code table twenty-nine oh two point one sets the count"),
+    ("SBC Chapter 11 applies", "Seattle Building Code chapter eleven applies"),
+    ("SBC 303.1.1 and SBC 903.2.1.2", "Seattle Building Code section three oh three point one point one and "
+                                      "Seattle Building Code section nine oh three point two point one point two"),
+    ("ADA 304.3.1 and 603.2.1", "A.D.A. section three oh four point three point one and six oh three point two point one"),
+    ("SMC 23.47A, then SMC 23.44.020.E", "Seattle Municipal Code section twenty-three point forty-seven A, then "
+                                         "Seattle Municipal Code section twenty-three point forty-four point zero two zero point E"),
+    ("SBC Table 1006.2.1 and Section 1006.3", "Seattle Building Code table ten oh six point two point one and section ten oh six point three"),
+    ("ICC A117.1", "I.C.C. section A one seventeen point one"),
+    # shorthand from the fix list
+    ("2 exit(s) and 1 lavatory(ies), 2 water closet(s)", "2 exits and 1 lavatory, 2 water closets"),
+    ("a 50/50 split for this addition/alteration, e.g. hood & duct", "a 50 50 split for this addition or alteration, for example hood and duct"),
+])
+def test_for_speech_says_units_and_code_sections_naturally(written, spoken):
+    assert agent.for_speech(written) == spoken
+
+
+def test_for_speech_leaves_no_abbreviations_in_real_answers(salon):
+    """Every template answer for a real audit, worded for speech: no 'in.', 'sq ft', code initials or rule ids left."""
+    for question in ("", "Is my restroom ok?", "Do I have enough exits?", "What permits do I need?", "Is the zoning ok?"):
+        spoken = agent.for_speech(agent.template_answer(question, salon) if question else agent.spoken_summary(salon))
+        assert not re.search(r"\d\s?in\.|sq\.? ?ft|\bSBC\b|\bSMC\b|\[[A-Z]+-\d+\]|\(s\)|\d{3,4}\.\d", spoken), spoken
 
 
 def test_voice_falls_back_cleanly(monkeypatch):
@@ -86,7 +124,7 @@ def test_browser_speech_page_escapes_the_text():
     assert "&lt;script&gt;" in page.split("<noscript>")[1]
 
 
-def test_local_models_are_used_when_installed(monkeypatch):
+def test_local_models_are_used_when_installed(monkeypatch, tmp_path):
     """The optional models are not installed in CI, so stand-ins check the wiring around them."""
     import sys
     import types
@@ -96,25 +134,35 @@ def test_local_models_are_used_when_installed(monkeypatch):
 
     class FakeWhisper:
         def __init__(self, *a, **k): pass
-        def transcribe(self, audio, language=None):
+        prompts = []
+        def transcribe(self, audio, language=None, initial_prompt=None):
             assert audio.read(4) == b"RIFF" and language == "en"
+            self.prompts.append(initial_prompt)
             return iter([Seg(" Do I need"), Seg(" a second exit? ")]), None
 
     monkeypatch.setitem(sys.modules, "faster_whisper", types.SimpleNamespace(WhisperModel=FakeWhisper))
     monkeypatch.delenv("PERMIT_STT", raising=False)
     voice._whisper.cache_clear()
     assert voice.stt_available() and voice.transcribe(b"RIFF0000") == "Do I need a second exit?"
+    assert voice.transcribe(b"RIFF0000", vocabulary=False) == "Do I need a second exit?"
+    # Whisper is told the code words it should expect, unless asked not to
+    assert FakeWhisper.prompts == [voice.STT_VOCABULARY, None]
+    assert all(word in voice.STT_VOCABULARY for word in ("egress", "lavatory", "occupancy"))
     voice._whisper.cache_clear()
 
     np = pytest.importorskip("numpy")
 
-    class FakePipeline:
-        def __init__(self, lang_code): assert lang_code == "a"
-        def __call__(self, text, voice=None):
-            yield "g", "p", np.zeros(2400, dtype="float32")
-            yield "g", "p", np.ones(2400, dtype="float32") * 2      # out of range: must be clipped, not wrapped
+    class FakeKokoro:
+        def __init__(self, model_path, voices_path):
+            assert model_path.endswith(".onnx") and voices_path.endswith("voices-v1.0.bin")
+        def create(self, text, voice=None, speed=1.0, lang=None):
+            assert (voice, lang) == (voice_module.TTS_VOICE, "en-us")
+            # the second half is out of range: it must be clipped, not wrapped
+            return np.concatenate([np.zeros(2400, dtype="float32"), np.ones(2400, dtype="float32") * 2]), 24000
 
-    monkeypatch.setitem(sys.modules, "kokoro", types.SimpleNamespace(KPipeline=FakePipeline))
+    voice_module = voice
+    monkeypatch.setitem(sys.modules, "kokoro_onnx", types.SimpleNamespace(Kokoro=FakeKokoro))
+    monkeypatch.setattr(voice, "_model_file", lambda name: tmp_path / name)   # no download in tests
     monkeypatch.setenv("PERMIT_TTS", "kokoro")
     voice._kokoro.cache_clear()
     audio, mime = voice.synthesize("hello")
@@ -125,3 +173,60 @@ def test_local_models_are_used_when_installed(monkeypatch):
         assert (mime, w.getframerate(), w.getnchannels(), w.getnframes()) == ("audio/wav", 24000, 1, 4800)
         frames = np.frombuffer(w.readframes(4800), dtype="<i2")
     assert frames[0] == 0 and frames[-1] == 32767
+
+
+def test_failing_speech_models_fall_back_instead_of_crashing(monkeypatch):
+    """Installed but broken (no internet for the model, unreadable audio): None, so the page uses typing and the browser voice."""
+    import sys
+    import types
+
+    def broken(*a, **k):
+        raise OSError("no internet")
+
+    monkeypatch.setitem(sys.modules, "faster_whisper", types.SimpleNamespace(WhisperModel=broken))
+    monkeypatch.setitem(sys.modules, "kokoro_onnx", types.SimpleNamespace(Kokoro=broken))
+    monkeypatch.setattr(voice, "_model_file", broken)
+    monkeypatch.delenv("PERMIT_STT", raising=False)
+    monkeypatch.setenv("PERMIT_TTS", "kokoro")
+    voice._whisper.cache_clear(); voice._kokoro.cache_clear()
+    assert voice.transcribe(b"RIFF0000") is None
+    assert voice.tts_backend() == "kokoro" and voice.synthesize("hello") is None
+    voice._whisper.cache_clear(); voice._kokoro.cache_clear()
+
+
+def test_voice_evaluation_scores_and_reports(salon):
+    """evaluation/evaluate_voice.py with stand-in models: the scoring and the report, no audio models needed."""
+    import io
+    import wave
+
+    np = pytest.importorskip("numpy")
+    from evaluation import evaluate_voice as ev
+
+    assert ev.normalize("Do I need a Second-Exit?") == ["do", "i", "need", "a", "second", "exit"]
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000)
+        w.writeframes((np.sin(np.arange(24000) / 20) * 8000).astype("<i2").tobytes())
+    clip = buf.getvalue()
+    assert ev.audio_seconds(clip) == 1.0
+    noisy = ev.add_noise(clip, 5)
+    assert noisy != clip and ev.audio_seconds(noisy) == 1.0 and noisy == ev.add_noise(clip, 5)   # repeatable
+
+    said = []
+    def fake_synthesize(text):
+        said.append(text)
+        return clip, "audio/wav"
+    def fake_transcribe(audio, vocabulary=True):
+        heard = said[-1].lower().rstrip("?")                       # same words, different case and punctuation
+        return heard if vocabulary else heard.replace("lavatories", "laboratories")
+
+    rows = ev.evaluate(["Do I have enough exits?", "How many lavatories do I need?"], salon,
+                       synthesize=fake_synthesize, transcribe=fake_transcribe)
+    assert [r["exact"] for r in rows] == [True, True] and all(r["same_answer"] for r in rows)
+    assert [r["exact_no_vocab"] for r in rows] == [True, False] and rows[1]["heard_no_vocab"].count("laboratories") == 1
+    report = ev.to_markdown(rows, "Test setup.")
+    assert "2 of 2 questions came back word for word" in report and "machine-spoken" in report
+    assert "Real voices will do worse" in report and "| As spoken | 2 of 2 | 1 of 2 |" in report
+    assert 'heard "how many laboratories do i need"' in report
+    with pytest.raises(RuntimeError):
+        ev.evaluate(["Hello"], salon, synthesize=lambda text: None, transcribe=fake_transcribe)
