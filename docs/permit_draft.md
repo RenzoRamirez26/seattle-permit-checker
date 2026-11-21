@@ -1,9 +1,12 @@
 # Permit application preparation sheet: where each field comes from
 
-`checker/permit_draft.py` turns a pre-check result into a one-page sheet that gathers what
+`checker/permit_draft.py` turns a pre-check result into a short sheet that gathers what
 the City of Seattle asks for when a small business applies for a construction permit for a
 tenant improvement (an "addition or alteration" permit from the Seattle Department of
 Construction and Inspections, SDCI).
+
+The owner downloads it from the app as a PDF (`checker/pdf.py` lays out the same rows; two or
+three pages when printed).
 
 **It is a preparation aid. It is not the city's form and it does not fill in the city's form.**
 The application itself is made in the Seattle Services Portal, which needs a login. Nobody on
@@ -87,6 +90,8 @@ Diversion Plan applies and does not print the area threshold: it points to Tip 1
 
 The permits and agencies, and the open problems to fix before submitting, come from the audit
 result. They are not things the city's application asks for, and the sheet's heading says so.
+Each open problem is one line, its title and how serious it is; the sheet points to the pre-check
+report for the fix and the code section, so the two documents do not repeat each other.
 
 ## Left out, because no city source confirmed them as application fields
 

@@ -54,7 +54,8 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
 | Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
-| Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. One page gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
+| Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. A short sheet (two or three printed pages) gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form |
+| PDF downloads | `checker/pdf.py` | **Real and tested.** The owner downloads the report and the preparation sheet as PDFs (US Letter, page numbers, black and white). The command line writes `report.pdf` next to `report.md` and `report.json`. Page 1 of each was rendered and checked by eye for accents, wrapping and margins | Print one on paper; open one in a screen reader | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
 
 Unfinished parts say `STATUS:` in their docstring. `grep -rn "STATUS:" checker pipeline evaluation` lists them.
 
@@ -138,7 +139,9 @@ checker/                  the engine
 ├── zoning.py             address or zone -> allowed, needs review, or not allowed, per business type
 ├── audit.py              runs the steps above in order; also the command-line tool
 ├── agent.py              answers questions about one result, with a grounding check
-├── permit_draft.py       one result -> a one-page permit application preparation sheet (adds no rules)
+├── permit_draft.py       one result -> the permit application preparation sheet (adds no rules)
+├── pdf.py                the report and the preparation sheet as printable PDFs (layout only)
+├── fonts/                DejaVu Sans, embedded in the PDFs, with its licence (Bitstream Vera licence)
 └── voice.py              speech to text and text to speech around the agent
 pipeline/                 Seattle open data
 ├── seattle.py            download and map permits, plan reviews, reviewer comments
@@ -186,11 +189,11 @@ Queried directly from the city's portal on 20 November 2026, using its text sear
 - [x] **Phase 0: Setup.** Layout, environment, `.gitignore`, `CLAUDE.md`, tests on GitHub
 - [x] **Phase 1: Rules.** Rulebook for six business types, rules engine, zoning, three demo plans
 - [x] **Phase 2: Seattle data.** Download, database, queries (live download still to run)
-- [x] **Phase 3: Website.** Five pages, editable reading, results, download
+- [x] **Phase 3: Website.** Five pages, editable reading, results, PDF downloads
 - [ ] **Phase 4: Plan reading with the model.** Run `--vision`, record the accuracy table, fix the prompt where it misreads
 - [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
 - [ ] **Phase 6: More plans.** A retail and a gym demo plan, and one real (permission given) plan
-- [x] **Phase 7: Permit application preparation sheet.** One page gathering what the city's application asks for, filled from the result where it can be; a preparation aid, not the city's form ([docs/permit_draft.md](docs/permit_draft.md))
+- [x] **Phase 7: Permit application preparation sheet.** A short sheet gathering what the city's application asks for, filled from the result where it can be; a preparation aid, not the city's form ([docs/permit_draft.md](docs/permit_draft.md))
 - [ ] **Phase 8: Demo and write-up.** Results table, limits, slides ([docs/demo_script.md](docs/demo_script.md))
 
 Phase 4 is the evidence judges will ask for. If time runs short, cut from the bottom.

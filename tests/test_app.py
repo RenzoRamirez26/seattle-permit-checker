@@ -72,19 +72,30 @@ def test_salon_flow_and_questions(app):
     assert not at.metric and [b.label for b in at.button] == ["Read the plan"]
 
 
-def test_permit_draft_download_is_offered_with_the_results(app):
-    from checker import permit_draft
+def test_pdf_downloads_are_offered_with_the_results(app):
+    import pypdfium2 as pdfium
 
     at = app
     assert not at.get("download_button")                                   # nothing to download before a check
     at.button(key="btn_read").click().run()
     at.button(key="btn_check").click().run()
-    assert not at.exception
-    labels = [b.proto.label for b in at.get("download_button")]
-    assert labels == ["Download the permit draft", "Download the report (Markdown)"]
-    sheet = permit_draft.to_markdown(at.session_state["result"])
-    assert sheet.startswith("# Permit application preparation sheet: Café or restaurant")
-    assert "preparation aid, not the City of Seattle's official form" in sheet and "106 people" in sheet
+    assert not at.exception and not at.error
+    buttons = at.get("download_button")
+    assert [b.proto.label for b in buttons] == ["Download the report (PDF)", "Download the permit preparation sheet (PDF)"]
+    assert not any("Markdown" in b.proto.label for b in buttons)           # the owner downloads are PDFs only
+
+    # the page offers exactly what checker/pdf.py builds for this result, under the agreed file names
+    from app import app_common
+    from pathlib import Path
+
+    result = at.session_state["result"]
+    for build, first_words in ((app_common.report_pdf, "Permit pre-check: Café or restaurant"),
+                               (app_common.permit_sheet_pdf, "Permit application preparation sheet: Café or restaurant")):
+        data = build(result)
+        assert data[:5] == b"%PDF-" and pdfium.PdfDocument(data)[0].get_textpage().get_text_range().startswith(first_words)
+    page = (Path(app_common.ROOT) / "app" / "pages_app" / "check.py").read_text(encoding="utf-8")
+    assert 'file_name="permit_precheck.pdf"' in page and 'file_name="permit_preparation_sheet.pdf"' in page
+    assert page.count('mime="application/pdf"') == 2 and "text/markdown" not in page
 
 
 def test_business_type_changes_the_answer(app):
