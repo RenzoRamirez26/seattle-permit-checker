@@ -2,9 +2,11 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from checker import audit as audit_mod
 from checker import rules_engine
-from pipeline import classify, db, query, run_pipeline, seattle
+from pipeline import classify, db, query, run_pipeline, schema, seattle
 from tests.conftest import FIXTURES as FX
 
 
@@ -24,20 +26,27 @@ def test_business_categories():
 def test_permit_mapper_on_a_real_record():
     rows = json.loads((FX / "seattle_building_permits.json").read_text())
     p = seattle.permit_from_row(rows[0])
-    assert (p.Permit_id, p.Jurisdiction, p.County) == ("6998648-CN", "City of Seattle", "King")
-    assert (p.Applied_Date, p.Issue_Date, p.Estimated_Cost) == ("2024-07-22", "2025-01-13", 60000.0)
-    assert (p.Review_Cycles, p.Days_Plan_Review, p.Days_Out_Corrections, p.Days_City_Review) == (3, 175.0, 77.0, 97.0)
-    assert (p.Comm_Res, p.New_Alter_Demo, p.Category, p.Food_Drink) == (0, 1, "food_drink", 1)
-    assert p.Source_URL.endswith("altId=6998648-CN") and round(p.Lat, 3) == 47.701
-    assert seattle.permit_from_row(rows[1]).Category is None          # an office with a kitchen
-    assert seattle.permit_from_row(rows[5]).Category == "salon"
+    assert p.permit_number == "6998648-CN"
+    assert (p.applied_date, p.issued_date, p.estimated_cost) == ("2024-07-22", "2025-01-13", 60000.0)
+    assert (p.review_rounds, p.days_in_review, p.days_with_applicant, p.days_with_city) == (3, 175.0, 77.0, 97.0)
+    assert (p.permit_class, p.is_alteration, p.category) == ("Non-Residential", 1, "food_drink")
+    assert p.completed_date == seattle._parse_date(rows[0].get("completeddate"))      # filled from the city's completeddate
+    assert p.record_url.endswith("altId=6998648-CN") and round(p.latitude, 3) == 47.701
+    assert seattle.permit_from_row(rows[1]).category is None          # an office with a kitchen
+    assert seattle.permit_from_row(rows[5]).category == "salon"
+    # only additions and alterations count as tenant build-outs; every stored name is lower case
+    assert [seattle.permit_from_row(r).is_alteration for r in rows] == \
+        [int(schema.work_from_text(r.get("permittypedesc")) == schema.ALTER) for r in rows]
+    assert all(c == c.lower() for c in schema.COLUMNS + schema.REVIEW_COLUMNS + schema.COMMENT_COLUMNS)
+    assert not {"owner_name", "owner_address", "county", "jurisdiction"} & set(schema.COLUMNS)
 
 
 def test_review_and_comment_mappers():
     r = seattle.review_from_row(json.loads((FX / "seattle_plan_review.json").read_text())[3])   # real row
-    assert (r["Permit_id"], r["Review_Cycle"], r["Review_Type"], r["Result"]) == \
+    assert (r["permit_number"], r["review_round"], r["review_type"], r["result"]) == \
         ("6537517-CN", 1, "Ordinance/Structural", "Corrections Required")
-    assert (r["Assign_Date"], r["Finish_Date"], r["Category"]) == ("2018-10-26", "2018-10-28", "food_drink")
+    assert (r["assigned_date"], r["finished_date"], r["category"]) == ("2018-10-26", "2018-10-28", "food_drink")
+    assert list(r) == schema.REVIEW_COLUMNS
     assert "reviewer" not in {k.lower() for k in r}                   # reviewer names are not stored
     n = seattle.normalize_subject
     assert n("10 Means of Egress") == (10, "Ch. 10 Means of Egress")
@@ -45,8 +54,8 @@ def test_review_and_comment_mappers():
     assert n("00 Code Edition") == (None, "General") and n("0") == (None, "General") and n("General") == (None, "General")
     assert n("23.47A.008 Street-level uses") == (None, "23.47A.008 Street-level uses") and n(None) == (None, "General")
     c = seattle.comment_from_row(json.loads((FX / "seattle_plan_comments.json").read_text())[0])
-    assert (c["Chapter"], c["Review_Cycle"], c["Document_Date"]) == (11, 1, "2024-08-20")
-    assert c["Document_URL"].startswith("https://")
+    assert (c["chapter"], c["review_round"], c["letter_date"]) == (11, 1, "2024-08-20")
+    assert c["letter_url"].startswith("https://") and list(c) == schema.COMMENT_COLUMNS
 
 
 def test_soda_paging_and_download(monkeypatch, tmp_path):
@@ -93,10 +102,12 @@ def test_database_and_review_queries(tmp_path):
     assert query.category_counts(con) == {"food_drink": 4, "salon": 1}
 
     s = query.review_summary(con)           # three food/drink build-outs: 3, 1 and 2 rounds; 175, 45, 120 days
-    assert s["permits"] == 3 and s["median_days_plan_review"] == 120 and s["median_days_out_corrections"] == 50
-    assert s["median_review_cycles"] == 2 and s["share_two_or_more_cycles"] == 0.667 and s["share_one_cycle"] == 0.333
+    assert s["permits"] == 3 and s["median_days_in_review"] == 120 and s["median_days_with_applicant"] == 50
+    assert s["median_review_rounds"] == 2 and s["share_two_or_more_rounds"] == 0.667 and s["share_one_round"] == 0.333
+    assert set(s) == {"permits", "share_one_round", "share_two_or_more_rounds", "median_review_rounds",
+                      "median_days_in_review", "median_days_with_city", "median_days_with_applicant"}
     assert query.review_summary(con, alterations_only=False)["permits"] == 4          # adds the new mixed-use building
-    assert query.review_summary(con, alterations_only=False)["median_days_plan_review"] == 147.5
+    assert query.review_summary(con, alterations_only=False)["median_days_in_review"] == 147.5
     assert query.review_summary(con, "salon")["permits"] == 1 and query.review_summary(con, "fitness")["permits"] == 0
     assert query.review_summary(con, None)["permits"] == 4                             # every category; never the office
 
@@ -109,9 +120,9 @@ def test_database_and_review_queries(tmp_path):
     assert subjects[0] == {"subject": "Ch. 10 Means of Egress", "chapter": 10, "comments": 2, "permits": 1}
     assert {r["subject"] for r in subjects} == {"Ch. 10 Means of Egress", "Ch. 11 Accessibility", "Ch. 29 Plumbing Systems"}
     assert [r["subject"] for r in query.top_comment_subjects(con, "salon")] == ["Ch. 11 Accessibility"]
-    assert len(query.example_comments(con, 10)) == 2 and query.example_comments(con, 10)[0]["Review_Cycle"] == 2
+    assert len(query.example_comments(con, 10)) == 2 and query.example_comments(con, 10)[0]["review_round"] == 2
     assert query.example_comments(con, 16) == []                                       # that permit is not a small business
-    assert [e["Permit_id"] for e in query.slowest_examples(con)] == ["6998648-CN", "TEST-0003-CN", "TEST-0002-CN"]
+    assert [e["permit_number"] for e in query.slowest_examples(con)] == ["6998648-CN", "TEST-0003-CN", "TEST-0002-CN"]
 
     d = query.review_data(con)
     assert d["city"] == "Seattle" and d["category_label"] == "food and drink" and d["summary"]["permits"] == 3
@@ -120,23 +131,32 @@ def test_database_and_review_queries(tmp_path):
     assert "3 food and drink tenant build-out permits" in md and "67% needed two or more review rounds" in md
 
 
-def test_old_database_gets_the_new_columns(tmp_path):
+def test_a_database_with_the_old_column_names_says_to_rebuild(tmp_path):
+    """No migration: a file built before the rename is refused with the command that rebuilds it."""
     import sqlite3
 
-    from pipeline.schema import COLUMNS
-
-    new_cols = {"Category", "Applied_Date", "Review_Cycles", "Days_Plan_Review", "Days_Initial_Review",
-                "Days_City_Review", "Days_Out_Corrections"}
     path = tmp_path / "old.sqlite"
     raw = sqlite3.connect(path)
-    cols = ", ".join(f'"{c}" TEXT' for c in COLUMNS if c not in new_cols)
-    raw.execute(f'CREATE TABLE permits ({cols}, PRIMARY KEY ("County", "Permit_id"))')
-    raw.execute("INSERT INTO permits (\"Permit_id\", \"County\") VALUES ('OLD-1', 'King')")
+    raw.executescript((FX / "old_database_schema.sql").read_text(encoding="utf-8"))
     raw.commit(); raw.close()
-    con = db.connect(path)
-    assert new_cols <= {r["name"] for r in con.execute("PRAGMA table_info(permits)")}
-    assert db.upsert(con, seattle.parse_permits(FX / "seattle_building_permits.json")) == 6
-    assert con.execute("SELECT COUNT(*) FROM permits").fetchone()[0] == 7
+    with pytest.raises(db.OutdatedDatabase) as error:
+        db.connect(path)
+    message = str(error.value)
+    assert "different column names" in message and "python -m pipeline.run_pipeline --seattle" in message
+    assert str(path) in message
+    # the old file is left exactly as it was: nothing added, nothing dropped
+    raw = sqlite3.connect(path)
+    assert raw.execute("SELECT COUNT(*) FROM permits").fetchone()[0] == 1
+    assert "permit_number" not in {r[1] for r in raw.execute("PRAGMA table_info(permits)")}
+    raw.close()
+
+    # a fresh file, and a file this code built, both open normally
+    fresh = db.connect(tmp_path / "new.sqlite")
+    assert db.upsert(fresh, seattle.parse_permits(FX / "seattle_building_permits.json")) == 6
+    fresh.close()
+    again = db.connect(tmp_path / "new.sqlite")
+    assert again.execute("SELECT COUNT(*) FROM permits").fetchone()[0] == 6
+    assert [r["name"] for r in again.execute("PRAGMA table_info(permits)")] == schema.COLUMNS
 
 
 def test_command_line_loads_files_and_prints_a_summary(tmp_path, capsys):

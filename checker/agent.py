@@ -76,7 +76,7 @@ def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
         ctx["seattle_review_records"] = {k: d.get(k) for k in ("category_label", "source", "summary",
                                                                "corrections_by_review_type", "top_comment_subjects")}
     if examples:
-        ctx["real_reviewer_comments"] = [{k: e.get(k) for k in ("Review_Type", "Subject_Raw", "Comment")} for e in examples]
+        ctx["real_reviewer_comments"] = [{k: e.get(k) for k in ("review_type", "subject_raw", "comment")} for e in examples]
     return json.dumps(ctx, indent=1, default=str)
 
 
@@ -112,8 +112,8 @@ def template_answer(question: str, result: dict) -> str:
         d = result.get("local_review_data")
         if d:
             sm = d["summary"]
-            return (f"In Seattle's records, {sm['share_two_or_more_cycles']:.0%} of {sm['permits']} {d['category_label']} "
-                    f"build-outs needed two or more review rounds, and half spent {sm['median_days_plan_review']:g} "
+            return (f"In Seattle's records, {sm['share_two_or_more_rounds']:.0%} of {sm['permits']} {d['category_label']} "
+                    f"build-outs needed two or more review rounds, and half spent {sm['median_days_in_review']:g} "
                     f"days or more in plan review.")
         return "I have no Seattle review data loaded, so I cannot say how long review takes. Run the data pipeline first."
     families = [fam for fam, words in TOPICS.items() if any(w in q for w in words)]

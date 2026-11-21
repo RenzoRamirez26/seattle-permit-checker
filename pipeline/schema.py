@@ -1,7 +1,8 @@
-"""One permit, as stored in the database.
+"""One permit, as stored in the database, and the column names of the three Seattle tables.
 
-Column names are kept from the project's first version. The last block holds the
-plan-review timing Seattle publishes for each permit.
+All names are lower case with underscores. They are ours: the city's own field names appear
+only in pipeline/seattle.py, where each record is mapped. docs/data_sources.md lists every
+column and the city field it comes from.
 """
 from __future__ import annotations
 
@@ -9,63 +10,53 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
 
-# codes for Comm_Res
-COMMERCIAL, RESIDENTIAL, OTHER_USE = 0, 1, 2
-# codes for New_Alter_Demo
+# kinds of work, from the city's permit type description (see work_from_text)
 NEW, ALTER, DEMO, OTHER_WORK = 0, 1, 2, 3
 
 
 @dataclass
 class Permit:
-    Permit_id: str
-    County: str
-    Address: Optional[str] = None
-    Comm_Res: int = OTHER_USE
-    Description: Optional[str] = None
-    Estimated_Cost: Optional[float] = None
-    Issue_Date: Optional[str] = None     # ISO YYYY-MM-DD
-    New_Alter_Demo: int = OTHER_WORK
-    Owner_Address: Optional[str] = None
-    Owner_Name: Optional[str] = None
-    Permit_Type: Optional[str] = None
-    Sqr_Ft: Optional[float] = None
-    Status: Optional[str] = None
-    Jurisdiction: Optional[str] = None   # city or unincorporated county
-    Zoning: Optional[str] = None
-    Land_Use: Optional[str] = None
-    Structure_Type: Optional[str] = None
-    Work_Type: Optional[str] = None
-    Contractor: Optional[str] = None
-    Lat: Optional[float] = None
-    Lon: Optional[float] = None
-    Category: Optional[str] = None       # food_drink, retail, salon or fitness (pipeline/classify.py)
-    Food_Drink: int = 0                  # 1 if this looks like a restaurant/café/bar permit
+    permit_number: str
+    address: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None            # food_drink, retail, salon or fitness (pipeline/classify.py)
+    permit_class: Optional[str] = None        # the city's mapped class, e.g. "Non-Residential"
+    permit_type: Optional[str] = None
+    work_type: Optional[str] = None           # the city's permit type description, e.g. "Addition/Alteration"
+    is_alteration: int = 0                    # 1 for an addition or alteration (a tenant build-out), else 0
+    status: Optional[str] = None
+    estimated_cost: Optional[float] = None
+    contractor: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    applied_date: Optional[str] = None        # dates are ISO YYYY-MM-DD
+    issued_date: Optional[str] = None
+    completed_date: Optional[str] = None
     # --- plan-review timing ---
-    Applied_Date: Optional[str] = None
-    Review_Cycles: Optional[int] = None          # number of plan-review rounds
-    Days_Plan_Review: Optional[float] = None     # total days in plan review
-    Days_Initial_Review: Optional[float] = None  # days to finish the first round
-    Days_City_Review: Optional[float] = None     # days the city held the plans
-    Days_Out_Corrections: Optional[float] = None # days the applicant held the plans making corrections
-    Source_URL: Optional[str] = None
-    Raw: dict[str, Any] = field(default_factory=dict)
+    review_rounds: Optional[int] = None           # number of plan-review rounds
+    days_in_review: Optional[float] = None        # total days in plan review
+    days_first_round: Optional[float] = None      # days to finish the first round
+    days_with_city: Optional[float] = None        # days the city held the plans
+    days_with_applicant: Optional[float] = None   # days the applicant held the plans making corrections
+    record_url: Optional[str] = None
+    raw: dict[str, Any] = field(default_factory=dict)
 
     def to_row(self) -> dict[str, Any]:
         d = asdict(self)
-        d["Raw"] = json.dumps(self.Raw, default=str)
+        d["raw"] = json.dumps(self.raw, default=str)
         return d
 
 
 COLUMNS = list(Permit.__dataclass_fields__.keys())
 
-
-def comm_res_from_text(text: Optional[str]) -> int:
-    t = (text or "").lower()
-    if any(k in t for k in ("non-residential", "nonresidential", "commercial", "comm")):
-        return COMMERCIAL
-    if any(k in t for k in ("residential", "single family", "res)", "dwelling")):
-        return RESIDENTIAL
-    return OTHER_USE
+# One row per review step of a permit (Seattle "Plan Review" dataset). Reviewer names are not stored.
+REVIEW_COLUMNS = ["permit_number", "review_round", "review_type", "review_team", "assigned_date", "finished_date",
+                  "result", "complexity", "permit_class", "work_type", "description", "applied_date",
+                  "address", "category"]
+REVIEW_KEY = ["permit_number", "review_round", "review_type", "review_team", "assigned_date"]
+# One row per reviewer comment (Seattle "Plan Comments" dataset).
+COMMENT_COLUMNS = ["permit_number", "review_type", "review_round", "subject_raw", "chapter", "subject", "comment",
+                   "letter_title", "letter_url", "letter_date"]
 
 
 def work_from_text(text: Optional[str]) -> int:

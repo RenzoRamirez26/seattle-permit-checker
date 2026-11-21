@@ -39,7 +39,3 @@ def business_category(*texts: str | None) -> str | None:
         if rx.search(blob):
             return name
     return None
-
-
-def is_food_drink(*texts: str | None) -> bool:
-    return business_category(*texts) == "food_drink"

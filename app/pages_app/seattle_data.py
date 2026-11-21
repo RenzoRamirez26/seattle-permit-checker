@@ -27,9 +27,12 @@ PREVIEW = pd.DataFrame({
 })
 
 if not ac.has_database():
-    st.info("The database has not been built on this computer yet. From the repository root run:\n\n"
-            "`python -m pipeline.run_pipeline --seattle`\n\n"
-            "It needs internet, no key, and takes a few minutes.", icon="⬇️")
+    if ac.database_problem():
+        st.error(ac.database_problem())      # built with older column names: say how to rebuild it, show the preview meanwhile
+    else:
+        st.info("The database has not been built on this computer yet. From the repository root run:\n\n"
+                "`python -m pipeline.run_pipeline --seattle`\n\n"
+                "It needs internet, no key, and takes a few minutes.", icon="⬇️")
     st.markdown("**Preview: numbers queried directly from the city's portal on 20 November 2026**")
     st.dataframe(PREVIEW, hide_index=True, width="stretch")
     st.caption("These used the portal's text search for the word \"restaurant\", so the pipeline's own numbers "
@@ -48,10 +51,10 @@ if not data:
 sm = data["summary"]
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Permits with plan review", sm["permits"])
-c2.metric("Passed in one round", f"{sm['share_one_cycle']:.0%}")
-c3.metric("Median days in review", f"{sm['median_days_plan_review']:g}" if sm["median_days_plan_review"] is not None else "n/a")
+c2.metric("Passed in one round", f"{sm['share_one_round']:.0%}")
+c3.metric("Median days in review", f"{sm['median_days_in_review']:g}" if sm["median_days_in_review"] is not None else "n/a")
 c4.metric("Median days out for corrections",
-          f"{sm['median_days_out_corrections']:g}" if sm["median_days_out_corrections"] is not None else "n/a",
+          f"{sm['median_days_with_applicant']:g}" if sm["median_days_with_applicant"] is not None else "n/a",
           help="Days the applicant held the plans making corrections. This is the part a pre-check can shorten.")
 
 st.markdown("**Who sends plans back in round 1**")
@@ -72,17 +75,18 @@ if len(subjects):
                            format_func=lambda ch: subjects.loc[subjects["chapter"] == ch, "subject"].iloc[0])
     for c in query.example_comments(con, int(chapter), category, limit=5):
         with st.container(border=True):
-            st.write(c["Comment"])
-            st.caption(f"{c['Review_Type']} review, round {c['Review_Cycle']}, {c['Document_Date']} · permit {c['Permit_id']}")
+            st.write(c["comment"])
+            st.caption(f"{c['review_type']} review, round {c['review_round']}, {c['letter_date']} · permit {c['permit_number']}")
 else:
     st.caption("No reviewer comments are published for permits in this category.")
 
 st.markdown("**Projects with the most review rounds**")
 slow = pd.DataFrame(query.slowest_examples(con, category, limit=8))
 if len(slow):
-    st.dataframe(slow.rename(columns={"Permit_id": "Permit", "Estimated_Cost": "Cost ($)", "Applied_Date": "Applied",
-                                      "Issue_Date": "Issued", "Review_Cycles": "Rounds", "Days_Plan_Review": "Days in review",
-                                      "Days_Out_Corrections": "Days out for corrections"})
+    st.dataframe(slow.rename(columns={"permit_number": "Permit", "estimated_cost": "Cost ($)", "applied_date": "Applied",
+                                      "issued_date": "Issued", "review_rounds": "Rounds", "days_in_review": "Days in review",
+                                      "days_with_applicant": "Days out for corrections",
+                                      "description": "Description"})
                  [["Permit", "Description", "Cost ($)", "Applied", "Issued", "Rounds", "Days in review", "Days out for corrections"]],
                  hide_index=True, width="stretch")
 con.close()
