@@ -4,6 +4,18 @@ A prototype that reads a small-business floor plan, checks it against coded rule
 Building Code, lists the permits to expect, and answers questions about the result by text or voice.
 Seattle only. Read `README.md` for the full picture and the build phases.
 
+## Set up (once per machine or cloud session)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+No key is needed for the tests, the demo plans or the Seattle download. Reading an uploaded plan and
+model-written answers need `ANTHROPIC_API_KEY` in `.env` (copy `.env.example`). Voice models are
+optional: `requirements-voice.txt`.
+
 ## Run things from the repository root
 
 ```bash
@@ -13,6 +25,16 @@ python -m checker.audit --extraction demo/flawed_extraction.json --business cafe
 python -m pipeline.run_pipeline --seattle          # download Seattle's review records
 python -m evaluation.evaluate_extraction --vision  # score the vision model on the demo plans (needs a key)
 ```
+
+## Main folders
+
+- `checker/`: the engine (rulebook, plan reading, rules engine, zoning, agent, voice, PDFs)
+- `pipeline/`: Seattle open data download, SQLite storage, queries
+- `app/`: the Streamlit website; pages in `app/pages_app/`
+- `evaluation/`: scores plan reading and voice; output goes to `reports/`
+- `demo/`: three fictional plans and their ground truth
+- `docs/`: rulebook status, data sources, demo script
+- `tests/`: one file per part
 
 ## The rule everything else follows
 
