@@ -5,7 +5,7 @@ research behind them is in `docs/design_research.md`, the build plan in `docs/we
 If a token changes, change it here first, then in `web/src/styles/tokens.css`.
 
 **Marks:** **[changed]** means the visual direction in `docs/website_plan.md` changes the brief's
-token and waits for approval (the departure number is given). **[added]** means the brief sets nothing
+token, with the owner's approval (the departure number is given). **[added]** means the brief sets nothing
 and this file adds a value. Everything unmarked is the brief as written.
 
 ## Tone
@@ -42,8 +42,9 @@ field, `destructive` fix; `secondary` and `accent` set to paper and ink so no ne
 |---|---|---|
 | `font-text` | IBM Plex Sans | Open licence, a drafting-office feel, excellent at small sizes. |
 | `font-mono` | IBM Plex Mono | Code sections, permit numbers and measurements: the same family, so it sits in a sentence without jumping. |
-| `font-heading` **[changed, D2]** | IBM Plex Serif, `h1` only | A quiet, considered title-block voice for the page question. Same family and proportions as Plex Sans, so it adds no contrast for its own sake. If D2 is rejected: Plex Sans 600. |
-| Weights | 400 and 600 only | Hierarchy from size and space, not from many weights. The serif uses 400. |
+| `font-heading` | IBM Plex Sans 600 | The `h1` on every task page, as the brief has it. |
+| `font-heading-start` **[changed, D2]** | IBM Plex Serif 400 (SIL Open Font License 1.1), Start page `h1` only | A quiet title-block voice on the one page that is not a question. Same family and proportions as Plex Sans. Loaded on Start only. |
+| Weights | 400 and 600 only | Hierarchy from size and space, not from many weights. The Start serif uses 400. |
 | `text-small` | 14 / 20 px | Small print, captions, the credit line. |
 | `text-body` | 18 / 24 px | Body. 133% line height; three 8 px units per line, so text and boxes share one rhythm. Also clears the 16 px minimum that stops iOS zooming into inputs. |
 | `text-section` | 24 / 32 px, 600 | Section headings. |
@@ -79,24 +80,19 @@ and ending on a column edge.
 - Assistant panel on wide screens: columns 9 to 12, so the form stays visible.
 - Check what we read: plan in 7 columns, facts in 5. Plan first on phones.
 - Results: findings in 8 columns, a sticky summary in 4.
-- Start **[added, D1]**: heading and text in columns 1 to 6, the drawing in 6 to 12; under the text on phones.
+- Start: text-only in version 1, in columns 1 to 7 like the question pages. **[D1, on hold]** Only if the
+  owner confirms the drawing's rights: heading and text in columns 1 to 6, the drawing in 6 to 12; under the text on phones.
 
-## Motion **[changed, D3]**
+## Motion
 
-The brief allows only the assistant panel slide (150 to 200 ms). The visual direction adds:
+As the brief has it (D3 rejected): only the assistant panel moves. It slides in over 150 to 200 ms,
+with a CSS transition on `transform`, and appears without sliding when the reduced-motion setting is
+on. Pages, the Reading page and the results counts do not animate. The Reading page shows "Reading
+your plan" and a Cancel link, with no stage names, because the plan is read in one request (D4).
 
-| Where | What | Duration |
-|---|---|---|
-| Assistant panel | slides in | 150 to 200 ms (brief) |
-| Page arrival | content fades in and rises 8 px; no exit animation | 180 ms |
-| Reading page | the list of what the reader looks for appears line by line; not a progress claim | 120 ms per line |
-| Results counts | the three counts count up once; the real numbers are in the page from the start | 400 ms |
+## Imagery **[D1, on hold]**
 
-`transform` and `opacity` only. All of it is off when the reduced-motion setting is on. If D3 is
-rejected, only the assistant panel moves.
-
-## Imagery **[changed, D1]**
-
-One public-domain measured drawing on Start only, in ink on paper, with a visible credit. No images,
+Version 1 has no images: Start is text-only until the owner confirms the drawing's rights statement.
+If it is confirmed: one public-domain measured drawing on Start only, in ink on paper, with a visible credit. No images,
 illustrations or icons as decoration on any task page. Icons appear only beside words (status, back,
 microphone).
