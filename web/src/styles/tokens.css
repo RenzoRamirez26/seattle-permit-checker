@@ -67,6 +67,9 @@
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: rgb(31 78 140 / 0.12);
     text-rendering: optimizeLegibility;
+    /* The Ask button is fixed at the bottom right (64 px, 16 px from the edge): a focused control scrolls clear
+       of it instead of stopping underneath it (Vercel: nothing fixed covers focus; WCAG 2.4.12). */
+    scroll-padding-bottom: 96px;
   }
   body {
     margin: 0;

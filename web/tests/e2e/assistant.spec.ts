@@ -75,6 +75,29 @@ test("closed, the Ask button never covers the main button, from 320 to 1280 px w
   }
 });
 
+test("closed, the Ask button never covers the control that has keyboard focus (Vercel: nothing fixed covers focus)", async ({ page }) => {
+  await seed(page, { caseId: "cafe_flawed" });
+  for (const [width, height] of [[375, 812], [1280, 640]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/check/");
+    await expect(page.getByRole("button", { name: "Run the check" })).toBeVisible();
+    const covered = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      const hit = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        const ask = document.querySelector<HTMLElement>(".ask-button");
+        if (!el || !ask || el === document.body || ask.contains(el)) return null;
+        const a = ask.getBoundingClientRect(), r = el.getBoundingClientRect();
+        const overlaps = r.left < a.right && r.right > a.left && r.top < a.bottom && r.bottom > a.top;
+        return overlaps ? (el.getAttribute("aria-label") || el.textContent || el.tagName).trim().slice(0, 40) : null;
+      });
+      if (hit) covered.add(hit);
+    }
+    expect([...covered], `focused controls under the Ask button at ${width} px`).toEqual([]);
+  }
+});
+
 test("open on a wide screen, the panel sits in columns 9 to 12 and the page makes room: nothing is covered", async ({ page }) => {
   await seed(page, { caseId: "cafe_flawed" });
   await page.setViewportSize({ width: 1280, height: 900 });
