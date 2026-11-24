@@ -24,7 +24,7 @@ test("Start: the headline, the steps in one line, the example drawing, the step 
   // The four steps as one short line, directly under the intro sentence and above the form (checklist L2).
   const strip = page.getByRole("list", { name: "How it works, in short" });
   await expect(strip.getByRole("listitem")).toHaveText([
-    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Seattle's rules decide \(some values still being checked\)$/,
+    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Rules based on Seattle's code decide \(some values still being checked\)$/,
   ]);
   await expect(page.locator("p:has-text('A pre-check, not a city approval.') + ol")).toHaveAccessibleName("How it works, in short");
   const stripBox = (await strip.boundingBox())!;
@@ -43,7 +43,7 @@ test("Start: the headline, the steps in one line, the example drawing, the step 
   await expect(form.getByRole("button", { name: "Continue" })).toBeVisible();
   const how = page.getByRole("region", { name: "How it works" });
   await expect(how.getByRole("heading", { level: 3 })).toHaveText([
-    "Step 1: You upload your plan", "Step 2: The model reads it", "Step 3: You confirm", "Step 4: Seattle's rules decide",
+    "Step 1: You upload your plan", "Step 2: The model reads it", "Step 3: You confirm", "Step 4: Rules based on Seattle's code decide",
   ]);
   for (const c of fixture("meta").demo_cases) await expect(page.getByRole("link", { name: c.title })).toHaveCount(0);   // examples live on step 2
   await expect(page.getByRole("heading", { name: "What you need" })).toHaveCount(0);

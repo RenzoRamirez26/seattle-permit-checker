@@ -10,8 +10,8 @@ export const UNVERIFIED_FINDING = "This rule's value is still being checked agai
 /** One line in the In short band when any finding uses such a rule. */
 export const SOME_UNVERIFIED = "Some rule values are still being checked against the code.";
 /** The last step of Start's one-line strip, and the sentence that ends its full "How it works" step. */
-export const DECIDE = "Seattle's rules decide";
-export const DECIDE_UNVERIFIED = "Seattle's rules decide (some values still being checked)";
+export const DECIDE = "Rules based on Seattle's code decide";
+export const DECIDE_UNVERIFIED = "Rules based on Seattle's code decide (some values still being checked)";
 export const DECIDE_TEXT_UNVERIFIED = "Some of their values are still being checked against the code.";
 
 export const ruleUnverified = (f: Pick<Finding, "rule_verified">) => f.rule_verified !== true;

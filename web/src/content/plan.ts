@@ -32,4 +32,4 @@ export const UNREADABLE = {
 };
 
 /** The Checking state: the steps of the whole check, and what the page says while the plan is read. */
-export const CHECKING_STEPS = ["Upload your plan", "Read the plan", "Confirm the readings", "Run Seattle's rules"] as const;
+export const CHECKING_STEPS = ["Upload your plan", "Read the plan", "Confirm the readings", "Run the rules"] as const;

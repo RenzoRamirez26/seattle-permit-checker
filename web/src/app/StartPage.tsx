@@ -50,7 +50,7 @@ export function StartPage() {
             </p>
             <ol aria-label="How it works, in short" className="m-0 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 font-medium">
               {HOW.map((s, i) => (
-                <li key={s.title} className="flex gap-2 sm:whitespace-nowrap">
+                <li key={s.title} className={i < HOW.length - 1 ? "flex gap-2 sm:whitespace-nowrap" : "flex gap-2"}>
                   {i > 0 ? <span aria-hidden className="text-blue">·</span> : null}
                   {s.strip}
                 </li>

@@ -1,6 +1,6 @@
 /**
  * The Checking state: the real steps of the check as an ordered list, and an indeterminate progress bar.
- * In: the index of the step happening now, counted from 0: "Read the plan" on the Reading page, "Run Seattle's rules"
+ * In: the index of the step happening now, counted from 0: "Read the plan" on the Reading page, "Run the rules"
  * on the Answers page.  Out: the list (done steps with a check, the current one aria-current="step", later ones muted)
  * and the bar. The API sends no progress events, so the bar has no value (no aria-valuenow); it slides while the
  * work runs and stands still when reduced motion is on (DESIGN.md, Motion).

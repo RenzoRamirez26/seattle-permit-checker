@@ -198,7 +198,7 @@ export const ANSWERS = {
   runNote: "The check uses these values, including your changes.",
   run: "Run the check",
   running: "Running the check…",
-  runningStatus: "Running Seattle's rules on your readings…",
+  runningStatus: "Running the rules on your readings…",
   needBusiness: "Answer what kind of business it is first.",
   saveFirst: "Save or cancel your change first.",
 };

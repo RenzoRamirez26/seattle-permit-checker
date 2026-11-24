@@ -32,7 +32,7 @@ test("Checking: the real steps, Read the plan as the current step, and a bar wit
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Reading your plan");
 
   const steps = page.getByRole("list", { name: "Where the check is" });
-  await expect(steps.getByRole("listitem")).toHaveText([/^Upload your plan/, /^Read the plan$/, /^Confirm the readings$/, /^Run Seattle's rules$/]);
+  await expect(steps.getByRole("listitem")).toHaveText([/^Upload your plan/, /^Read the plan$/, /^Confirm the readings$/, /^Run the rules$/]);
   await expect(steps.getByRole("listitem").first()).toContainText("(done)");
   await expect(steps.locator('[aria-current="step"]')).toHaveCount(1);
   await expect(steps.locator('[aria-current="step"]')).toHaveText("Read the plan");

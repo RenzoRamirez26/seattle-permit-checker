@@ -79,16 +79,16 @@ test("Start: the last step says some values are still being checked while the AP
   expect(meta.rulebook.rules_unverified).toBeGreaterThan(0);
   await page.goto("/");
   const strip = page.getByRole("list", { name: "How it works, in short" });
-  await expect(strip.getByRole("listitem").last()).toHaveText(/Seattle's rules decide \(some values still being checked\)$/);
+  await expect(strip.getByRole("listitem").last()).toHaveText(/Rules based on Seattle's code decide \(some values still being checked\)$/);
   await expect(page.getByRole("region", { name: "How it works" })).toContainText("Some of their values are still being checked against the code.");
 });
 
-test("Start: with no unverified rules the last step is just Seattle's rules decide", async ({ page }) => {
+test("Start: with no unverified rules the last step is just Rules based on Seattle's code decide", async ({ page }) => {
   const meta = fixture("meta");
   meta.rulebook.rules_unverified = 0;
   await page.route("**/api/meta", (route) => route.fulfill({ json: meta, headers: cors }));
   await page.goto("/");
   const strip = page.getByRole("list", { name: "How it works, in short" });
-  await expect(strip.getByRole("listitem").last()).toHaveText(/Seattle's rules decide$/);
+  await expect(strip.getByRole("listitem").last()).toHaveText(/Rules based on Seattle's code decide$/);
   await expect(page.getByRole("region", { name: "How it works" })).not.toContainText("still being checked");
 });
