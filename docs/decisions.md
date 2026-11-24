@@ -6,7 +6,28 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
-## 2026-11-24 · An unknown aisle width still gives No issues found (open)
+## 2026-11-24 · Check with the city rows state the requirement; no rule counts as checked yet
+
+- **Decision:**
+  - Check with the city rows now say what the plan doesn't show, then what is needed. For example: "Your plan
+    doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel." The values come from
+    `seattle.json`. The 75 ft is new there and listed under `_meta.verify`, so FS-3 keeps its "still being checked"
+    note.
+  - EG-3 is back to unchecked, because its citation names ADA 404.2.3, entered from memory. ADA-3 cites the same
+    section, so it is unchecked too. No rule counts as checked today.
+  - The report PDF puts "The occupant load, occupancy group and exits required rest on values still being checked
+    against the code." right under those figures. The preparation sheet marks each of the three values.
+  - A permit listed because of the number of people (the assembly permit, the sprinkler permit) says "Listed because
+    of a value still being checked against the code." in both PDFs and on the website. The engine marks it
+    (`Permit.rule_verified`) without adding or dropping any permit.
+  - "Checked by:" is now "Who to ask:" in the report PDF, the Markdown report and Streamlit, as on the website.
+- **Why:** the second independent checklist scoring (T4, T5, L4).
+- **Rejected:**
+  - Keeping ADA-3 checked while EG-3 is not; they share the citation.
+  - Marking every permit; the others come from the city's own permit lists.
+- **Who:** owner (scope); team (how).
+
+## 2026-11-24 · An unknown aisle width still gave No issues found (closed: fixed)
 
 - **Found by:** the second independent checklist scoring on the rule-verification branch.
 - **What:** with every aisle's width left empty, ADA-1 reports "Every route width on your plan is at least 36 in." as
@@ -14,10 +35,28 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
   never becomes a pass".
 - **Decision for now:** the owner allowed only message changes in `rules_engine.py` this round, so the logic is
   unchanged. The Answers intro and Help no longer claim that a Not sure value is never counted as meeting a rule.
-- **TODO:** make ADA-1 a review when any aisle width is unknown, and ADA-4 a review when the seat count is unknown;
-  audit the other `passes` entries whose `applies` is always true (FS-3); add a test that sets each plan value to null
-  and asserts no finding that depends on it is a pass.
-- **Who:** found by evaluation; the fix waits on the owner.
+- **Fixed (owner allowed this logic change only):**
+  - ADA-1: an aisle with no width is Check with the city.
+  - ADA-4: no seat count is Check with the city.
+- **The audit of every rule found more of the same pattern, all fixed:**
+  - EG-2: an exit door with no swing, or a door not marked exit or not, is Check with the city.
+  - EG-4: an exit with no width is Check with the city.
+  - ADA-3: a restroom door with no width is Check with the city.
+  - PL-1 and PL-2: a restroom with no toilet or sink count, or no men/women designation where that matters, is Check
+    with the city.
+  - MECH-1 and FS-3: unknown grease cooking is Check with the city.
+  - Zoning: no floor area in a zone with a size limit is Check with the city.
+  - Rules that depend on the number of people (OCC-1, EG-1, EG-2, EG-4, FS-1, FS-2, PL-1, PL-2): a room with no area
+    or use, or no seat count, turns their No issues found into Check with the city, or adds a finding where the rule
+    would otherwise not appear.
+- **Tests:** `tests/unknown_inputs.py` sets every plan input of five demo cases to a spread of known values and then
+  to unknown. `test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding` fails if unknown ever gives
+  a better outcome than the worst known value. `test_unknown_handling_leaves_every_fix_finding_as_it_was` compares
+  every Fix finding over the same grid with a snapshot written by the engine before the change: identical.
+- **Not changed:**
+  - Urinals left empty count as 0, as before. The reading schema makes them optional, and 0 is already the worst case.
+  - A room marked "other" still has no load. It is a known use, not an unknown one.
+- **Who:** found by evaluation; fixed with the owner's approval.
 
 ## 2026-11-24 · No issues found rows name the requirement; numbers only from the rulebook
 
