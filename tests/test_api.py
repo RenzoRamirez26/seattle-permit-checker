@@ -79,6 +79,21 @@ def test_meta_lists_what_the_form_needs(api):
                               "max_history_turns": 6, "check_days": 30}
 
 
+def test_meta_gives_the_rulebook_edition_date_only_once_the_owner_has_set_it(api, monkeypatch):
+    """Q2: the footer's date comes from _meta.edition_date. While it is the placeholder the API sends null, never "TODO"."""
+    assert api_main.rules()["_meta"]["edition_date"].startswith("TODO")
+    rulebook = api.get("/api/meta").json()["rulebook"]
+    assert rulebook == {"edition_date": None, "code_basis": api_main.rules()["_meta"]["code_basis"]}
+    assert "TODO" not in api.get("/api/meta").text
+
+    dated = json.loads(json.dumps(api_main.rules()))
+    dated["_meta"]["edition_date"] = "2026-11-01"
+    monkeypatch.setattr(api_main, "rules", lambda: dated)
+    assert api.get("/api/meta").json()["rulebook"]["edition_date"] == "2026-11-01"
+    spec = api.get("/openapi.json").json()["components"]["schemas"]
+    assert "edition_date" in spec["Rulebook"]["properties"] and "rulebook" in spec["Meta"]["required"]
+
+
 def test_docs_page_and_contract(api):
     assert api.get("/docs").status_code == 200 and "swagger" in api.get("/docs").text.lower()
     spec = api.get("/openapi.json").json()

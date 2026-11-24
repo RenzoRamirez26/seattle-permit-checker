@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "plan_reading_failed",
+      "message": "The plan could not be read by the model. Try again in a moment, or use a demo plan."
+    }
+  },
+  "status": 502
+}

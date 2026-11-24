@@ -1,0 +1,50 @@
+import { expect, test } from "@playwright/test";
+import { expectNoAxeViolations, expectNoSidewaysScroll, expectTouchTargets, shoot, WIDTHS } from "./helpers";
+
+const ROUTES: [string, string][] = [
+  ["/", "Check your floor plan before you apply"],
+  ["/business/", "What kind of business is it?"],
+  ["/plan/", "Upload your floor plan"],
+  ["/plan/reading/", "Reading your plan"],
+  ["/check/", "Check what we read from your plan"],
+  ["/results/", "Your pre-check results"],
+  ["/help/", "How the pre-check works"],
+];
+
+for (const [path, heading] of ROUTES) {
+  test(`${path} has its h1, title, footer, and passes axe`, async ({ page }) => {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
+    await expect(page).toHaveTitle(new RegExp(heading.replace(/[?]/g, "\\?")));
+    const footer = page.getByRole("contentinfo");
+    await expect(footer).toContainText("A prototype by the Seattle Permit Pre-Check team. Not a City of Seattle service.");
+    await expect(footer).not.toContainText("TODO");
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectNoAxeViolations(page, `${path} at ${width}`);
+    }
+    await expectNoSidewaysScroll(page);
+    await expectTouchTargets(page);
+  });
+}
+
+test("the footer shows the rulebook's basis from /api/meta and no date while it is the placeholder", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+  await expect(footer).toContainText("2021 Seattle Building Code");
+  await expect(footer.locator("time")).toHaveCount(0);
+});
+
+test("the skip link moves focus to the main content", async ({ page }) => {
+  await page.goto("/business/");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main")).toBeFocused();
+});
+
+test("screenshots: stage 0", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("contentinfo")).toContainText("2021 Seattle");
+  await shoot(page, "stage-0", "start-empty");
+});

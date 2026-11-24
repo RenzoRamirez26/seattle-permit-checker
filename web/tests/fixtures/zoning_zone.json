@@ -1,0 +1,14 @@
+{
+  "outline": null,
+  "point": null,
+  "zoning": {
+    "address": "",
+    "cite": "SMC 23.47A",
+    "detail": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft. A restaurant is generally allowed. Confirm overlays, pedestrian-street rules and any change-of-use requirement.",
+    "district": "NC2-55 (M)",
+    "source": "entered by hand",
+    "status": "likely_permitted",
+    "use": "restaurant",
+    "zone": "NC2"
+  }
+}

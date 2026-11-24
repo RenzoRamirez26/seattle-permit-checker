@@ -1,0 +1,13 @@
+{
+  "answer": {
+    "cited_rules": [
+      "ADA-1",
+      "ADA-2",
+      "EG-3"
+    ],
+    "generated_by": "template",
+    "problems": [],
+    "text": "I found 3 problems and 2 items to confirm. The occupant load is 15, which makes this Group B. The most serious: Door too narrow: Restroom door (Restroom). [EG-3] Aisle too narrow: Aisle A (between chairs). [ADA-1] Restroom too tight to turn a wheelchair: Restroom. [ADA-2] There are 2 more in the fix list."
+  },
+  "question": "What should I fix first?"
+}

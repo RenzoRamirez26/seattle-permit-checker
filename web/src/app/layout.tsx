@@ -1,0 +1,38 @@
+import type { Metadata, Viewport } from "next";
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-600.css";
+import "@/styles/tokens.css";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { Providers } from "@/components/layout/Providers";
+
+export const metadata: Metadata = {
+  title: { default: "Seattle Permit Pre-Check", template: "%s | Seattle Permit Pre-Check" },
+  description: "Check a small-business floor plan against Seattle's building code before you apply. A prototype, not a City of Seattle service.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#faf8f3",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <a href="#main" className="skip-link">Skip to content</a>
+        <Providers>
+          <SiteHeader />
+          <main id="main" tabIndex={-1} className="flex-1 pb-24 outline-none">
+            {children}
+          </main>
+          <SiteFooter />
+        </Providers>
+      </body>
+    </html>
+  );
+}

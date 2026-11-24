@@ -2,6 +2,13 @@
 
 `checker/rules/seattle.json` holds every number the checker uses. This page says where each came from, so the team knows what can be shown to a judge as checked.
 
+## Edition date
+
+`_meta.edition_date` is the date the website footer shows for this rulebook (`GET /api/meta` returns it as
+`rulebook.edition_date`). It is still the placeholder `"TODO: the owner sets this date"`: no date has been
+chosen yet. While it is the placeholder, the API returns `null` and the footer shows no date. The owner
+sets the real date (as `YYYY-MM-DD`); no build session writes one.
+
 ## Checked against Seattle's published text
 
 Read from the 2021 Seattle Building Code (SBC) chapter PDFs on seattle.gov in November 2026.

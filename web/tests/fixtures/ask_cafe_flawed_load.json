@@ -1,0 +1,11 @@
+{
+  "answer": {
+    "cited_rules": [
+      "OCC-1"
+    ],
+    "generated_by": "template",
+    "problems": [],
+    "text": "That part passed. Occupancy classification: Café or restaurant with a calculated occupant load of 106: classified Group A-2. [OCC-1]"
+  },
+  "question": "Why is the occupant load what it is?"
+}

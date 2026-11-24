@@ -128,11 +128,18 @@ class Limits(BaseModel):
     check_days: float = Field(description="A stored check is deleted after this many days.")
 
 
+class Rulebook(BaseModel):
+    edition_date: Optional[str] = Field(description="The rulebook's edition date (_meta.edition_date), for the site's footer. "
+                                                    "null while the rulebook still holds the placeholder.")
+    code_basis: str
+
+
 class Meta(BaseModel):
     business_types: list[BusinessType]
     demo_cases: list[DemoCase]
     features: Features
     limits: Limits
+    rulebook: Rulebook
 
 
 # ---------------------------------------------------------------- /plans/read

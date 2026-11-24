@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "no_model_key",
+      "message": "This server has no Claude API key, so an uploaded plan cannot be read. Use a demo plan."
+    }
+  },
+  "status": 503
+}

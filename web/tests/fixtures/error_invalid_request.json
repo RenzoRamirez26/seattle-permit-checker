@@ -1,0 +1,15 @@
+{
+  "body": {
+    "error": {
+      "code": "invalid_request",
+      "fields": [
+        {
+          "field": "intake.business_type",
+          "problem": "Field required"
+        }
+      ],
+      "message": "The request is not valid. intake.business_type: Field required"
+    }
+  },
+  "status": 422
+}

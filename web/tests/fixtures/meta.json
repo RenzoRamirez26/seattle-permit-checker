@@ -1,0 +1,91 @@
+{
+  "business_types": [
+    {
+      "has_seating": true,
+      "key": "cafe_restaurant",
+      "label": "Café or restaurant",
+      "serves_alcohol": false,
+      "serves_food": true
+    },
+    {
+      "has_seating": true,
+      "key": "bar_taproom",
+      "label": "Bar, tavern or taproom",
+      "serves_alcohol": true,
+      "serves_food": true
+    },
+    {
+      "has_seating": false,
+      "key": "retail",
+      "label": "Retail shop",
+      "serves_alcohol": false,
+      "serves_food": false
+    },
+    {
+      "has_seating": false,
+      "key": "salon",
+      "label": "Salon, barbershop or spa",
+      "serves_alcohol": false,
+      "serves_food": false
+    },
+    {
+      "has_seating": false,
+      "key": "office_studio",
+      "label": "Office or professional studio",
+      "serves_alcohol": false,
+      "serves_food": false
+    },
+    {
+      "has_seating": false,
+      "key": "fitness",
+      "label": "Gym or fitness studio",
+      "serves_alcohol": false,
+      "serves_food": false
+    }
+  ],
+  "demo_cases": [
+    {
+      "business_type": "cafe_restaurant",
+      "cooking_on_site": true,
+      "id": "cafe_flawed",
+      "title": "Café with planted problems",
+      "zone": "NC2-55 (M)"
+    },
+    {
+      "business_type": "cafe_restaurant",
+      "cooking_on_site": true,
+      "id": "cafe_compliant",
+      "title": "Café that passes",
+      "zone": "NC2-55 (M)"
+    },
+    {
+      "business_type": "salon",
+      "cooking_on_site": false,
+      "id": "salon_flawed",
+      "title": "Hair salon with planted problems",
+      "zone": "NR3"
+    }
+  ],
+  "features": {
+    "kokoro_voice": false,
+    "model_api_key": false,
+    "seattle_database": false,
+    "speech_to_text": false
+  },
+  "limits": {
+    "check_days": 30.0,
+    "max_history_turns": 6,
+    "max_question_chars": 500,
+    "max_upload_mb": 10.0,
+    "upload_types": [
+      ".jpeg",
+      ".jpg",
+      ".pdf",
+      ".png"
+    ]
+  },
+  "rulebook": {
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
+    "edition_date": null
+  }
+}

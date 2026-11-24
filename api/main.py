@@ -100,7 +100,14 @@ def get_meta() -> dict:
         "limits": {"upload_types": sorted(config.UPLOAD_TYPES), "max_upload_mb": config.max_upload_bytes() / 1024 / 1024,
                    "max_question_chars": config.MAX_QUESTION_CHARS, "max_history_turns": config.MAX_HISTORY_TURNS,
                    "check_days": config.check_days()},
+        "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"]},
     }
+
+
+def edition_date(rulebook: dict) -> Optional[str]:
+    """The rulebook's edition date, or None while _meta still holds the placeholder (so "TODO" never reaches a page)."""
+    value = str(rulebook["_meta"].get("edition_date") or "").strip()
+    return None if not value or value.upper().startswith("TODO") else value
 
 
 @router.post("/plans/read", response_model=schemas.PlanReading, tags=["plan"],

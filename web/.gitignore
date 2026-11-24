@@ -1,0 +1,12 @@
+/node_modules
+/.next/
+/out/
+/public/demo/
+/public/tiles/
+/public/pdf.worker.min.mjs
+/test-results/
+/playwright-report/
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+.env*

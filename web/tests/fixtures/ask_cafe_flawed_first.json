@@ -1,0 +1,13 @@
+{
+  "answer": {
+    "cited_rules": [
+      "EG-1",
+      "FS-2",
+      "MECH-1"
+    ],
+    "generated_by": "template",
+    "problems": [],
+    "text": "I found 11 problems and 2 items to confirm. The occupant load is 106, which makes this Group A-2. The most serious: Not enough exits. [EG-1] No Type I hood over cooking equipment. [MECH-1] Sprinkler system required, plan says none. [FS-2] There are 10 more in the fix list."
+  },
+  "question": "What should I fix first?"
+}

@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "plan_needed",
+      "message": "Give a demo case id or upload one plan file, not both and not neither."
+    }
+  },
+  "status": 400
+}

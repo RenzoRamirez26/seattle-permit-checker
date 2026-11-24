@@ -1,0 +1,55 @@
+{
+  "outline": {
+    "geometry": {
+      "coordinates": [
+        [
+          [
+            -122.3301,
+            47.6101
+          ],
+          [
+            -122.3301,
+            47.6111
+          ],
+          [
+            -122.3291,
+            47.6111
+          ],
+          [
+            -122.3291,
+            47.6101
+          ],
+          [
+            -122.3301,
+            47.6101
+          ]
+        ]
+      ],
+      "type": "Polygon"
+    },
+    "properties": {
+      "district": "NC2-55 (M)",
+      "source": "City of Seattle, Current Land Use Zoning Detail"
+    },
+    "type": "Feature"
+  },
+  "point": {
+    "lat": 47.6106,
+    "lon": -122.3296
+  },
+  "zoning": {
+    "address": "123 Example St, Seattle, WA",
+    "cite": "SMC 23.47A",
+    "code_link": null,
+    "description": "Neighborhood Commercial 2",
+    "detail": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft. A restaurant is generally allowed. This plan is 2,400 sq ft, within the 25,000 sq ft limit. Confirm overlays, pedestrian-street rules and any change-of-use requirement.",
+    "district": "NC2-55 (M)",
+    "lat": 47.6106,
+    "lon": -122.3296,
+    "overlays": {},
+    "source": "City of Seattle, Current Land Use Zoning Detail",
+    "status": "likely_permitted",
+    "use": "restaurant",
+    "zone": "NC2"
+  }
+}

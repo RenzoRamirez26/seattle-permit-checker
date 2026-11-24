@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "demo_case_not_found",
+      "message": "There is no demo case 'nope'. Use one of: cafe_flawed, cafe_compliant, salon_flawed."
+    }
+  },
+  "status": 404
+}

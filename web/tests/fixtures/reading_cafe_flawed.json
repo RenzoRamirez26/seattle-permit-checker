@@ -1,0 +1,145 @@
+{
+  "case_id": "cafe_flawed",
+  "facts": {
+    "accessible_seat_count": null,
+    "aisles": [
+      {
+        "label": "Aisle A (between tables)",
+        "min_width_in": 30.0
+      },
+      {
+        "label": "Corridor to restrooms",
+        "min_width_in": 36.0
+      }
+    ],
+    "doors": [
+      {
+        "clear_width_in": 36.0,
+        "is_exit": true,
+        "label": "Door 1",
+        "location": "main entry, south wall",
+        "serves": "Dining Room",
+        "swing": "inward"
+      },
+      {
+        "clear_width_in": 30.0,
+        "is_exit": false,
+        "label": "Restroom 1 door",
+        "location": "off corridor",
+        "serves": "Restroom 1",
+        "swing": "unknown"
+      },
+      {
+        "clear_width_in": 30.0,
+        "is_exit": false,
+        "label": "Restroom 2 door",
+        "location": "off corridor",
+        "serves": "Restroom 2",
+        "swing": "unknown"
+      }
+    ],
+    "fire_safety": {
+      "class_k_extinguisher_shown": false,
+      "emergency_lighting_noted": null,
+      "exit_signs_shown": 0,
+      "fire_extinguishers_shown": 0,
+      "sprinklers_noted": false
+    },
+    "gross_area_sqft": 2400.0,
+    "kitchen": {
+      "cooking_appliances": [
+        "range",
+        "fryer",
+        "espresso prep"
+      ],
+      "grease_interceptor_shown": null,
+      "grease_producing_cooking": true,
+      "hand_sinks": 0,
+      "mop_or_service_sink": true,
+      "three_compartment_sink": true,
+      "type1_hood_shown": false
+    },
+    "outdoor_seating_shown": false,
+    "overall_length_ft": 60.0,
+    "overall_width_ft": 40.0,
+    "plan_title": "Café Tenant Improvement - Floor Plan B",
+    "restrooms": [
+      {
+        "designation": "women",
+        "door_clear_width_in": 30.0,
+        "label": "Restroom 1",
+        "lavatories": 1,
+        "turning_circle_diameter_in": 54.0,
+        "urinals": 0,
+        "water_closets": 1
+      },
+      {
+        "designation": "men",
+        "door_clear_width_in": 30.0,
+        "label": "Restroom 2",
+        "lavatories": 1,
+        "turning_circle_diameter_in": 54.0,
+        "urinals": 0,
+        "water_closets": 1
+      }
+    ],
+    "scale_note": "All dimensions printed; do not scale.",
+    "seat_count": 56,
+    "spaces": [
+      {
+        "area_sqft": 1280.0,
+        "length_ft": 32.0,
+        "name": "Dining Room",
+        "use": "dining",
+        "width_ft": 40.0
+      },
+      {
+        "area_sqft": 240.0,
+        "length_ft": 6.0,
+        "name": "Service Counter",
+        "use": "counter_service",
+        "width_ft": 40.0
+      },
+      {
+        "area_sqft": 528.0,
+        "length_ft": 22.0,
+        "name": "Kitchen",
+        "use": "kitchen",
+        "width_ft": 24.0
+      },
+      {
+        "area_sqft": 128.0,
+        "length_ft": 8.0,
+        "name": "Storage",
+        "use": "storage",
+        "width_ft": 16.0
+      },
+      {
+        "area_sqft": null,
+        "length_ft": null,
+        "name": "Restroom 1",
+        "use": "restroom",
+        "width_ft": null
+      },
+      {
+        "area_sqft": null,
+        "length_ft": null,
+        "name": "Restroom 2",
+        "use": "restroom",
+        "width_ft": null
+      },
+      {
+        "area_sqft": null,
+        "length_ft": 16.0,
+        "name": "Corridor",
+        "use": "corridor",
+        "width_ft": 3.0
+      }
+    ],
+    "uncertainties": [
+      "Restroom room dimensions are not printed."
+    ]
+  },
+  "source": "saved_reading",
+  "source_label": "the saved reading for this demo plan (no model call)"
+}

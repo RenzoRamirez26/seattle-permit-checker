@@ -1,0 +1,183 @@
+/* The design tokens from DESIGN.md, once. If a token changes, change DESIGN.md first, then here.
+   Contrast figures are WCAG 2 ratios on paper (DESIGN.md, Colour). */
+@import "tailwindcss";
+
+@theme {
+  /* Colour: paper, ink, one blue, three status pairs. Nothing else. */
+  --color-paper: #faf8f3;
+  --color-ink: #1b1f24;          /* 15.6 : 1 */
+  --color-ink-muted: #55606b;    /* 6.1 : 1 */
+  --color-blue: #1f4e8c;         /* 7.8 : 1; white on it 8.3 : 1 */
+  --color-fix: #b3261e;          /* 6.2 : 1, 5.6 on its tint */
+  --color-fix-tint: #fbe9e7;
+  --color-city: #7a4f00;         /* 6.7 : 1, 6.3 on its tint */
+  --color-city-tint: #fbf0d9;
+  --color-ok: #1e6b3a;           /* 6.2 : 1, 5.6 on its tint */
+  --color-ok-tint: #e4f2e8;
+  --color-field: #7c8691;        /* 3.5 : 1, control outlines */
+  --color-hairline: #d9d4c8;     /* dividers only */
+  --color-white: #ffffff;
+
+  /* shadcn's variable names, mapped onto the tokens only (DESIGN.md, Colour) */
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --color-muted-foreground: var(--color-ink-muted);
+  --color-primary: var(--color-blue);
+  --color-primary-foreground: var(--color-white);
+  --color-ring: var(--color-blue);
+  --color-border: var(--color-hairline);
+  --color-input: var(--color-field);
+  --color-destructive: var(--color-fix);
+  --color-secondary: var(--color-paper);
+  --color-secondary-foreground: var(--color-ink);
+  --color-accent: var(--color-paper);
+  --color-accent-foreground: var(--color-ink);
+
+  /* Type: Plex Sans for text, Plex Mono for code sections, permit numbers and measurements */
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "IBM Plex Serif", Georgia, serif;   /* Start page h1 only (D2) */
+
+  --text-small: 0.875rem;        /* 14 / 20 */
+  --text-small--line-height: 1.25rem;
+  --text-body: 1.125rem;         /* 18 / 24 */
+  --text-body--line-height: 1.5rem;
+  --text-section: 1.5rem;        /* 24 / 32 */
+  --text-section--line-height: 2rem;
+  --text-page: 2rem;             /* 32 / 40 phones */
+  --text-page--line-height: 2.5rem;
+  --text-page-wide: 2.5rem;      /* 40 / 48 from 1024 px */
+  --text-page-wide--line-height: 3rem;
+
+  /* 8 px unit; Tailwind's 4 px step gives the allowed gaps 1, 2, 4, 6, 8, 12, 16, 24 (4 to 96 px) */
+  --spacing: 0.25rem;
+  --radius-sm: 2px;              /* [added, D11] */
+  --radius: 2px;
+
+  --breakpoint-sm: 40rem;        /* 640 px: 8 columns */
+  --breakpoint-lg: 64rem;        /* 1024 px: 12 columns */
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: rgb(31 78 140 / 0.12);
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    margin: 0;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-weight: 400;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The focus ring: 3 px blue, 2 px offset, visible on paper and on every tint. */
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+  a {
+    color: var(--color-blue);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+  h1, h2, h3, [id] {
+    scroll-margin-top: 24px;
+  }
+  button, input, select, textarea, a, label, [role="button"], [role="radio"] {
+    touch-action: manipulation;
+  }
+  input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+  select {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+  }
+  @media (pointer: fine) {
+    html { overscroll-behavior: none; }
+  }
+}
+
+@layer components {
+  /* The page grid: 4 columns under 640 px, 8 to 1023 px, 12 from 1024 px (DESIGN.md, Grid). */
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 16px;
+    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (min-width: 40rem) {
+    .page-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); column-gap: 24px; padding-inline: 32px; }
+  }
+  @media (min-width: 64rem) {
+    .page-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); max-width: calc(1200px + 64px); margin-inline: auto; }
+  }
+  /* Question pages: columns 1 to 7 (all columns on phones and tablets). */
+  .col-question { grid-column: 1 / -1; min-width: 0; }
+  @media (min-width: 64rem) { .col-question { grid-column: 1 / span 7; } }
+
+  .text-page-heading {
+    font-size: var(--text-page);
+    line-height: var(--text-page--line-height);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  @media (min-width: 64rem) {
+    .text-page-heading { font-size: var(--text-page-wide); line-height: var(--text-page-wide--line-height); }
+  }
+  .text-section-heading {
+    font-size: var(--text-section);
+    line-height: var(--text-section--line-height);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .measure { max-width: 80ch; }
+  .nums { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .skip-link {
+    position: absolute;
+    left: 16px;
+    top: -100px;
+    z-index: 100;
+    background: var(--color-blue);
+    color: var(--color-white);
+    padding: 12px 16px;
+    border-radius: 2px;
+    text-decoration: none;
+  }
+  .skip-link:focus { top: 8px; }
+}
+
+@layer components {
+  /* The footer's title block: hairline cells, like the corner of a drawing sheet. */
+  .title-block { border: 1px solid var(--color-hairline); grid-template-columns: 1fr; }
+  .title-block > div { padding: 16px; border-top: 1px solid var(--color-hairline); }
+  .title-block > div:first-child { border-top: 0; }
+  .title-block dd { margin: 4px 0 0; }
+  @media (min-width: 40rem) {
+    .title-block { grid-template-columns: 2fr 2fr 1fr; }
+    .title-block > div { border-top: 0; border-left: 1px solid var(--color-hairline); }
+    .title-block > div:first-child { border-left: 0; }
+  }
+}
+
+@layer components {
+  /* Start page h1 only: IBM Plex Serif 400 (D2). Same sizes as every h1. */
+  .start-heading { font-family: var(--font-serif); font-weight: 400; }
+}

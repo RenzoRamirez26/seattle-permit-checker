@@ -1,0 +1,480 @@
+{
+  "created_at": "2026-11-24T12:00:00+00:00",
+  "expires_at": "2026-12-24T12:00:00+00:00",
+  "id": "fixture-cafe_compliant",
+  "notices": [],
+  "result": {
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
+    "disclaimer": "Pre-submission check only. Not a code determination; have a licensed design professional and the plan reviewer confirm.",
+    "extraction": {
+      "accessible_seat_count": 12,
+      "aisles": [
+        {
+          "label": "Aisle A (between tables)",
+          "min_width_in": 41.0
+        },
+        {
+          "label": "Corridor to restrooms",
+          "min_width_in": 48.0
+        }
+      ],
+      "doors": [
+        {
+          "clear_width_in": 36.0,
+          "is_exit": true,
+          "label": "Door 1",
+          "location": "main entry, south wall",
+          "serves": "Dining Room",
+          "swing": "outward"
+        },
+        {
+          "clear_width_in": 36.0,
+          "is_exit": true,
+          "label": "Door 2",
+          "location": "east wall of dining room",
+          "serves": "Dining Room",
+          "swing": "outward"
+        },
+        {
+          "clear_width_in": 36.0,
+          "is_exit": true,
+          "label": "Door 3",
+          "location": "kitchen service exit, north wall",
+          "serves": "Kitchen",
+          "swing": "outward"
+        },
+        {
+          "clear_width_in": 34.0,
+          "is_exit": false,
+          "label": "Restroom 1 door",
+          "location": "off corridor",
+          "serves": "Restroom 1",
+          "swing": "unknown"
+        },
+        {
+          "clear_width_in": 34.0,
+          "is_exit": false,
+          "label": "Restroom 2 door",
+          "location": "off corridor",
+          "serves": "Restroom 2",
+          "swing": "unknown"
+        }
+      ],
+      "fire_safety": {
+        "class_k_extinguisher_shown": true,
+        "emergency_lighting_noted": true,
+        "exit_signs_shown": 3,
+        "fire_extinguishers_shown": 3,
+        "sprinklers_noted": true
+      },
+      "gross_area_sqft": 2400.0,
+      "kitchen": {
+        "cooking_appliances": [
+          "range",
+          "fryer",
+          "espresso prep"
+        ],
+        "grease_interceptor_shown": true,
+        "grease_producing_cooking": true,
+        "hand_sinks": 1,
+        "mop_or_service_sink": true,
+        "three_compartment_sink": true,
+        "type1_hood_shown": true
+      },
+      "outdoor_seating_shown": false,
+      "overall_length_ft": 60.0,
+      "overall_width_ft": 40.0,
+      "plan_title": "Café Tenant Improvement - Floor Plan A",
+      "restrooms": [
+        {
+          "designation": "women",
+          "door_clear_width_in": 34.0,
+          "label": "Restroom 1",
+          "lavatories": 1,
+          "turning_circle_diameter_in": 60.0,
+          "urinals": 0,
+          "water_closets": 1
+        },
+        {
+          "designation": "men",
+          "door_clear_width_in": 34.0,
+          "label": "Restroom 2",
+          "lavatories": 1,
+          "turning_circle_diameter_in": 60.0,
+          "urinals": 0,
+          "water_closets": 1
+        }
+      ],
+      "scale_note": "All dimensions printed; do not scale.",
+      "seat_count": 56,
+      "spaces": [
+        {
+          "area_sqft": 1280.0,
+          "length_ft": 32.0,
+          "name": "Dining Room",
+          "use": "dining",
+          "width_ft": 40.0
+        },
+        {
+          "area_sqft": 240.0,
+          "length_ft": 6.0,
+          "name": "Service Counter",
+          "use": "counter_service",
+          "width_ft": 40.0
+        },
+        {
+          "area_sqft": 528.0,
+          "length_ft": 22.0,
+          "name": "Kitchen",
+          "use": "kitchen",
+          "width_ft": 24.0
+        },
+        {
+          "area_sqft": 128.0,
+          "length_ft": 8.0,
+          "name": "Storage",
+          "use": "storage",
+          "width_ft": 16.0
+        },
+        {
+          "area_sqft": null,
+          "length_ft": null,
+          "name": "Restroom 1",
+          "use": "restroom",
+          "width_ft": null
+        },
+        {
+          "area_sqft": null,
+          "length_ft": null,
+          "name": "Restroom 2",
+          "use": "restroom",
+          "width_ft": null
+        },
+        {
+          "area_sqft": null,
+          "length_ft": 16.0,
+          "name": "Corridor",
+          "use": "corridor",
+          "width_ft": 4.0
+        }
+      ],
+      "uncertainties": [
+        "Restroom room dimensions are not printed."
+      ]
+    },
+    "findings": [
+      {
+        "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
+        "detail": "Café or restaurant with a calculated occupant load of 106: classified Group A-2.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
+        "rule_id": "OCC-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Occupancy classification"
+      },
+      {
+        "citation": "SBC Table 1006.2.1 and Section 1006.3",
+        "detail": "3 exit(s) shown; 2 required for an occupant load of 106.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
+        "rule_id": "EG-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Number of exits"
+      },
+      {
+        "citation": "SBC 1013.1",
+        "detail": "3 exit sign(s) shown.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
+        "rule_id": "FS-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Exit signs"
+      },
+      {
+        "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
+        "detail": "2 water closet(s) shown; 2 required for an occupant load of 106 (A-2 restaurants: 1 for men and 1 for women).",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
+        "rule_id": "PL-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Toilet count"
+      },
+      {
+        "citation": "Seattle Municipal Code Title 23 (Land Use Code); SMC 23.47A",
+        "detail": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft. A restaurant is generally allowed. This plan is 2,400 sq ft, within the 25,000 sq ft limit. Confirm overlays, pedestrian-street rules and any change-of-use requirement.",
+        "fix": "",
+        "reviewed_by": "SDCI Zoning review",
+        "rule_id": "ZN-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Zoning: NC2-55 (M)"
+      },
+      {
+        "citation": "SBC 1010.1.2.1",
+        "detail": "All exit doors swing in the direction of egress.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
+        "rule_id": "EG-2",
+        "severity": "info",
+        "status": "pass",
+        "title": "Exit door swing"
+      },
+      {
+        "citation": "SBC 1010.1.1; ADA 404.2.3",
+        "detail": "All 5 doors are at least 32 in. clear.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
+        "rule_id": "EG-3",
+        "severity": "info",
+        "status": "pass",
+        "title": "Door widths"
+      },
+      {
+        "citation": "SBC 1005.3.2",
+        "detail": "Exit doors total 108 in.; 21.2 in. required.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
+        "rule_id": "EG-4",
+        "severity": "info",
+        "status": "pass",
+        "title": "Exit capacity"
+      },
+      {
+        "citation": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
+        "detail": "All dimensioned routes are at least 36 in. wide.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
+        "rule_id": "ADA-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Aisle and route widths"
+      },
+      {
+        "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
+        "detail": "Each restroom shows a 60 in. turning circle.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
+        "rule_id": "ADA-2",
+        "severity": "info",
+        "status": "pass",
+        "title": "Restroom turning space"
+      },
+      {
+        "citation": "SBC Chapter 11; ADA 226.1",
+        "detail": "12 accessible seats marked of 56.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
+        "rule_id": "ADA-4",
+        "severity": "info",
+        "status": "pass",
+        "title": "Accessible seating"
+      },
+      {
+        "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
+        "detail": "2 lavatory(ies) shown.",
+        "fix": "",
+        "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
+        "rule_id": "PL-2",
+        "severity": "info",
+        "status": "pass",
+        "title": "Lavatories"
+      },
+      {
+        "citation": "Seattle Mechanical Code 507 (Type I hood over grease- or smoke-producing appliances); Seattle Fire Code 904 (hood fire suppression)",
+        "detail": "Type I hood with fire suppression shown over the cooking line.",
+        "fix": "",
+        "reviewed_by": "SDCI Mechanical review",
+        "rule_id": "MECH-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Kitchen hood"
+      },
+      {
+        "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
+        "detail": "Hand sink shown in the food prep area.",
+        "fix": "",
+        "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
+        "rule_id": "HLTH-1",
+        "severity": "info",
+        "status": "pass",
+        "title": "Handwashing sink"
+      },
+      {
+        "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
+        "detail": "Three-compartment sink shown.",
+        "fix": "",
+        "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
+        "rule_id": "HLTH-2",
+        "severity": "info",
+        "status": "pass",
+        "title": "Warewashing"
+      },
+      {
+        "citation": "SBC 903.2.1.2 (Group A-2)",
+        "detail": "Sprinkler system required and noted on the plan.",
+        "fix": "",
+        "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
+        "rule_id": "FS-2",
+        "severity": "info",
+        "status": "pass",
+        "title": "Sprinklers"
+      },
+      {
+        "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
+        "detail": "3 extinguisher(s) shown.",
+        "fix": "",
+        "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
+        "rule_id": "FS-3",
+        "severity": "info",
+        "status": "pass",
+        "title": "Fire extinguishers"
+      }
+    ],
+    "fixtures_required": {
+      "lavatories": 1,
+      "men": 1,
+      "profile": "A-2 restaurants",
+      "shared_room_allowed": false,
+      "shared_room_limit": 30,
+      "water_closets": 2,
+      "women": 1
+    },
+    "intake": {
+      "business_type": "cafe_restaurant",
+      "cooking_on_site": true,
+      "food_prep": false,
+      "historic_district": false,
+      "outdoor_seating": false,
+      "serves_alcohol": false,
+      "upper_floor": false
+    },
+    "local_review_data": null,
+    "occupant_load": {
+      "by_space": [
+        {
+          "area_sqft": 1280.0,
+          "cite": "SBC Table 1004.5 (Assembly, unconcentrated: tables and chairs)",
+          "factor": 15.0,
+          "load": 86,
+          "space": "Dining Room",
+          "use": "dining"
+        },
+        {
+          "area_sqft": 240.0,
+          "cite": "SBC Table 1004.5 (treated as unconcentrated assembly)",
+          "factor": 15.0,
+          "load": 16,
+          "space": "Service Counter",
+          "use": "counter_service"
+        },
+        {
+          "area_sqft": 528.0,
+          "cite": "SBC Table 1004.5 (Kitchens, commercial)",
+          "factor": 200.0,
+          "load": 3,
+          "space": "Kitchen",
+          "use": "kitchen"
+        },
+        {
+          "area_sqft": 128.0,
+          "cite": "SBC Table 1004.5 (Storage/stock)",
+          "factor": 300.0,
+          "load": 1,
+          "space": "Storage",
+          "use": "storage"
+        }
+      ],
+      "calculated_dining_load": 102,
+      "missing_area": [],
+      "seat_count": 56,
+      "total": 106
+    },
+    "permits_likely_required": [
+      {
+        "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
+        "id": "building",
+        "name": "Construction permit (addition/alteration; also establishes the use of the space)"
+      },
+      {
+        "agency": "SDCI, issued after the final inspection",
+        "id": "co",
+        "name": "Certificate of Occupancy"
+      },
+      {
+        "agency": "SDCI",
+        "id": "electrical",
+        "name": "Electrical permit"
+      },
+      {
+        "agency": "Public Health - Seattle & King County",
+        "id": "plumbing",
+        "name": "Plumbing, gas and backflow permits"
+      },
+      {
+        "agency": "SDCI",
+        "id": "mechanical",
+        "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)"
+      },
+      {
+        "agency": "Seattle Fire Department",
+        "id": "hood_fire",
+        "name": "Range-hood fire suppression inspection"
+      },
+      {
+        "agency": "Seattle Fire Department",
+        "id": "assembly",
+        "name": "Assembly permit (spaces holding 100 or more people)"
+      },
+      {
+        "agency": "SDCI with Seattle Fire Department plan review; Seattle Public Utilities for water availability",
+        "id": "sprinkler",
+        "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate"
+      },
+      {
+        "agency": "Public Health - Seattle & King County",
+        "id": "health",
+        "name": "Food service plan review (before construction) and annual food business permit"
+      },
+      {
+        "agency": "Seattle Public Utilities",
+        "id": "grease",
+        "name": "Grease trap or interceptor approval (fats, oils and grease program)"
+      },
+      {
+        "agency": "Washington Business Licensing Service; City of Seattle",
+        "id": "business",
+        "name": "Washington State business license and Seattle business license"
+      },
+      {
+        "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
+        "id": "sign",
+        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)"
+      }
+    ],
+    "summary": {
+      "business_label": "Café or restaurant",
+      "business_type": "cafe_restaurant",
+      "exits_required": 2,
+      "exits_shown": 3,
+      "fails": 0,
+      "occupancy_group": "A-2",
+      "occupant_load": 106,
+      "passes": 17,
+      "reviews": 0
+    },
+    "zoning": {
+      "address": "",
+      "cite": "SMC 23.47A",
+      "detail": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft. A restaurant is generally allowed. This plan is 2,400 sq ft, within the 25,000 sq ft limit. Confirm overlays, pedestrian-street rules and any change-of-use requirement.",
+      "district": "NC2-55 (M)",
+      "source": "entered by hand",
+      "status": "likely_permitted",
+      "use": "restaurant",
+      "zone": "NC2"
+    }
+  }
+}
