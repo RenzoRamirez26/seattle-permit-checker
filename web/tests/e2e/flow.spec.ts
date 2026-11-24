@@ -236,3 +236,20 @@ test("F2: an example chosen with no step 1 answers shows no notice", async ({ pa
   await expect(page.getByRole("button", { name: "Run the check" })).toBeVisible();
   await expect(page.getByRole("region", { name: "The example plan uses its own answers" })).toHaveCount(0);
 });
+
+test("F7: step 1's missing business type is said once for the group, and the cards keep their usual border", async ({ page }) => {
+  await page.goto("/business/");
+  await expect(page.getByRole("radio")).toHaveCount(6);
+  const border = () => page.locator("label:has(input[type=radio])").evaluateAll((cards) => cards.map((c) => getComputedStyle(c).borderTopColor));
+  const before = await border();
+  expect(before).toHaveLength(6);
+  await page.getByRole("button", { name: "Continue" }).click();
+  const group = page.getByRole("radiogroup", { name: "Kind of business" });
+  await expect(group.getByText("Choose the kind of business.")).toHaveCount(1);
+  await expect(page.getByRole("alert").filter({ hasText: "There is a problem" })).toContainText("Choose the kind of business.");
+  expect(await border()).toEqual(before);
+  expect(before.every((c) => c !== "rgb(179, 38, 30)")).toBe(true);          // never the Fix red
+  await axeBoth(page, "step 1 error, one message");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shoot(page, "verify", "business-errors-fixed", { fullPage: false });
+});

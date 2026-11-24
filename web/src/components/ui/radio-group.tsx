@@ -26,7 +26,8 @@ export function RadioGroup({ label, hint, error, choices, cards = false, orienta
             className={({ isSelected }) =>
               cn(
                 "group flex cursor-pointer items-start gap-3 rounded-sm data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue",
-                cards ? cn("min-h-12 border p-4", isSelected ? "border-blue border-2 p-[15px] bg-white" : "border-field bg-paper data-[hovered]:bg-white", error && !isSelected && "border-fix") : "min-h-11 py-2",
+                // An error is said once, above the choices (and in the summary); the cards keep their usual border (F7).
+                cards ? cn("min-h-12 border p-4", isSelected ? "border-blue border-2 p-[15px] bg-white" : "border-field bg-paper data-[hovered]:bg-white") : "min-h-11 py-2",
               )
             }
           >
