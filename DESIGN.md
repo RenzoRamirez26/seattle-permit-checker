@@ -83,8 +83,10 @@ and ending on a column edge.
 - Question pages: one column, columns 1 to 7.
 - Assistant panel on wide screens: columns 9 to 12, so the form stays visible.
 - Check what we read: plan in 7 columns, facts in 5. Plan first on phones.
-- Results **[owner, 24 Nov 2026]**: one centred column, at most 896 px wide: the summary tabs, the findings tabs,
-  the permits, Seattle's records, then the rest. The sticky summary column is gone; its three parts are tabs.
+- Results **[owner, 24 Nov 2026]**: five sections in one column at most 896 px wide: the heading and the summary
+  tabs; "Fix before you apply (n)" in full; the "Check with the city / OK" tabs; the permits; Seattle's records; then
+  the rest. The sticky summary column is gone; its three parts are tabs. From 1024 px the "On this page" rail
+  (220 px) sits to the left of that column with a 48 px gap, the two centred together.
 - Start: text-only in version 1, in columns 1 to 7 like the question pages. **[D1, on hold]** Only if the
   owner confirms the drawing's rights: heading and text in columns 1 to 6, the drawing in 6 to 12; under the text on phones.
 
@@ -93,7 +95,8 @@ and ending on a column edge.
 ### Tabs **[owner, 24 Nov 2026]**
 
 React Aria's `Tabs` (`web/src/components/results/TabRow.tsx`), used for the two rows on the results page:
-"In short", "Zoning", "Downloads"; and the findings groups, each with its count ("Fix before you apply (3)").
+"In short", "Zoning", "Downloads"; and "Check with the city (n)", "OK (n)". "Fix before you apply (n)" is not a tab:
+it is its own section above them, always shown in full, or "Nothing to fix before you apply."
 
 - A row of tabs on a `hairline` bottom rule; each tab 48 px tall, Plex Sans 600, with its icon for a findings group.
 - Selected: `blue` text on `tab-tint` with a 3 px `blue` bottom border; a findings tab uses its status colour on
@@ -101,7 +104,28 @@ React Aria's `Tabs` (`web/src/components/results/TabRow.tsx`), used for the two 
 - Arrow keys move between tabs and select them (Home and End too); the selected tab is announced; each panel is
   labelled by its tab. Only the selected panel is in the page. Tabs wrap onto a second line on narrow screens.
 - The selected tab is kept for each check in the tab's session, so a refresh keeps it; a link to a finding opens the
-  finding's tab before scrolling to it. The findings row starts on "Fix before you apply", unless it is empty.
+  finding's tab before scrolling to it. The second row starts on "Check with the city", unless it is empty.
+
+### On this page **[owner, 24 Nov 2026]**
+
+`web/src/components/results/OnThisPage.tsx`: where the owner is on the results page and what is left below. A nav
+landmark labelled "On this page".
+
+- It lists the five sections in order: Your pre-check results; Fix before you apply (n); Check with the city / OK;
+  Permits and approvals to expect; What Seattle's records show about businesses like yours. Above the list:
+  "On this page" and "2 of 5 sections seen".
+- The current section has the active tint: `blue` text on `tab-tint` with a 3 px `blue` left border, and
+  `aria-current="location"`. Sections already scrolled past have a small check icon (`ink-muted`) and "(seen)" for
+  screen readers. Sections still to come are plain `ink`. Each item is at least 44 px tall.
+- A section is current once its top passes a line 30% of the way down the window, or when the page is scrolled to
+  its end. The position comes from IntersectionObserver; nothing animates (see Motion).
+- Choosing an item scrolls to the section and moves focus to its heading (the `h1` for the first; for the tabs
+  section, its selected tab, since that section's heading is for screen readers only).
+- From 1024 px: a sticky vertical rail, 220 px wide, left of the results column.
+- Below 1024 px: no rail. A compact bar fixed at the bottom left, 16 px from the edges and 96 px from the right so
+  it sits clear of the Ask button: "Section 2 of 5 · Next: Check with the city / OK". It opens the full list in a React
+  Aria popover above it. The page's `scroll-padding-bottom` (96 px) keeps a focused control clear of both the bar
+  and the Ask button, and the body gets 80 px of room below the footer while the bar is shown.
 
 ## Motion
 

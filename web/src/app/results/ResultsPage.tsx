@@ -1,10 +1,11 @@
 "use client";
 /**
  * Step 4, "Your pre-check results", for the check in the address (?check=<id>), as GET /api/checks/{id} returns it.
- * In one centred column: the heading; a tab row "In short", "Zoning", "Downloads"; a tab row of the findings
- * groups "Fix before you apply", "Check with the city", "OK" with their counts; the permits; Seattle's records;
- * then notices, the code basis and the disclaimer, and how long the check is kept, with "Delete this check now".
- * The selected tabs survive a refresh, and a link to a finding opens its tab first. Everything shown is the API's.
+ * Five sections, in order: the heading and a tab row "In short", "Zoning", "Downloads"; "Fix before you apply (n)",
+ * always shown in full; a tab row "Check with the city (n)", "OK (n)"; the permits; Seattle's records. Then notices,
+ * the code basis and the disclaimer, and how long the check is kept, with "Delete this check now". "On this page"
+ * shows where the owner is among the five. The selected tabs survive a refresh, and a link to a finding opens its
+ * tab first. Everything shown is the API's.
  */
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,7 +23,8 @@ import { FindingCard, findingAnchor } from "@/components/results/FindingCard";
 import { PermitList } from "@/components/results/PermitList";
 import { RecordLines, type ReviewData } from "@/components/results/RecordLines";
 import { StatusTag } from "@/components/results/StatusTag";
-import { defaultGroup, groupOf, groups, look, STATUS_ORDER, type Numbered, type Status, ZONING_WORDS } from "@/components/results/status";
+import { defaultTab, FIX, groupOf, groups, look, TAB_GROUPS, type Numbered, type Status, ZONING_WORDS } from "@/components/results/status";
+import { OnThisPageBar, OnThisPageRail, useCurrentSection, type PageSection } from "@/components/results/OnThisPage";
 import { TabRow } from "@/components/results/TabRow";
 import { formatDate, formatNumber } from "@/lib/format";
 import { flow } from "@/state/flow";
@@ -65,6 +67,7 @@ export function ResultsPage() {
 }
 
 const SUMMARY_TABS = ["short", "zoning", "downloads"] as const;
+const TABS_LABEL = "Check with the city / OK";
 
 export function Results({ check }: { check: Check }) {
   const r = check.result;
@@ -79,10 +82,10 @@ export function Results({ check }: { check: Check }) {
   });
   const [findingsTab, setFindingsTab] = useState<Status>(() => {
     const target = hashFinding !== null ? r.findings[hashFinding] : undefined;
-    if (target) return groupOf(target.status);
+    if (target && TAB_GROUPS.includes(groupOf(target.status))) return groupOf(target.status);
     const kept = resultsTabs.read(check.id).findings;
-    if (STATUS_ORDER.includes(kept as Status)) return kept as Status;
-    return defaultGroup(counts);
+    if (TAB_GROUPS.includes(kept as Status)) return kept as Status;
+    return defaultTab(counts);
   });
   const [reveal, setReveal] = useState<number | null>(hashFinding);
 
@@ -94,7 +97,7 @@ export function Results({ check }: { check: Check }) {
       const i = (e as CustomEvent<number>).detail;
       const f = r.findings[i];
       if (!f) return;
-      setFindingsTab(groupOf(f.status));
+      if (TAB_GROUPS.includes(groupOf(f.status))) setFindingsTab(groupOf(f.status));   // Fix findings are always shown
       setReveal(i);
     };
     // A "#finding-<index>" typed or followed while the page is open does the same.
@@ -111,18 +114,38 @@ export function Results({ check }: { check: Check }) {
   }, [r.findings]);
   useEffect(() => {
     if (reveal === null) return;
-    const el = document.getElementById(findingAnchor(reveal));
-    if (el) {
-      el.scrollIntoView({ block: "start" });
-      el.focus({ preventScroll: true });
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the reveal is done; clear it for the next one
-    setReveal(null);
+    // React Aria keeps the previous tab's panel in the page for one more frame (for an exit animation), and that
+    // panel can sit above the finding: scroll once it has gone, two frames on.
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        const el = document.getElementById(findingAnchor(reveal));
+        if (el) {
+          el.scrollIntoView({ block: "start" });
+          el.focus({ preventScroll: true });
+        }
+        setReveal(null);
+      });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [reveal, findingsTab]);
 
+  const sections: PageSection[] = [
+    { id: "section-results", label: "Your pre-check results", short: "Your pre-check results", target: () => document.getElementById("page-heading") },
+    { id: "section-fix", label: `${look(FIX).group} (${counts[FIX]})`, short: look(FIX).group, target: () => document.getElementById("fix-heading") },
+    { id: "section-tabs", label: TABS_LABEL, short: TABS_LABEL,
+      target: () => document.querySelector<HTMLElement>("#section-tabs [role=tab][aria-selected=true]") },
+    { id: "section-permits", label: "Permits and approvals to expect", short: "Permits and approvals", target: () => document.getElementById("permits") },
+    { id: "section-records", label: "What Seattle\u2019s records show about businesses like yours", short: "Seattle\u2019s records",
+      target: () => document.getElementById("records") },
+  ];
+  const current = useCurrentSection(sections.map((x) => x.id), "results-end");
+
   return (
-    <div className="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-12">
-      <section aria-labelledby="summary-tabs" className="flex flex-col">
+    <div className="mx-auto w-full max-w-[calc(220px+48px+56rem)] min-w-0 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12">
+      <OnThisPageRail sections={sections} current={current} />
+      <OnThisPageBar sections={sections} current={current} />
+    <div className="flex w-full max-w-4xl min-w-0 flex-col gap-12">
+      <section id="section-results" aria-labelledby="summary-tabs" className="flex flex-col">
         <h2 id="summary-tabs" className="sr-only">Summary</h2>
         <TabRow label="Summary" selected={summaryTab} onSelect={setSummaryTab} items={[
           { id: "short", label: "In short", panel: <InShort check={check} /> },
@@ -131,22 +154,29 @@ export function Results({ check }: { check: Check }) {
         ]} />
       </section>
 
-      <section aria-labelledby="findings-tabs" className="flex flex-col">
-        <h2 id="findings-tabs" className="sr-only">What the check found</h2>
-        <TabRow label="What the check found" selected={findingsTab} onSelect={(k) => setFindingsTab(k as Status)}
-          items={STATUS_ORDER.map((st) => ({
+      <section id="section-fix" aria-labelledby="fix-heading" className="flex flex-col gap-4">
+        <h2 id="fix-heading" tabIndex={-1} className="m-0 text-section-heading">
+          {look(FIX).group} <span className="font-normal text-ink-muted nums">({counts[FIX]})</span>
+        </h2>
+        <FindingList items={byStatus[FIX]} empty={look(FIX).empty} />
+      </section>
+
+      <section id="section-tabs" aria-labelledby="tabs-heading" className="flex flex-col">
+        <h2 id="tabs-heading" className="sr-only">{TABS_LABEL}</h2>
+        <TabRow label={TABS_LABEL} selected={findingsTab} onSelect={(k) => setFindingsTab(k as Status)}
+          items={TAB_GROUPS.map((st) => ({
             id: st, status: st, label: `${look(st).group} (${counts[st]})`,
             panel: <FindingList items={byStatus[st]} empty={look(st).empty} />,
           }))} />
       </section>
 
-      <section aria-labelledby="permits" className="flex flex-col gap-2">
-        <h2 id="permits" className="m-0 text-section-heading">Permits and approvals to expect</h2>
+      <section id="section-permits" aria-labelledby="permits" className="flex flex-col gap-2">
+        <h2 id="permits" tabIndex={-1} className="m-0 text-section-heading">Permits and approvals to expect</h2>
         <PermitList permits={r.permits_likely_required} />
       </section>
 
-      <section aria-labelledby="records" className="flex flex-col gap-2">
-        <h2 id="records" className="m-0 text-section-heading">What Seattle&rsquo;s records show about businesses like yours</h2>
+      <section id="section-records" aria-labelledby="records" className="flex flex-col gap-2">
+        <h2 id="records" tabIndex={-1} className="m-0 text-section-heading">What Seattle&rsquo;s records show about businesses like yours</h2>
         <RecordLines data={r.local_review_data as ReviewData | null | undefined} />
       </section>
 
@@ -166,6 +196,8 @@ export function Results({ check }: { check: Check }) {
       </section>
 
       <KeptUntil check={check} />
+      <div id="results-end" aria-hidden />
+    </div>
     </div>
   );
 }

@@ -29,9 +29,13 @@ export type Numbered = { finding: Finding; index: number };
 /** The group a finding's status belongs to: an unknown status goes with Check with the city. */
 export const groupOf = (s: string): Status => (s in LOOKS ? (s as Status) : "review");
 
-/** The findings tab selected first: Fix before you apply, unless it has none, then the first group with findings. */
-export function defaultGroup(counts: Record<Status, number>): Status {
-  return counts.fail ? "fail" : (STATUS_ORDER.find((st) => counts[st]) ?? "fail");
+/** Fix before you apply is its own section, always shown; the other two groups are tabs. */
+export const FIX: Status = "fail";
+export const TAB_GROUPS: Status[] = ["review", "pass"];
+
+/** The tab selected first: Check with the city, unless it has none, then OK. */
+export function defaultTab(counts: Record<Status, number>): Status {
+  return counts.review || !counts.pass ? "review" : "pass";
 }
 
 /** The findings in the three groups, each keeping its position in the result (its anchor is finding-<index>). */

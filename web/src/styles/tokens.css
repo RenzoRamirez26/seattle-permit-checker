@@ -209,6 +209,11 @@
   .sheet[data-entering] { animation: none; }
 }
 .ask-button { margin-bottom: env(safe-area-inset-bottom); margin-right: env(safe-area-inset-right); }
+/* The results page's "On this page" bar sits at the bottom left below 1024 px (48 px tall, 16 px up), beside the Ask
+   button. The 96 px scroll padding above clears both; the body gets room so the footer's last line is not under it. */
+@media (max-width: 63.999rem) {
+  body:has(.section-bar) { padding-bottom: 80px; }
+}
 
 /* The map's pin and the zone's name, drawn as page elements (no map fonts are hosted). */
 .map-pin {
