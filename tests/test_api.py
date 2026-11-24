@@ -1,6 +1,9 @@
 """The web API (api/), through FastAPI's test client. The model and the network are stand-ins; the database is a temp file."""
 import io
 import json
+from pathlib import Path
+import shutil
+import subprocess
 import sqlite3
 from datetime import timedelta
 
@@ -571,7 +574,10 @@ def test_transcribe_errors(api, stt, monkeypatch):
     _is_error(_say(api, b""), 400, "audio_needed")
     _is_error(api.post("/api/transcribe", files={"other": ("x.wav", QUESTION_WAV.read_bytes(), "audio/wav")}), 400, "audio_needed")
     _is_error(api.post("/api/transcribe", content=b"not a form", headers={"content-type": "text/plain"}), 400, "audio_needed")
-    _is_error(_say(api, _png(), "q.png", "image/png"), 415, "audio_not_wav")
+    _is_error(_say(api, _png(), "q.png", "image/png"), 415, "audio_not_supported")
+    _is_error(_say(api, _png(), "q.webm", "audio/webm"), 415, "audio_not_supported")          # the bytes aren't WebM
+    _is_error(_say(api, QUESTION_WAV.read_bytes(), "q.webm", "audio/webm"), 415, "audio_not_supported")
+    _is_error(_say(api, QUESTION_WAV.read_bytes(), "q", "application/octet-stream"), 415, "audio_not_supported")
     monkeypatch.setenv("PERMIT_MAX_AUDIO_MB", "0.05")                    # about 50 KB: the 100 KB fixture is too large
     _is_error(_say(api, QUESTION_WAV.read_bytes()), 413, "audio_too_large")
     monkeypatch.delenv("PERMIT_MAX_AUDIO_MB")
@@ -589,7 +595,7 @@ def test_without_faster_whisper_the_route_says_so(api):
     _is_error(_say(api, QUESTION_WAV.read_bytes()), 503, "no_speech_to_text")
 
 
-def test_a_spoken_question_is_never_written_to_disk(api, stt, monkeypatch):
+def test_a_wav_question_is_never_written_to_disk(api, stt, monkeypatch):
     import builtins
     import tempfile
 
@@ -612,6 +618,108 @@ def test_a_spoken_question_is_never_written_to_disk(api, stt, monkeypatch):
     for data in (clip, big):
         assert _say(api, data).status_code == 200
     assert written == [] and stt == [clip, big]
+
+
+# ---------------------------------------------------------------- browser recordings: WebM, MP4, Ogg through ffmpeg
+FFMPEG = shutil.which("ffmpeg")
+needs_ffmpeg = pytest.mark.skipif(not FFMPEG, reason="ffmpeg is not installed (README: Turn on spoken questions)")
+# The formats the browser's MediaRecorder gives, made from the fixture question at test time (no binary in the repo).
+BROWSER_FORMATS = {"webm": ("audio/webm;codecs=opus", ["-c:a", "libopus", "-f", "webm"]),
+                   "mp4": ("audio/mp4", ["-c:a", "aac", "-f", "mp4"]),
+                   "ogg": ("audio/ogg;codecs=opus", ["-c:a", "libopus", "-f", "ogg"])}
+
+
+@pytest.fixture(scope="module")
+def recordings(tmp_path_factory) -> dict[str, bytes]:
+    if not FFMPEG:
+        pytest.skip("ffmpeg is not installed")
+    out = {}
+    folder = tmp_path_factory.mktemp("recordings")
+    for name, (_type, args) in BROWSER_FORMATS.items():
+        path = folder / f"question.{name}"
+        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(QUESTION_WAV), *args, str(path)], check=True)
+        out[name] = path.read_bytes()
+    return out
+
+
+def _wav_info(data: bytes) -> tuple[int, int, int]:
+    """(channels, sample rate, bits) of a PCM WAV."""
+    assert data[:4] == b"RIFF" and data[8:12] == b"WAVE"
+    return int.from_bytes(data[22:24], "little"), int.from_bytes(data[24:28], "little"), int.from_bytes(data[34:36], "little")
+
+
+@needs_ffmpeg
+@pytest.mark.parametrize("name", list(BROWSER_FORMATS))
+def test_a_browser_recording_is_converted_to_wav_and_transcribed(api, stt, recordings, name):
+    """The faster-whisper model is mocked (stt): it cannot be downloaded in CI. What it receives is checked instead:
+    16 kHz mono 16-bit WAV, about as long as the question."""
+    kind, _ = BROWSER_FORMATS[name]
+    r = _say(api, recordings[name], f"question.{name}", kind)
+    assert r.status_code == 200, r.text
+    assert r.json() == {"text": "Why do I need a second exit for my cafe?"}
+    assert len(stt) == 1 and _wav_info(stt[0]) == (1, 16000, 16)
+    seconds = (len(stt[0]) - 44) / 32000
+    original = (len(QUESTION_WAV.read_bytes()) - 44) / (int.from_bytes(QUESTION_WAV.read_bytes()[28:32], "little"))
+    assert abs(seconds - original) < 0.3
+
+
+@needs_ffmpeg
+def test_a_recording_must_carry_its_own_type(api, stt, recordings):
+    """The content type must name the format and the bytes must match it."""
+    _is_error(_say(api, recordings["webm"], "q.mp4", "audio/mp4"), 415, "audio_not_supported")
+    _is_error(_say(api, recordings["ogg"], "q.webm", "audio/webm"), 415, "audio_not_supported")
+    _is_error(_say(api, recordings["mp4"], "q", "video/mp4"), 415, "audio_not_supported")
+    broken = recordings["webm"][:64]                                       # a WebM header with no audio after it
+    _is_error(_say(api, broken, "q.webm", "audio/webm"), 422, "speech_not_understood")
+    assert stt == []
+
+
+@needs_ffmpeg
+def test_server_side_audio_is_deleted_after_transcription(api, stt, recordings, monkeypatch, tmp_path):
+    """Every recording is written only inside one private temporary folder, which is gone when the request ends,
+    after a good conversion and after a failed one."""
+    import tempfile
+    from api import audio
+
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    made = []
+    real = tempfile.TemporaryDirectory
+
+    def watch(*a, **k):
+        d = real(*a, **k)
+        made.append(Path(d.name))
+        return d
+
+    monkeypatch.setattr(tempfile, "TemporaryDirectory", watch)
+    for name, (kind, _) in BROWSER_FORMATS.items():
+        assert _say(api, recordings[name], f"q.{name}", kind).status_code == 200
+    _is_error(_say(api, recordings["webm"][:64], "q.webm", "audio/webm"), 422, "speech_not_understood")
+    assert len(made) == 4 and all(d.name.startswith(audio.TEMP_PREFIX) for d in made)
+    assert not any(d.exists() for d in made) and list(scratch.iterdir()) == []
+    assert _say(api, QUESTION_WAV.read_bytes()).status_code == 200 and len(made) == 4      # a WAV is never written
+
+
+def test_without_ffmpeg_a_browser_recording_is_refused_and_meta_says_no_voice(api, stt, monkeypatch):
+    from api import audio
+
+    monkeypatch.setattr(audio, "ffmpeg", lambda: None)
+    assert api.get("/api/meta").json()["features"]["speech_to_text"] is False
+    webm = b"\x1a\x45\xdf\xa3" + b"\0" * 100
+    _is_error(_say(api, webm, "q.webm", "audio/webm"), 503, "no_speech_to_text")
+    assert _say(api, QUESTION_WAV.read_bytes()).status_code == 200                       # WAV needs no ffmpeg
+
+
+def test_the_audio_kinds(monkeypatch):
+    from api import audio
+
+    assert audio.kind("audio/webm;codecs=opus", b"\x1a\x45\xdf\xa3....") == "webm"
+    assert audio.kind("audio/mp4", b"\0\0\0\x18ftypM4A ") == "mp4"
+    assert audio.kind("audio/ogg; codecs=opus", b"OggS....") == "ogg"
+    assert audio.kind("AUDIO/WAV", b"RIFF\0\0\0\0WAVE") == "wav"
+    assert audio.kind("audio/webm", b"OggS....") is None and audio.kind("", b"OggS") is None
+    assert audio.kind("audio/flac", b"fLaC") is None
 
 
 def test_meta_reports_the_audio_limits(api, monkeypatch):

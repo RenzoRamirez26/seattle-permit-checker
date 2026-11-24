@@ -56,6 +56,11 @@ export const HELP: HelpTopic[] = [
     words: ["value", "wrong", "correct", "change", "misread"],
   },
   {
+    id: "voice", question: "Voice: where is my speech turned into text?",
+    answer: "When your browser can turn speech into text on your device (recent versions of Chrome can), it does, and your voice never leaves your device. The first time, the browser may download its English speech files, which happens once. Otherwise your browser records the question and sends the recording to our server only. There it is converted and turned into text by an open-source speech model (faster-whisper) running on our server. A temporary copy made for the conversion is deleted as soon as it is converted, and the recording is never stored or logged. Your voice is never sent to Google, Apple or any other company. The words heard appear in the question box for you to check; nothing is asked until you press Send. Answers are read aloud by your browser's own voice; we pick a voice that runs on your device when there is one. Some browsers only have online voices, which send the answer's text, never your voice, to the browser maker. Turn Voice off to type and read only.",
+    words: ["voice", "speech", "microphone", "mic", "recording", "spoken", "speak", "audio", "listen"],
+  },
+  {
     id: "clear-width", question: "What is a door's clear width?",
     answer: "The open space a person passes through: from the face of the open door to the opposite door stop, not the width of the door leaf. Plans often print it next to the door, sometimes marked CLR.",
     words: ["clear width", "width", "door"],

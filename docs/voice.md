@@ -14,6 +14,33 @@ Push-to-talk inside the Streamlit page:
 
 It answers one question at a time. You cannot interrupt it and it does not listen continuously.
 
+## The web front end: three paths
+
+The Next.js site (`web/`) takes a spoken question one of three ways; no audio ever goes to Google, Apple or any third
+party (DESIGN.md, "Voice"; decisions.md, "Hybrid voice input"):
+
+- **A, on this device.** The browser's own SpeechRecognition, used only with `processLocally = true` and only when the
+  browser offers it. Words appear in the box as they are heard. The first time, `install()` downloads the browser's
+  English speech files ("Getting voice ready on this device. This happens once.").
+- **B, recorded.** MediaRecorder records WebM Opus, MP4 or Ogg. `/api/transcribe` converts it to 16 kHz WAV with
+  ffmpeg and passes it to `checker/voice.py` unchanged. The temporary file is deleted before transcription.
+- **C, none.** "Voice isn't available in this browser. Type your question instead."
+
+Which path each browser is expected to take:
+
+| Browser | Path | Why |
+| --- | --- | --- |
+| Chrome (desktop, Android), recent | A, or B if `available()` says `unavailable` | Has `processLocally`, `available()` and `install()` (seen in Chromium 158) |
+| Edge | A if it offers `processLocally`, otherwise B (WebM) | Chromium-based; never used without `processLocally` |
+| Safari (macOS, iOS) | B (MP4) | Its `webkitSpeechRecognition` has no `processLocally`, so it is never used |
+| Firefox | B (WebM Opus) | No SpeechRecognition |
+| A browser without MediaRecorder, or a server without faster-whisper and ffmpeg (and no Path A) | C | Nothing to record with, or nothing to transcribe |
+
+Expected from feature detection and the tests with mocked APIs; **not yet tried by a person in any browser.** In
+headless Chromium 158, calling the real `available()` on a blank page crashed the tab, and in CI's headless Chrome 159
+it crashed every page, so the site asks `available()` only when Start voice input is pressed, and the tests replace it.
+Whether a person's real Chrome survives that call is part of the hand test (#31).
+
 ## Why not a live two-way call in Streamlit
 
 Streamlit reruns the whole page on every interaction and has no long-lived audio stream to the browser. A live pipeline needs a WebRTC or websocket connection that stays open, so it has to run as its own small service next to the app.
@@ -48,8 +75,9 @@ Yes, on harder audio. A one-off check on this laptop used ten questions full of 
 
 ## Known issues
 
-### A spoken question does not get through in Safari
+### A spoken question does not get through in Safari (Streamlit app)
 
+- **Web front end:** Safari now takes Path B and sends MP4, which the API converts with ffmpeg. Not yet tried in Safari.
 - **What happens.** In Safari, typed questions work and answers are spoken, but a question recorded with the microphone box does not reach the agent. The same steps work in Chrome. Seen on 21 November 2026 on macOS.
 - **What to do for now.** Use Chrome for spoken questions, or type the question. The app says this under the microphone box.
 - **Cause.** Not known yet, and no fix has been tried. It has not been established whether Safari records nothing, records something the page never receives, or sends audio that the speech-to-text step cannot read.

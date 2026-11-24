@@ -74,8 +74,10 @@ function srcRules() {
       re: /anthropic|@ai-sdk\/|\bopenai\b|ANTHROPIC_API_KEY|x-api-key|\bclaude-[a-z0-9]|from\s+["']ai(?:\/[^"']*)?["']/i },
     { rule: "other-host", why: "the browser talks to the API base only",
       re: /\bfetch\s*\(\s*["'`]https?:|new\s+(?:WebSocket|EventSource|XMLHttpRequest)\b|sendBeacon/ },
-    { rule: "speech-recognition", why: "browser speech recognition can send audio to the browser maker; audio goes to our API only",
-      re: /SpeechRecognition/ },
+    { rule: "speech-recognition", why: "browser speech recognition can send audio to the browser maker; only src/voice/ondevice.ts may use it, with processLocally = true",
+      re: /SpeechRecognition/, skip: (f) => f.endsWith(join("src", "voice", "ondevice.ts")) },
+    { rule: "speech-not-local", why: "on-device speech recognition must set processLocally = true and never false",
+      re: /processLocally\s*=(?!=)(?!\s*true\b)|processLocally\s*:\s*false/ },
     { rule: "raw-html", why: "model output is never shown as HTML",
       re: /dangerouslySetInnerHTML|innerHTML|outerHTML|insertAdjacentHTML/ },
   ];
@@ -108,6 +110,16 @@ for (const file of files(target).filter((f) => wanted.test(f))) {
       if (m && !allowed(rel, c.rule, line)) problems.push(`${rel}:${i + 1}: ${c.rule}: ${c.why} (found "${m[0].trim()}")`);
     }
   });
+}
+
+// The one file allowed to use the browser's recognition must ask for on-device processing.
+if (mode === "src") {
+  const od = join(target, "voice", "ondevice.ts");
+  if (existsSync(od)) {
+    const code = readFileSync(od, "utf8");
+    if (!/\.processLocally\s*=\s*true\b/.test(code) || !/processLocally:\s*true\b/.test(code))
+      problems.push("src/voice/ondevice.ts: speech-not-local: it must set recognition.processLocally = true and ask available()/install() with processLocally: true");
+  }
 }
 
 // ---------------------------------------------------------------- design rules (src only; DESIGN.md, CONTENT.md)

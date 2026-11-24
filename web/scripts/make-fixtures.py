@@ -153,7 +153,7 @@ def build(tmp: Path) -> dict[str, object]:
                 with patched(voice, "transcribe", lambda audio, **k: "Why do I need a second exit for my cafe?"):
                     out["transcribe"] = say(clip).json()
                     errors["audio_needed"] = say(b"")
-                    errors["audio_not_wav"] = say(png(), "q.png", "image/png")
+                    errors["audio_not_supported"] = say(png(), "q.png", "image/png")
                     with env(PERMIT_MAX_AUDIO_MB="0.05"):
                         errors["audio_too_large"] = say(clip)
                 with patched(voice, "transcribe", lambda audio, **k: None):

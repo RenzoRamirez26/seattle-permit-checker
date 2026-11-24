@@ -117,7 +117,7 @@ class DemoCase(BaseModel):
 class Features(BaseModel):
     model_api_key: bool = Field(description="The server has a Claude API key: uploaded plans can be read and the agent can use the model.")
     seattle_database: bool = Field(description="Seattle's review records have been downloaded on the server.")
-    speech_to_text: bool
+    speech_to_text: bool = Field(description="The server can turn a recorded question into text: faster-whisper, and ffmpeg to read WebM, MP4 and Ogg.")
     kokoro_voice: bool
 
 

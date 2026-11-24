@@ -1,6 +1,8 @@
 /**
  * Answers read aloud with the browser's own voice (speechSynthesis). The text is passed as plain text, never HTML.
- * The browser's speech recognition is never used (the guard fails on it): spoken questions go to our API only.
+ * A voice that runs on this device (localService) is preferred; some browsers only have online voices, which send the
+ * answer's text, never the owner's voice, to the browser maker (Help, "Voice"). Spoken questions: ondevice.ts and
+ * recorder.ts.
  */
 export const canSpeak = (): boolean => typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
 
@@ -9,6 +11,8 @@ export function speak(text: string, onEnd?: () => void): void {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US";
+  const local = window.speechSynthesis.getVoices?.().find((v) => v.localService && v.lang.toLowerCase().startsWith("en"));
+  if (local) u.voice = local;
   u.onend = () => onEnd?.();
   u.onerror = () => onEnd?.();
   window.speechSynthesis.speak(u);

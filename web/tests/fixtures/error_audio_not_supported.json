@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "audio_not_supported",
+      "message": "The recording must be WebM, MP4, Ogg or WAV audio, sent with its own content type. Record the question again, or type it."
+    }
+  },
+  "status": 415
+}

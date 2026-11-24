@@ -38,6 +38,7 @@ PLANTED = {
     "an anthropic import": ("src/api/planted.ts", 'import Anthropic from "@anthropic-ai/sdk";\nexport const c = new Anthropic();\n', "model-call"),
     "a request to another host": ("src/api/planted4.ts", 'export const r = () => fetch("https://example.com/x");\n', "other-host"),
     "browser speech recognition": ("src/voice/planted.ts", "export const r = new window.webkitSpeechRecognition();\n", "speech-recognition"),
+    "speech recognition that may leave the device": ("src/voice/planted6.ts", "export const off = (r: { processLocally: boolean }) => { r.processLocally = false; };\n", "speech-not-local"),
     "model output as HTML": ("src/components/planted.tsx", "export const A = (p: { t: string }) => <div dangerouslySetInnerHTML={{ __html: p.t }} />;\n", "raw-html"),
     "a rulebook import": ("src/content/planted5.ts", 'import rules from "../../../checker/rules/seattle.json";\nexport default rules;\n', "rulebook-import"),
 }
@@ -75,3 +76,14 @@ def test_the_generated_api_types_match_the_api():
 def test_the_front_end_fixtures_match_the_api():
     r = subprocess.run([sys.executable, "web/scripts/make-fixtures.py", "--check"], capture_output=True, text=True, cwd=ROOT)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+@needs_node
+def test_the_guard_requires_on_device_recognition_to_stay_on_the_device(tmp_path):
+    """src/voice/ondevice.ts, the one file that may use SpeechRecognition, must set processLocally = true."""
+    copy = tmp_path / "src"
+    shutil.copytree(WEB / "src", copy)
+    od = copy / "voice" / "ondevice.ts"
+    od.write_text(od.read_text(encoding="utf-8").replace("r.processLocally = true;", "r.lang = LANGS[0];"), encoding="utf-8")
+    r = _guard("src", copy)
+    assert r.returncode == 1 and "speech-not-local" in r.stderr and "ondevice.ts" in r.stderr
