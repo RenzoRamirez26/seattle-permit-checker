@@ -24,12 +24,16 @@ test("Start: the headline, the steps in one line, the example drawing, the step 
   // The four steps as one short line, directly under the intro sentence and above the form (checklist L2).
   const strip = page.getByRole("list", { name: "How it works, in short" });
   await expect(strip.getByRole("listitem")).toHaveText([
-    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Seattle's rules decide$/,
+    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Seattle's rules decide \(some values still being checked\)$/,
   ]);
   await expect(page.locator("p:has-text('A pre-check, not a city approval.') + ol")).toHaveAccessibleName("How it works, in short");
   const stripBox = (await strip.boundingBox())!;
   expect(stripBox.y).toBeLessThan((await page.getByRole("region", { name: "What kind of business is it?" }).boundingBox())!.y);
-  if (page.viewportSize()!.width >= 1024) expect(stripBox.height).toBeLessThan(36);   // one line on a laptop
+  // On a laptop it breaks only between steps: at most two lines, and no step is split across them.
+  if (page.viewportSize()!.width >= 1024) {
+    expect(stripBox.height).toBeLessThan(64);
+    for (const item of await strip.getByRole("listitem").all()) expect((await item.boundingBox())!.height).toBeLessThan(32);
+  }
   const img = page.getByRole("img", { name: "An example floor plan of a café, invented for this demo" });
   await expect(img).toBeVisible();
   await expect(img).toHaveAttribute("width", /^\d+$/);

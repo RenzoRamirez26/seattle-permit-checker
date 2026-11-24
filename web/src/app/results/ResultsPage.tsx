@@ -7,6 +7,7 @@
  * dark zone; then the notes, how long the check is kept, and one next step. "On this page" shows where the owner is.
  * The selected tabs survive a refresh, and a link to a finding opens its tab first. Everything shown is the API's.
  */
+import { SOME_UNVERIFIED, usesUnverifiedRule } from "@/content/verification";
 import { Fragment, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -332,6 +333,7 @@ function InShort({ check }: { check: Check }) {
   return (
     <div className="flex flex-col gap-6">
       <CountsSentence summary={s} />
+      {usesUnverifiedRule(check.result.findings) ? <p className="m-0 measure">{SOME_UNVERIFIED}</p> : null}
       <div>
         <Button variant="primary" onPress={() => assistant.open()}><MessageCircleQuestion aria-hidden size={18} /> Ask about your result</Button>
       </div>
