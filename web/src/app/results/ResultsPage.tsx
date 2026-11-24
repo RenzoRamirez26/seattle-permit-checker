@@ -7,7 +7,8 @@
  * dark zone; then the notes, how long the check is kept, and one next step. "On this page" shows where the owner is.
  * The selected tabs survive a refresh, and a link to a finding opens its tab first. Everything shown is the API's.
  */
-import { ruleUnverified, SOME_UNVERIFIED, UNVERIFIED_FINDING, usesUnverifiedRule, ZONING_RULE } from "@/content/verification";
+import { useMeta } from "@/components/layout/Providers";
+import { inShortCounts, levelWords, ZONING_RULE } from "@/content/verification";
 import { Fragment, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -325,6 +326,7 @@ function FindingRows({ status, items, expanded, onShowAll }: { status: Status; i
 }
 
 function InShort({ check }: { check: Check }) {
+  const { meta } = useMeta();
   const s = check.result.summary;
   const tiles: [Status, number, string][] = [
     [FIX, s.fails, "to fix before you apply"],
@@ -334,7 +336,7 @@ function InShort({ check }: { check: Check }) {
   return (
     <div className="flex flex-col gap-6">
       <CountsSentence summary={s} />
-      {usesUnverifiedRule(check.result.findings) ? <p className="m-0 measure">{SOME_UNVERIFIED}</p> : null}
+      <p className="m-0 measure">{inShortCounts(meta, check.result)}</p>
       <div>
         <Button variant="primary" onPress={() => assistant.open()}><MessageCircleQuestion aria-hidden size={18} /> Ask about your result</Button>
       </div>
@@ -375,8 +377,8 @@ function ZoningPanel({ check }: { check: Check }) {
 }
 
 /**
- * The zoning screen. With its finding from the result: the code section, and the "still being checked" line when its
- * rule is unverified. A zoning found again (not in the result yet) has no finding, so it gets the careful line.
+ * The zoning screen. With its finding from the result: the code section and its rule's level line. A zoning found again
+ * (not in the result yet) has no finding, so it gets the careful (unchecked) line.
  */
 function ZoningFound({ z, businessType, again, finding }: { z: NonNullable<Check["result"]["zoning"]>; businessType: string; again?: boolean; finding?: Finding }) {
   const zw = ZONING_WORDS[z.status];
@@ -395,7 +397,7 @@ function ZoningFound({ z, businessType, again, finding }: { z: NonNullable<Check
       {finding?.citation || typeof z.cite === "string" ? (
         <p className="m-0 font-mono text-ink-muted break-words" translate="no">{finding?.citation || (z.cite as string)}</p>
       ) : null}
-      {!finding || ruleUnverified(finding) ? <p className="m-0 measure text-body text-ink-muted">{UNVERIFIED_FINDING}</p> : null}
+      <p className="m-0 measure text-body text-ink-muted">{levelWords(finding)}</p>
     </div>
   );
 }

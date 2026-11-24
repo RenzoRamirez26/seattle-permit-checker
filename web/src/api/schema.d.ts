@@ -375,6 +375,13 @@ export interface components {
         };
         /** Finding */
         Finding: {
+            /**
+             * Check Level
+             * @description How far the rule is checked: the lowest level of the rule and every rule it depends on (rulebook: rules). unchecked, the default, means still being checked against the code. It never changes the status.
+             * @default unchecked
+             * @enum {string}
+             */
+            check_level: "unchecked" | "transcribed" | "reviewed";
             /** Citation */
             citation: string;
             /** Detail */
@@ -392,17 +399,21 @@ export interface components {
             /** Rule Id */
             rule_id: string;
             /**
+             * Rule Reviewed By
+             * @description Only when check_level is reviewed: the expert, name and role.
+             */
+            rule_reviewed_by?: string | null;
+            /**
+             * Rule Reviewed On
+             * @description Only when check_level is reviewed: the date of the review.
+             */
+            rule_reviewed_on?: string | null;
+            /**
              * Rule Source
              * @description The code edition and section the rule comes from, e.g. "SBC 2021 1010.1.1".
              * @default
              */
             rule_source: string;
-            /**
-             * Rule Verified
-             * @description True only when this rule's values were read from the code text (rulebook: rules). False, the default, means still being checked. It never changes the status.
-             * @default false
-             */
-            rule_verified: boolean;
             /**
              * Severity
              * @enum {string}
@@ -548,6 +559,13 @@ export interface components {
             /** By Space */
             by_space: components["schemas"]["OccupantLoadRow"][];
             /**
+             * Check Level
+             * @description The level of the square-feet-per-person factors (rule OL-0).
+             * @default unchecked
+             * @enum {string}
+             */
+            check_level: "unchecked" | "transcribed" | "reviewed";
+            /**
              * Missing Area
              * @default []
              */
@@ -558,12 +576,6 @@ export interface components {
              * @default
              */
             rule_source: string;
-            /**
-             * Rule Verified
-             * @description True only when every square-feet-per-person factor was read from the code text (rule OL-0).
-             * @default false
-             */
-            rule_verified: boolean;
             /** Total */
             total: number;
         } & {
@@ -589,6 +601,11 @@ export interface components {
             /** Agency */
             agency: string;
             /**
+             * Check Level
+             * @description Set when the permit is listed because of a rule's values (the occupant load, the sprinkler rule): that rule's level.
+             */
+            check_level?: ("unchecked" | "transcribed" | "reviewed") | null;
+            /**
              * Entry Verified
              * @description False when the permit entry itself was written from memory and is still being checked (rulebook permits "verified": false).
              * @default true
@@ -603,12 +620,6 @@ export interface components {
             may_be_needed?: string | null;
             /** Name */
             name: string;
-            /**
-             * Rule Verified
-             * @description False when the permit is listed because of a rule value still being checked against the code (the occupant load, the sprinkler rule).
-             * @default true
-             */
-            rule_verified: boolean;
         } & {
             [key: string]: unknown;
         };
@@ -688,10 +699,26 @@ export interface components {
             occupant_load: components["schemas"]["OccupantLoad"];
             /** Permits Likely Required */
             permits_likely_required: components["schemas"]["Permit"][];
+            /** @description How many rules were at each level when the check ran. */
+            rule_levels?: components["schemas"]["RuleLevels"] | null;
             summary: components["schemas"]["Summary"];
             zoning?: components["schemas"]["ZoningScreen"] | null;
         } & {
             [key: string]: unknown;
+        };
+        /**
+         * RuleLevels
+         * @description How many rules were at each level when the check ran (rules_engine.rule_counts).
+         */
+        RuleLevels: {
+            /** Reviewed */
+            reviewed: number;
+            /** Rules */
+            rules: number;
+            /** Transcribed */
+            transcribed: number;
+            /** Unchecked */
+            unchecked: number;
         };
         /** Rulebook */
         Rulebook: {
@@ -703,15 +730,25 @@ export interface components {
              */
             edition_date: string | null;
             /**
+             * Reviewed
+             * @description How many rules an expert reviewed (and every rule they depend on).
+             */
+            reviewed: number;
+            /**
              * Rules
              * @description How many rules the rulebook lists (rulebook: rules).
              */
             rules: number;
             /**
-             * Rules Unverified
-             * @description How many of them still have values not checked against the code text. The site says some values are still being checked while this is above 0.
+             * Transcribed
+             * @description How many rules our team checked against the code text (and every rule they depend on), not yet reviewed by an expert.
              */
-            rules_unverified: number;
+            transcribed: number;
+            /**
+             * Unchecked
+             * @description How many rules are unchecked: a value, or a rule they depend on, is not yet checked against the code text.
+             */
+            unchecked: number;
         };
         /** Space */
         Space: {

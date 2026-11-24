@@ -1,12 +1,12 @@
 /**
  * The permits to expect, as the API listed them, in up to three columns with dashed rules. One that depends on an answer
  * left as "Not sure" says so (Q9). One the API lists because of a value still being checked against the code
- * (rule_verified false: the assembly and sprinkler permits rest on the number of people) says that, in muted text.
+ * (check_level "unchecked": the assembly and sprinkler permits rest on the number of people) says that, in muted text.
  */
 import type { Permit } from "@/api/client";
 import { StatusTag } from "./StatusTag";
 import { CHECK_WITH_CITY } from "./status";
-import { UNVERIFIED_ENTRY, UNVERIFIED_PERMIT } from "@/content/verification";
+import { permitUnchecked, UNVERIFIED_ENTRY, UNVERIFIED_PERMIT } from "@/content/verification";
 
 export function PermitList({ permits }: { permits: Permit[] }) {
   if (!permits.length) return <p className="m-0">No permits were listed for this check.</p>;
@@ -18,7 +18,7 @@ export function PermitList({ permits }: { permits: Permit[] }) {
           <li key={p.id} className="flex flex-col gap-1 border-t border-dashed border-field py-4">
             <span className="font-medium break-words">{p.name}</span>
             <span className="text-ink-muted break-words">{p.agency}</span>
-            {p.rule_verified === false ? <span className="text-ink-muted break-words">{UNVERIFIED_PERMIT}</span> : null}
+            {permitUnchecked(p) ? <span className="text-ink-muted break-words">{UNVERIFIED_PERMIT}</span> : null}
             {p.entry_verified === false ? <span className="text-ink-muted break-words">{UNVERIFIED_ENTRY}</span> : null}
             {maybe ? (
               <span className="flex flex-col items-start gap-1">

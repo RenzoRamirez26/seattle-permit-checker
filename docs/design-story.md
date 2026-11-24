@@ -120,6 +120,23 @@ We designed in Figma and kept each version on its own page: v1 used a colour for
 - no more than three type sizes
 - no text below 4.5:1 contrast
 
+## How we know the rules are right
+
+A finding is only as good as the rule behind it, and a rule is only as good as the code text it was copied from. So
+every rule carries one of three levels, and the page says which, in one muted line under the finding:
+
+- **Still being checked:** we coded it, but nobody has compared every number with the code yet.
+- **Checked against the code text by our team:** a named person read the section in the 2021 Seattle Building Code,
+  compared every number and condition, and dated it.
+- **Reviewed by an expert:** a named architect, engineer or plan reviewer also looked, and we show who and when.
+
+We chose three plain levels over a single "verified" tick because the tick hid who had checked and how. Today none of
+the 21 rules is past the first level, and Start, the results and Help say exactly that, with counts from the API,
+rather than a vague "some values are still being checked". The level never changes what a finding says to do: an
+unchecked rule can still ask you to fix something. How a rule moves up is in [`verifying-rules.md`](verifying-rules.md).
+
+---
+
 ## What we still want to learn
 
 We haven't watched real owners use it yet. The next step is a short usability test with five café or shop owners. We want to know three things:

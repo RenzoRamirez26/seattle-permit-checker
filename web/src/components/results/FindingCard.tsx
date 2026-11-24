@@ -1,13 +1,13 @@
 /**
  * One finding as a plain row (DESIGN.md, Findings): the status icon, the action title, the observation the API sent
  * (D5: one sentence, not split in the browser), how to fix it, who to ask in Seattle for a "Check with the city"
- * item, and the code section with "Ask about this", then, when the API says the rule's value is not yet checked against
- * the code (rule_verified), one muted line saying so. Its anchor is finding-<index>, its position in the result.
+ * item, and the code section with "Ask about this", then one muted line for how far its rule is checked
+ * (check_level: still being checked, checked against the code text by our team, or reviewed by an expert). Its anchor is finding-<index>, its position in the result.
  */
 import type { Finding } from "@/api/client";
 import { groupOf, look, TAB_GROUPS } from "./status";
 import { StatusIcon } from "./StatusIcon";
-import { ruleUnverified, UNVERIFIED_FINDING } from "@/content/verification";
+import { levelWords } from "@/content/verification";
 
 export const findingAnchor = (index: number) => `finding-${index}`;
 
@@ -29,7 +29,7 @@ export function FindingCard({ finding, index, actions }: { finding: Finding; ind
           <span className="font-mono text-ink-muted break-words" translate="no">{finding.citation}</span>
           {actions}
         </p>
-        {ruleUnverified(finding) ? <p className="m-0 measure text-body text-ink-muted">{UNVERIFIED_FINDING}</p> : null}
+        <p className="m-0 measure text-body text-ink-muted">{levelWords(finding)}</p>
       </div>
     </article>
   );

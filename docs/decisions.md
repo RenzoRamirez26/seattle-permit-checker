@@ -6,6 +6,27 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Three check levels for rules: unchecked, transcribed, reviewed
+
+- **Decision:** `"verified": true/false` on each rule is replaced by `check_level`: `unchecked`, `transcribed`
+  (a named person compared every number and condition with the code text and dated it) or `reviewed` (an expert's
+  name, role and date are recorded too). A finding's level is the lowest of its rule and every rule it depends on.
+  The level never changes a status.
+- **Start:** all 21 rules are `unchecked`. EG-2, EG-4, FS-1 and FS-2 had `verified: true`, but only because an
+  automated session read their sections; none was ever signed by a person, and all four depend on the unchecked
+  occupant load, so none counted as checked anyway. Their reading is kept in a structured record,
+  `_meta.sections_read`, which a transcribed rule's sections must appear in (marked complete).
+- **Words:** one muted line under each finding ("This rule's value is still being checked against the code." /
+  "Checked against the code text by our team." / "Reviewed by {name, role}, {date}."). The "Some rule values are
+  still being checked" line is replaced everywhere by the counts: "None of the 21 rules is checked against the code
+  text yet; none reviewed by an expert." Start's strip says the same in short. Help has "How we check our rules".
+- **Why:** a single tick did not say who checked or how, and "some values" was vaguer than the truth (none).
+- **Rejected:** a coloured badge or icon per level (DESIGN.md: one accent, no new colour); counting levels in the
+  browser (the API counts; the front end only shows); letting a rule's own level stand when its inputs are lower.
+- **Source:** owner's request (rule-review-levels); procedure in [`verifying-rules.md`](verifying-rules.md).
+- **Who:** owner (levels and wording); team (how). Choices made without asking are listed in the PR under
+  "Decisions I made".
+
 ## 2026-11-24 · Rule correctness and copy (issues #19 to #26)
 
 - **Exit door swing (#19):** a swing is described only when the plan shows it. A sliding, or any non-swinging, exit

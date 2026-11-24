@@ -53,8 +53,9 @@ def test_cafe_flow(app):
     text = " ".join(x.value for x in at.markdown)
     assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
     assert any("Who to ask: SDCI Ordinance" in c.value for c in at.caption)
-    captions = [c.value for c in at.caption]                     # rules still being checked: once on top, then per finding
-    assert captions.count(rules_engine.SOME_UNVERIFIED) == 1 and rules_engine.UNVERIFIED_NOTE in captions
+    captions = [c.value for c in at.caption]                     # the counts once on top, then each finding's level
+    assert captions.count(rules_engine.rules_checked_sentence(rules_engine.rule_counts(rules_engine.load_rules()))) == 1
+    assert rules_engine.UNVERIFIED_NOTE in captions and not any("Some rule values" in c for c in captions)
     assert rules_engine.UNVERIFIED_FACTORS in captions                                     # under the occupant-load table
     table = next(t.value for t in at.table if t.value.index.name == "Permit or approval")
     assert table.loc["Assembly permit (spaces holding 100 or more people)", "Note"] == rules_engine.UNVERIFIED_PERMIT
@@ -424,5 +425,5 @@ def test_the_about_text_says_who_coded_the_rules_and_how_many_are_checked():
     counts = rules_engine.rule_counts(rules_engine.load_rules())
     assert "rules our team coded from Seattle's building and plumbing codes, the federal accessibility standards, and the King County and Washington State food codes" in text
     assert rules_engine.rules_checked_sentence(counts) in text and "{checked}" not in text
-    assert rules_engine.rules_checked_sentence({"rules": 21, "rules_unverified": 21}) == "None of the 21 rules is checked against the code text yet."
-    assert rules_engine.rules_checked_sentence({"rules": 21, "rules_unverified": 3}) == "3 of the 21 rules aren't checked against the code text yet."
+    assert rules_engine.rules_checked_sentence(counts) == \
+        "None of the 21 rules is checked against the code text yet; none reviewed by an expert."

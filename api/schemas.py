@@ -136,8 +136,11 @@ class Rulebook(BaseModel):
                                                     "null while the rulebook still holds the placeholder.")
     code_basis: str
     rules: int = Field(description="How many rules the rulebook lists (rulebook: rules).")
-    rules_unverified: int = Field(description="How many of them still have values not checked against the code text. "
-                                              "The site says some values are still being checked while this is above 0.")
+    unchecked: int = Field(description="How many rules are unchecked: a value, or a rule they depend on, is not yet "
+                                       "checked against the code text.")
+    transcribed: int = Field(description="How many rules our team checked against the code text (and every rule they depend on), "
+                                         "not yet reviewed by an expert.")
+    reviewed: int = Field(description="How many rules an expert reviewed (and every rule they depend on).")
 
 
 class Meta(BaseModel):
@@ -243,6 +246,17 @@ class Summary(BaseModel):
     passes: int
 
 
+CheckLevel = Literal["unchecked", "transcribed", "reviewed"]
+
+
+class RuleLevels(BaseModel):
+    """How many rules were at each level when the check ran (rules_engine.rule_counts)."""
+    rules: int
+    unchecked: int
+    transcribed: int
+    reviewed: int
+
+
 class Finding(BaseModel):
     model_config = ConfigDict(extra="allow")
     rule_id: str
@@ -253,11 +267,15 @@ class Finding(BaseModel):
     citation: str
     fix: str = ""
     reviewed_by: str = ""
-    rule_verified: bool = Field(default=False, description="True only when this rule's values were read from the code text "
-                                                           "(rulebook: rules). False, the default, means still being checked. "
-                                                           "It never changes the status.")
+    check_level: CheckLevel = Field(default="unchecked", description="How far the rule is checked: the lowest level of "
+                                    "the rule and every rule it depends on (rulebook: rules). unchecked, the default, means "
+                                    "still being checked against the code. It never changes the status.")
     rule_source: str = Field(default="", description="The code edition and section the rule comes from, e.g. "
                                                     "\"SBC 2021 1010.1.1\".")
+    rule_reviewed_by: Optional[str] = Field(default=None, exclude_if=lambda v: v is None,
+                                            description="Only when check_level is reviewed: the expert, name and role.")
+    rule_reviewed_on: Optional[str] = Field(default=None, exclude_if=lambda v: v is None,
+                                            description="Only when check_level is reviewed: the date of the review.")
 
 
 class Permit(BaseModel):
@@ -265,8 +283,9 @@ class Permit(BaseModel):
     id: str
     name: str
     agency: str
-    rule_verified: bool = Field(default=True, description="False when the permit is listed because of a rule value still being "
-                                                          "checked against the code (the occupant load, the sprinkler rule).")
+    check_level: Optional[CheckLevel] = Field(default=None, exclude_if=lambda v: v is None,
+                                              description="Set when the permit is listed because of a rule's values (the "
+                                                          "occupant load, the sprinkler rule): that rule's level.")
     entry_verified: bool = Field(default=True, description="False when the permit entry itself was written from memory and is "
                                                            "still being checked (rulebook permits \"verified\": false).")
     may_be_needed: Optional[str] = Field(default=None, exclude_if=lambda v: v is None, description="Set when the permit depends on an answer left as Not sure: "
@@ -287,8 +306,8 @@ class OccupantLoad(BaseModel):
     total: int
     by_space: list[OccupantLoadRow]
     missing_area: list[str] = []
-    rule_verified: bool = Field(default=False, description="True only when every square-feet-per-person factor was read "
-                                                           "from the code text (rule OL-0).")
+    check_level: CheckLevel = Field(default="unchecked", description="The level of the square-feet-per-person "
+                                                                     "factors (rule OL-0).")
     rule_source: str = Field(default="", description="The code edition and section of the factors.")
 
 
@@ -301,6 +320,7 @@ class Result(BaseModel):
     occupant_load: OccupantLoad
     fixtures_required: Optional[dict[str, Any]] = None
     zoning: Optional[ZoningScreen] = None
+    rule_levels: Optional[RuleLevels] = Field(default=None, description="How many rules were at each level when the check ran.")
     local_review_data: Optional[dict[str, Any]] = Field(default=None, description="Seattle's review records for similar projects, when downloaded.")
     code_basis: str
     disclaimer: str

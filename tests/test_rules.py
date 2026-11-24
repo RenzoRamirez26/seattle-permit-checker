@@ -263,93 +263,190 @@ def _rule_entries(rules):
     return {k: v for k, v in rules["rules"].items() if not k.startswith("_")}
 
 
-def test_every_rule_has_verified_and_source(rules):
-    """Every rule in the rulebook says whether its values were checked against the code text, and where it comes from."""
+LEVELS = rules_engine.CHECK_LEVELS
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _sections(source: str) -> list[str]:
+    return [s.strip() for s in source.split(";") if s.strip()]
+
+
+def test_every_rule_has_a_check_level_and_source(rules):
+    """Every rule says how far it is checked (unchecked, transcribed, reviewed) and where it comes from."""
     entries = _rule_entries(rules)
     for rule_id, entry in entries.items():
-        assert isinstance(entry.get("verified"), bool), f"{rule_id} has no verified true/false"
+        assert "verified" not in entry, f"{rule_id} still has verified: check_level replaced it"
+        assert entry.get("check_level") in LEVELS, f"{rule_id} has no check_level"
         assert isinstance(entry.get("source"), str) and entry["source"].strip(), f"{rule_id} has no source"
     assert ENGINE_RULE_IDS <= set(entries), f"rules missing from the rulebook: {sorted(ENGINE_RULE_IDS - set(entries))}"
+    assert len(entries) == 21
 
 
-def test_a_rule_is_verified_only_with_evidence_in_the_rulebook(rules):
-    """verified: true needs every section it names to be listed under _meta.checked_against_city_sources."""
-    checked = " ".join(rules["_meta"]["checked_against_city_sources"])
-    verified = {k: v for k, v in _rule_entries(rules).items() if v["verified"]}
-    assert verified, "no rule is verified: the test would prove nothing"
-    for rule_id, entry in verified.items():
-        sections = SECTION.findall(entry["source"])
-        assert sections, f"{rule_id} is verified but names no section"
-        for s in sections:
-            assert s in checked, f"{rule_id} is verified but {s} is not in _meta.checked_against_city_sources"
-    # The rules _meta.verify names as from memory stay unverified.
-    for rule_id in ("OCC-1", "EG-1", "EG-3", "ADA-3", "FS-3", "ADA-1", "ADA-2", "ADA-4", "MECH-1", "HLTH-1", "ZN-1", "PL-1"):
-        assert _rule_entries(rules)[rule_id]["verified"] is False
+def check_level_record(rules) -> list[str]:
+    """Every way a rule's level outruns its record. Empty means every transcribed and reviewed rule is backed."""
+    read = {r["section"]: r for r in rules["_meta"].get("sections_read", [])}
+    problems = []
+    for rule_id, e in _rule_entries(rules).items():
+        level = e["check_level"]
+        if level in ("transcribed", "reviewed"):
+            for s in _sections(e["source"]):
+                if s not in read:
+                    problems.append(f"{rule_id}: {s} is not in _meta.sections_read")
+                elif read[s].get("complete") is not True:
+                    problems.append(f"{rule_id}: {s} is in _meta.sections_read but not read completely")
+            if not str(e.get("transcribed_by") or "").strip():
+                problems.append(f"{rule_id}: no transcribed_by")
+            if not DATE.match(str(e.get("transcribed_on") or "")):
+                problems.append(f"{rule_id}: transcribed_on is not a YYYY-MM-DD date")
+        if level == "reviewed":
+            who = e.get("reviewed_by")
+            if not (isinstance(who, dict) and str(who.get("name") or "").strip() and str(who.get("role") or "").strip()):
+                problems.append(f"{rule_id}: reviewed_by needs a name and a role")
+            if not DATE.match(str(e.get("reviewed_on") or "")):
+                problems.append(f"{rule_id}: reviewed_on is not a YYYY-MM-DD date")
+        if level == "unchecked" and any(k in e for k in ("transcribed_by", "transcribed_on", "reviewed_by", "reviewed_on")):
+            problems.append(f"{rule_id}: unchecked but carries a transcription or review record")
+    return problems
 
 
-def test_findings_carry_the_rule_verification_and_source(rules, load):
+def test_a_rule_level_never_outruns_its_record(rules):
+    """A transcribed rule names only sections in the record of sections read; a reviewed rule has reviewed_by and
+    reviewed_on. None is transcribed or reviewed today: every rule starts unchecked."""
+    assert check_level_record(rules) == []
+    assert all(e["check_level"] == "unchecked" for e in _rule_entries(rules).values())
+    assert rules["_meta"]["sections_read"], "the record of sections read is empty"
+    for r in rules["_meta"]["sections_read"]:
+        assert set(r) >= {"section", "read_from", "read_on", "read_by", "complete"}, r
+
+
+def test_the_record_check_catches_a_rule_that_claims_too_much(rules):
+    """The test above would catch each mistake: proven on edited copies of the rulebook."""
+    def edited(rule_id, *base, **fields):
+        r = json.loads(json.dumps(rules))
+        for b in base:
+            r["rules"][rule_id] |= b
+        r["rules"][rule_id] |= fields
+        return check_level_record(r)
+    ok = {"check_level": "transcribed", "transcribed_by": "A. Person", "transcribed_on": "2026-12-01"}
+    assert edited("EG-2", **ok) == []                                    # 1010.1.2.1 is in the record
+    assert any("not in _meta.sections_read" in p for p in edited("ADA-1", **ok))   # its ADA sections were never read
+    assert any("not read completely" in p for p in edited("PL-2", **ok))           # Table 2902.1 is only partly read
+    assert any("transcribed_by" in p for p in edited("EG-2", check_level="transcribed", transcribed_on="2026-12-01"))
+    assert any("transcribed_on" in p for p in edited("EG-2", check_level="transcribed", transcribed_by="A. Person"))
+    assert any("reviewed_by" in p for p in edited("EG-2", ok, check_level="reviewed", reviewed_on="2026-12-02"))
+    assert any("reviewed_on" in p for p in edited("EG-2", ok, check_level="reviewed",
+                                                     reviewed_by={"name": "B. Expert", "role": "architect"}))
+    assert any("name and a role" in p for p in edited("EG-2", ok, check_level="reviewed", reviewed_on="2026-12-02",
+                                                          reviewed_by={"name": "B. Expert"}))
+
+
+def _with_levels(rules, levels: dict[str, str]):
+    """A copy of the rulebook with some rules raised to a level, with a full record."""
+    r = json.loads(json.dumps(rules))
+    for rule_id, level in levels.items():
+        r["rules"][rule_id] |= {"check_level": level, "transcribed_by": "A. Person", "transcribed_on": "2026-12-01"}
+        if level == "reviewed":
+            r["rules"][rule_id] |= {"reviewed_by": {"name": "B. Expert", "role": "licensed architect"},
+                                    "reviewed_on": "2026-12-02"}
+    return r
+
+
+def test_findings_carry_the_check_level_and_source(rules, load):
     entries = _rule_entries(rules)
     for business, facts in _cases(load):
         for f in rules_engine.run_checks(facts, {"business_type": business, "cooking_on_site": True}, rules)["findings"]:
-            assert f["rule_verified"] is rules_engine.rule_checked(rules, f["rule_id"])
+            assert f["check_level"] == rules_engine.rule_level(rules, f["rule_id"]) == "unchecked"
             assert f["rule_source"] == entries[f["rule_id"]]["source"]
-            assert not f["rule_verified"] or entries[f["rule_id"]]["verified"]       # never more than the rulebook says
+            assert "rule_reviewed_by" not in f and "rule_reviewed_on" not in f     # only when reviewed
 
 
-def test_a_rule_counts_as_checked_only_when_the_rules_it_depends_on_are(rules, load):
-    """FS-2's sprinkler triggers were read from the code, but the occupant load and group it uses were not (OL-0, OCC-1)."""
+def test_a_finding_s_level_is_the_lowest_of_its_rule_and_its_dependencies(rules, load):
+    """unchecked < transcribed < reviewed: FS-2 uses the occupant load (OL-0) and the group (OCC-1)."""
     entries = _rule_entries(rules)
-    assert entries["FS-2"]["verified"] and set(entries["FS-2"]["depends_on"]) == {"OL-0", "OCC-1"}
-    assert not rules_engine.rule_checked(rules, "FS-2") and not rules_engine.rule_checked(rules, "FS-1")
-    door = json.loads(json.dumps(rules))
-    door["rules"]["EG-3"]["verified"] = True
-    assert not rules_engine.rule_checked(rules, "EG-3")                # its ADA cross-reference is from memory
-    assert rules_engine.rule_checked(door, "EG-3")                     # once read, a door width needs no occupant load
+    assert set(entries["FS-2"]["depends_on"]) == {"OL-0", "OCC-1"}
     for rule_id, entry in entries.items():                              # every dependency is a rule in the rulebook
         assert set(entry.get("depends_on", [])) <= set(entries), rule_id
     loads_on_occupants = {"OCC-1", "EG-1", "EG-2", "EG-4", "FS-2", "PL-1", "PL-2"}
     assert all("OL-0" in entries[r]["depends_on"] for r in loads_on_occupants)
 
-    fixed = json.loads(json.dumps(rules))
-    fixed["rules"]["OL-0"]["verified"] = fixed["rules"]["OCC-1"]["verified"] = True
-    assert rules_engine.rule_checked(fixed, "FS-2") and rules_engine.rule_checked(fixed, "EG-2")
-    loop = json.loads(json.dumps(rules))
+    level = rules_engine.rule_level
+    assert level(_with_levels(rules, {"FS-2": "reviewed"}), "FS-2") == "unchecked"          # its inputs are unchecked
+    assert level(_with_levels(rules, {"FS-2": "reviewed", "OL-0": "transcribed", "OCC-1": "reviewed"}), "FS-2") == "transcribed"
+    assert level(_with_levels(rules, {"FS-2": "transcribed", "OL-0": "reviewed", "OCC-1": "reviewed"}), "FS-2") == "transcribed"
+    assert level(_with_levels(rules, {"FS-2": "reviewed", "OL-0": "reviewed", "OCC-1": "reviewed"}), "FS-2") == "reviewed"
+    assert level(_with_levels(rules, {"EG-3": "reviewed"}), "EG-3") == "reviewed"            # a door width needs no load
+    loop = _with_levels(rules, {"EG-3": "reviewed", "ADA-3": "reviewed"})
     loop["rules"]["EG-3"]["depends_on"] = ["ADA-3"]; loop["rules"]["ADA-3"]["depends_on"] = ["EG-3"]
-    assert not rules_engine.rule_checked(loop, "EG-3")                 # a loop never counts as checked
+    assert level(loop, "EG-3") == "unchecked"                           # a loop never counts as checked
+    # A level whose record is incomplete counts as the level below it.
+    half = _with_levels(rules, {"EG-3": "reviewed"}); del half["rules"]["EG-3"]["reviewed_on"]
+    assert level(half, "EG-3") == "transcribed"
+    bare = json.loads(json.dumps(rules)); bare["rules"]["EG-3"]["check_level"] = "reviewed"
+    assert level(bare, "EG-3") == "unchecked"
+    odd = json.loads(json.dumps(rules)); odd["rules"]["EG-3"]["check_level"] = "verified"
+    assert level(odd, "EG-3") == "unchecked"
 
-    cafe = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    all_reviewed = _with_levels(rules, {k: "reviewed" for k in entries})
+    cafe = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, all_reviewed)
     sprinklers = next(f for f in cafe["findings"] if f["rule_id"] == "FS-2")
-    assert sprinklers["status"] == "fail" and sprinklers["rule_verified"] is False
-    assert cafe["occupant_load"]["rule_verified"] is False and cafe["occupant_load"]["rule_source"] == entries["OL-0"]["source"]
+    assert sprinklers["check_level"] == "reviewed"
+    assert sprinklers["rule_reviewed_by"] == "B. Expert, licensed architect" and sprinklers["rule_reviewed_on"] == "2026-12-02"
+    assert cafe["occupant_load"]["check_level"] == "reviewed"
+    plain = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    assert plain["occupant_load"]["check_level"] == "unchecked" and plain["occupant_load"]["rule_source"] == entries["OL-0"]["source"]
 
 
-def test_verification_never_changes_a_finding(rules, load):
+def test_rule_counts_and_the_counts_sentence(rules):
+    counts = rules_engine.rule_counts(rules)
+    assert counts == {"rules": 21, "unchecked": 21, "transcribed": 0, "reviewed": 0}
+    say = rules_engine.rules_checked_sentence
+    assert say(counts) == "None of the 21 rules is checked against the code text yet; none reviewed by an expert."
+    assert say({"rules": 21, "unchecked": 20, "transcribed": 1, "reviewed": 0}) == \
+        "1 of the 21 rules is checked against the code text; none reviewed by an expert."
+    assert say({"rules": 21, "unchecked": 11, "transcribed": 7, "reviewed": 3}) == \
+        "10 of the 21 rules are checked against the code text; 3 reviewed by an expert."
+    assert say({"rules": 21, "unchecked": 0, "transcribed": 0, "reviewed": 21}) == \
+        "All 21 rules are checked against the code text; all reviewed by an expert."
+    assert say(None) == rules_engine.LEVELS_UNKNOWN
+    # A dependency holds a rule down in the counts too: FS-2 reviewed on its own is still unchecked.
+    assert rules_engine.rule_counts(_with_levels(rules, {"FS-2": "reviewed"}))["reviewed"] == 0
+    assert rules_engine.rule_counts(_with_levels(rules, {"EG-3": "transcribed", "ADA-1": "reviewed"})) == \
+        {"rules": 21, "unchecked": 19, "transcribed": 1, "reviewed": 1}
+
+
+def test_the_level_never_changes_a_finding(rules, load):
     """Fix stays Fix, Check with the city stays as it is, and nothing unknown becomes No issues found."""
+    keys = ("check_level", "rule_source", "rule_reviewed_by", "rule_reviewed_on")
     def strip(result):
-        return [{k: v for k, v in f.items() if k not in ("rule_verified", "rule_source")} for f in result["findings"]]
-    all_true = json.loads(json.dumps(rules))
-    all_false = json.loads(json.dumps(rules))
-    for k in _rule_entries(rules):
-        all_true["rules"][k]["verified"] = True
-        all_false["rules"][k]["verified"] = False
+        return [{k: v for k, v in f.items() if k not in keys} for f in result["findings"]]
+    all_reviewed = _with_levels(rules, {k: "reviewed" for k in _rule_entries(rules)})
+    all_transcribed = _with_levels(rules, {k: "transcribed" for k in _rule_entries(rules)})
     no_section = {k: v for k, v in rules.items() if k != "rules"}
     for business, facts in _cases(load):
         intake = {"business_type": business, "cooking_on_site": True, "serves_alcohol": None}
         base = rules_engine.run_checks(facts, intake, rules)
-        for other in (all_true, all_false, no_section):
+        for other in (all_reviewed, all_transcribed, no_section):
             r = rules_engine.run_checks(facts, intake, other)
             assert strip(r) == strip(base) and r["summary"] == base["summary"]
-    # With no rules section at all, every finding counts as unverified.
+            assert [{k: p[k] for k in ("id", "name")} for p in r["permits_likely_required"]] == \
+                [{k: p[k] for k in ("id", "name")} for p in base["permits_likely_required"]]
+    # With no rules section at all, every finding is unchecked.
     r = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant"}, no_section)
-    assert all(f["rule_verified"] is False and f["rule_source"] == "" for f in r["findings"])
+    assert all(f["check_level"] == "unchecked" and f["rule_source"] == "" for f in r["findings"])
 
 
-def test_report_markdown_marks_unverified_rules(rules, load):
-    result = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+def test_report_markdown_gives_every_finding_its_level_and_the_counts(rules, load):
+    intake = {"business_type": "cafe_restaurant", "cooking_on_site": True}
+    result = rules_engine.run_checks(load("flawed"), intake, rules)
     md = rules_engine.to_markdown(result)
-    assert rules_engine.SOME_UNVERIFIED in md and rules_engine.UNVERIFIED_FACTORS in md
-    unverified_open = [f for f in result["findings"] if f["status"] != "pass" and not f["rule_verified"]]
-    assert unverified_open and md.count(rules_engine.UNVERIFIED_NOTE) == len(unverified_open)
+    assert rules_engine.rules_checked_sentence(rules_engine.rule_counts(rules)) in md and rules_engine.UNVERIFIED_FACTORS in md
+    assert md.count(rules_engine.UNVERIFIED_NOTE) == len(result["findings"])
+    assert "Some rule values" not in md
+    mixed = _with_levels(rules, {"EG-3": "transcribed", "ADA-1": "reviewed"})
+    md = rules_engine.to_markdown(rules_engine.run_checks(load("flawed"), intake, mixed))
+    assert rules_engine.TRANSCRIBED_NOTE in md and "Reviewed by B. Expert, licensed architect, 2026-12-02." in md
+    assert "1 of the 21 rules is checked against the code text; 1 reviewed by an expert." not in md   # 2 checked
+    assert "2 of the 21 rules are checked against the code text; 1 reviewed by an expert." in md
 
 
 # ---------------------------------------------------------------- message numbers come from the rulebook
@@ -582,7 +679,7 @@ def test_a_sign_answer_left_not_sure_lists_the_sign_permit_as_may_be_needed(rule
 def test_a_permit_from_memory_is_marked_unchecked(rules, load):
     salon = rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules)
     licence = next(p for p in salon["permits_likely_required"] if p["id"] == "salon_license")
-    assert licence["entry_verified"] is False and licence["rule_verified"] is True   # the entry, not a value, is unchecked
+    assert licence["entry_verified"] is False and "check_level" not in licence   # the entry, not a value, is unchecked
     assert all(p["entry_verified"] for p in salon["permits_likely_required"] if p["id"] != "salon_license")
     assert rules_engine.UNVERIFIED_ENTRY in pdf_text(salon) and rules_engine.UNVERIFIED_PERMIT not in pdf_text(salon)
 
@@ -707,3 +804,16 @@ def test_the_values_the_rules_read_are_exactly_facts_checked(rules):
     assert read_but_unlisted == []
     # width and length are read only when a room has no area; the demo rooms all have one
     assert set(rules_engine.FACTS_CHECKED) - reached == {"spaces.width_ft", "spaces.length_ft"}
+
+
+def test_docs_verifying_rules_lists_every_rule_with_its_level_and_source(rules):
+    """docs/verifying-rules.md has a row per rule with the rulebook's own source and level, and marks the foundations."""
+    text = (ROOT / "docs" / "verifying-rules.md").read_text(encoding="utf-8")
+    rows = {m.group(1): [c.strip() for c in m.group(0).strip("|").split("|")]
+            for m in re.finditer(r"^\| ([A-Z]+-\d+) \|.*\|$", text, re.M)}
+    entries = _rule_entries(rules)
+    assert set(rows) == set(entries)
+    for rule_id, cells in rows.items():
+        assert cells[2] == entries[rule_id]["source"], rule_id
+        assert cells[3] == entries[rule_id]["check_level"], rule_id
+        assert ("do first" in cells[5]) is (rule_id in ("OL-0", "OCC-1", "EG-1")), rule_id

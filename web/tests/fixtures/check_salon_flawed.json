@@ -111,121 +111,121 @@
     },
     "findings": [
       {
+        "check_level": "unchecked",
         "citation": "SBC 1010.1.1; ADA 404.2.3",
         "detail": "Your plan shows 30 in. clear. A door needs at least 32 in.",
         "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "rule_source": "SBC 2021 1010.1.1",
-        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom door (Restroom)"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
         "detail": "Your plan shows 32 in. A wheelchair route needs at least 36 in.",
         "fix": "Move furniture or fixtures to give 36 in. clear.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
         "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1",
-        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the aisle: Aisle A (between chairs)"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
         "detail": "Your plan shows 54 in. of clear floor. A wheelchair needs 60 in. to turn.",
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
         "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1",
-        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the restroom so a wheelchair can turn: Restroom"
       },
       {
+        "check_level": "unchecked",
         "citation": "Seattle Municipal Code Title 23 (Land Use Code); SMC 23.44.020.E (Ordinance 127376)",
         "detail": "Neighborhood Residential. Ground-floor restaurants and shops are allowed only up to 2,500 sq ft, on or below the ground floor, closed 10 p.m. to 6 a.m., with no drive-in and with exhaust vents at least 10 ft above the sidewalk. This plan is 800 sq ft, within the 2,500 sq ft limit.",
         "fix": "Confirm the use with SDCI land use coaching (free) or the Office of Economic Development, (206) 684-8090 before signing a lease.",
         "reviewed_by": "SDCI Zoning review",
         "rule_id": "ZN-1",
         "rule_source": "SMC Title 23",
-        "rule_verified": false,
         "severity": "high",
         "status": "review",
         "title": "Confirm the zoning: NR3"
       },
       {
+        "check_level": "unchecked",
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
         "detail": "Your plan doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel.",
         "fix": "Show extinguisher locations.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
         "rule_source": "SFC 2021 906.1; SFC 2021 906.4",
-        "rule_verified": false,
         "severity": "medium",
         "status": "review",
         "title": "Show the fire extinguishers"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
         "detail": "Your plan holds 15 people. The building code puts a salon, barbershop or spa that size in Group B.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
         "rule_source": "SBC 2021 303.1.1; SBC 2021 Chapter 3",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Occupancy classification"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Table 1006.2.1 and Section 1006.3",
         "detail": "Your plan shows 1 exit. A space for 15 people needs 1.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
         "rule_source": "SBC 2021 Table 1006.2.1; SBC 2021 1006.3",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exits"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
         "detail": "Your plan shows 1 toilet. A space for 15 people needs 1 (Business: one shared toilet room is allowed up to 25 occupants).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
         "rule_source": "SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Toilet count"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 1005.3.2",
         "detail": "Your exit doors add up to 34 in. A space for 15 people needs 3.0 in. (15 x 0.2 in.).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
         "rule_source": "SBC 2021 1005.3.2",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
         "detail": "Your plan shows 1 restroom sink. This space needs at least 1, one in each toilet room.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
         "rule_source": "SBC 2021 Table 2902.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Restroom sinks"
@@ -278,10 +278,10 @@
         }
       ],
       "calculated_dining_load": 0,
+      "check_level": "unchecked",
       "missing_area": [],
       "missing_use": [],
       "rule_source": "SBC 2021 Table 1004.5",
-      "rule_verified": false,
       "seat_count": null,
       "total": 15
     },
@@ -290,52 +290,51 @@
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
         "entry_verified": true,
         "id": "building",
-        "name": "Construction permit (addition/alteration; also establishes the use of the space)",
-        "rule_verified": true
+        "name": "Construction permit (addition/alteration; also establishes the use of the space)"
       },
       {
         "agency": "SDCI, issued after the final inspection",
         "entry_verified": true,
         "id": "co",
-        "name": "Certificate of Occupancy",
-        "rule_verified": true
+        "name": "Certificate of Occupancy"
       },
       {
         "agency": "SDCI",
         "entry_verified": true,
         "id": "electrical",
-        "name": "Electrical permit",
-        "rule_verified": true
+        "name": "Electrical permit"
       },
       {
         "agency": "Public Health - Seattle & King County",
         "entry_verified": true,
         "id": "plumbing",
-        "name": "Plumbing, gas and backflow permits",
-        "rule_verified": true
+        "name": "Plumbing, gas and backflow permits"
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
         "entry_verified": true,
         "id": "business",
-        "name": "Washington State business license and Seattle business license",
-        "rule_verified": true
+        "name": "Washington State business license and Seattle business license"
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
         "entry_verified": true,
         "id": "sign",
-        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
-        "rule_verified": true
+        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)"
       },
       {
         "agency": "Washington State Department of Licensing",
         "entry_verified": false,
         "id": "salon_license",
-        "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)",
-        "rule_verified": true
+        "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)"
       }
     ],
+    "rule_levels": {
+      "reviewed": 0,
+      "rules": 21,
+      "transcribed": 0,
+      "unchecked": 21
+    },
     "summary": {
       "business_label": "Salon, barbershop or spa",
       "business_type": "salon",

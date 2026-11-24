@@ -9,8 +9,9 @@ No model is involved here. Every number comes from checker/rules/seattle.json, s
 finding can always be traced to one line of the rulebook.
 
 Every finding has status "pass", "fail" or "review" (not enough on the plan to decide).
-Every finding also says whether its rule's values were checked against the code text (rule_verified) and
-where the rule comes from (rule_source). Neither changes a finding's status.
+Every finding also says how far its rule has been checked (check_level: unchecked, transcribed or reviewed, the
+lowest level of its rule and every rule it depends on), who reviewed it and when (rule_reviewed_by, rule_reviewed_on,
+only when reviewed), and where the rule comes from (rule_source). None of them changes a finding's status.
 """
 from __future__ import annotations
 
@@ -41,11 +42,14 @@ class Finding:
     citation: str
     fix: str = ""
     reviewed_by: str = ""  # who checks this in Seattle's plan review (rulebook: review_routing)
-    rule_verified: bool = False  # the rule's values were read from the code text (rulebook: rules); never changes status
-    rule_source: str = ""        # the code edition and section the rule comes from (rulebook: rules)
+    check_level: str = "unchecked"  # unchecked | transcribed | reviewed (rulebook: rules); never changes status
+    rule_source: str = ""           # the code edition and section the rule comes from (rulebook: rules)
+    rule_reviewed_by: str = ""      # the expert who reviewed the rule, name and role (only when reviewed)
+    rule_reviewed_on: str = ""      # the date of that review (only when reviewed)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        return {k: v for k, v in d.items() if v or k not in ("rule_reviewed_by", "rule_reviewed_on")}
 
 
 def load_rules(name: str = DEFAULT_RULES) -> dict[str, Any]:
@@ -59,13 +63,53 @@ def business(rules: dict, key: Optional[str]) -> dict[str, Any]:
     return types[key] | {"key": key}
 
 
-def rule_checked(rules: dict, rule_id: str, _seen: frozenset = frozenset()) -> bool:
-    """True only when the rule's values were read from the code text (rulebook: rules) and so were those of every rule
-    whose result it uses (depends_on). A rule missing from the rulebook, or a loop, counts as unverified."""
+# How far a rule has been checked, lowest first (docs/verifying-rules.md). The level never changes a status.
+CHECK_LEVELS = ("unchecked", "transcribed", "reviewed")
+UNCHECKED, TRANSCRIBED, REVIEWED = CHECK_LEVELS
+
+
+def reviewer_words(entry: dict) -> str:
+    """The reviewer of a rule as one string, "name, role"; empty when either is missing."""
+    who = entry.get("reviewed_by")
+    if isinstance(who, dict):
+        name, role = str(who.get("name") or "").strip(), str(who.get("role") or "").strip()
+        return f"{name}, {role}" if name and role else ""
+    return ""
+
+
+def own_level(entry: Optional[dict]) -> str:
+    """A rule entry's own level, as far as its record supports it. A level whose record is incomplete (no
+    transcribed_by or date, no reviewer) counts as the level below it: unknown never claims more."""
+    if not entry:
+        return UNCHECKED
+    level = entry.get("check_level")
+    transcribed = bool(str(entry.get("source") or "").strip() and str(entry.get("transcribed_by") or "").strip()
+                       and str(entry.get("transcribed_on") or "").strip())
+    if level == REVIEWED and transcribed and reviewer_words(entry) and str(entry.get("reviewed_on") or "").strip():
+        return REVIEWED
+    if level in (TRANSCRIBED, REVIEWED) and transcribed:
+        return TRANSCRIBED
+    return UNCHECKED
+
+
+def rule_level(rules: dict, rule_id: str, _seen: frozenset = frozenset()) -> str:
+    """The lowest level of the rule and of every rule whose result it uses (depends_on). A rule missing from the
+    rulebook, or a loop, is unchecked."""
     entry = (rules.get("rules") or {}).get(rule_id)
-    if not entry or entry.get("verified") is not True or rule_id in _seen:
-        return False
-    return all(rule_checked(rules, d, _seen | {rule_id}) for d in entry.get("depends_on", []))
+    if not entry or rule_id in _seen:
+        return UNCHECKED
+    levels = [own_level(entry)] + [rule_level(rules, d, _seen | {rule_id}) for d in entry.get("depends_on", [])]
+    return min(levels, key=CHECK_LEVELS.index)
+
+
+def rule_check(rules: dict, rule_id: str) -> dict[str, str]:
+    """What a finding carries about its rule: the level, and the reviewer and date when the level is reviewed."""
+    level = rule_level(rules, rule_id)
+    entry = (rules.get("rules") or {}).get(rule_id) or {}
+    out = {"check_level": level}
+    if level == REVIEWED:
+        out |= {"rule_reviewed_by": reviewer_words(entry), "rule_reviewed_on": str(entry["reviewed_on"]).strip()}
+    return out
 
 
 # ---------------------------------------------------------------- occupant load
@@ -199,19 +243,32 @@ def room_uses_without_load(rules: dict, uses: list[str]) -> list[str]:
 UNKNOWN_USES = (None, "other")
 
 def rule_counts(rules: dict) -> dict[str, int]:
-    """How many rules the rulebook lists, and how many are not yet checked against the code text (rule_checked)."""
+    """How many rules the rulebook lists, and how many are at each level (rule_level, so dependencies count)."""
     entries = [k for k in (rules.get("rules") or {}) if not k.startswith("_")]
-    return {"rules": len(entries), "rules_unverified": sum(not rule_checked(rules, k) for k in entries)}
+    levels = [rule_level(rules, k) for k in entries]
+    return {"rules": len(entries)} | {level: levels.count(level) for level in CHECK_LEVELS}
 
 
-def rules_checked_sentence(counts: dict[str, int]) -> str:
-    """How many rules are checked against the code text, in words, from rule_counts()."""
-    n, u = counts["rules"], counts["rules_unverified"]
-    if u == n:
-        return f"None of the {n} rules is checked against the code text yet."
-    if u:
-        return f"{u} of the {n} rules aren't checked against the code text yet."
-    return f"All {n} rules are checked against the code text."
+def rules_checked_sentence(counts: Optional[dict]) -> str:
+    """How many rules are checked against the code text and how many reviewed by an expert, in words, from
+    rule_counts(). The website says the same (web/src/content/verification.ts; a test keeps them equal)."""
+    if not counts or not counts.get("rules"):
+        return LEVELS_UNKNOWN
+    n, r = counts["rules"], counts.get(REVIEWED, 0)
+    c = counts.get(TRANSCRIBED, 0) + r
+    if not c:
+        checked = f"None of the {n} rules is checked against the code text yet"
+    elif c == n:
+        checked = f"All {n} rules are checked against the code text"
+    else:
+        checked = f"{c} of the {n} rules {'is' if c == 1 else 'are'} checked against the code text"
+    reviewed = "none" if not r else ("all" if r == n else str(r))
+    return f"{checked}; {reviewed} reviewed by an expert."
+
+
+def result_counts_sentence(result: dict) -> str:
+    """The counts sentence for a stored result: its own counts (rule_levels), else today's rulebook."""
+    return rules_checked_sentence(result.get("rule_levels") or rule_counts(load_rules()))
 
 
 # Permits whose listing rests on a rule's values: the assembly permit on the occupant load, the sprinkler permit on FS-2.
@@ -352,7 +409,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     F: list[Finding] = []
     bt = business(rules, intake.get("business_type"))
     ol = occupant_load(extraction, rules, bt["key"])
-    ol |= {"rule_verified": rule_checked(rules, "OL-0"),       # the factors behind every "a space for N people"
+    ol |= {"check_level": rule_level(rules, "OL-0"),            # the factors behind every "a space for N people"
            "rule_source": ((rules.get("rules") or {}).get("OL-0") or {}).get("source", "")}
     n = ol["total"]
     eg, acc, pl, fire, health = rules["egress"], rules["accessibility"], rules["plumbing"], rules["fire"], rules["health"]
@@ -811,7 +868,9 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         f.reviewed_by = route.get("label", "")
 
     for f in F:
-        f.rule_verified = rule_checked(rules, f.rule_id)
+        check = rule_check(rules, f.rule_id)
+        f.check_level = check["check_level"]
+        f.rule_reviewed_by, f.rule_reviewed_on = check.get("rule_reviewed_by", ""), check.get("rule_reviewed_on", "")
         f.rule_source = ((rules.get("rules") or {}).get(f.rule_id) or {}).get("source", "")
 
     F.sort(key=lambda f: ({"fail": 0, "review": 1, "pass": 2}[f.status], SEVERITY_ORDER[f.severity]))
@@ -848,7 +907,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     entry = {p["id"]: p for p in rules["permits"]}
     for p in permits:
         rests_on = PERMIT_RESTS_ON.get(entry[p["id"]]["when"])
-        p["rule_verified"] = not rests_on or rule_checked(rules, rests_on)        # the values that put it on the list
+        if rests_on:
+            p["check_level"] = rule_level(rules, rests_on)                        # the values that put it on the list
         p["entry_verified"] = entry[p["id"]].get("verified", True) is True       # the permit entry itself
 
     return {
@@ -862,6 +922,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         "fixtures_required": fx,
         "findings": [f.to_dict() for f in F],
         "permits_likely_required": permits,
+        "rule_levels": rule_counts(rules),
         "code_basis": rules["_meta"]["code_basis"],
         "disclaimer": DISCLAIMER,
     }
@@ -871,9 +932,29 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
 # The three status names a person reads (CONTENT.md rule 11). The API's values stay "fail", "review", "pass".
 STATUS_WORD = {"fail": "Fix before you apply", "review": "Check with the city", "pass": "No issues found"}
 NOTHING_OPEN = "No issues found in the checks we ran."
-# Beside a finding whose rule values were not yet read from the code text, and once on a report that uses one.
+# Beside each finding: how far its rule has been checked (CONTENT.md, "How far a rule is checked").
 UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
-SOME_UNVERIFIED = "Some rule values are still being checked against the code."
+TRANSCRIBED_NOTE = "Checked against the code text by our team."
+REVIEWED_NOTE = "Reviewed by {reviewed_by}, {reviewed_on}."
+# The counts line when no counts are known (a result without them and no rulebook): it claims nothing.
+LEVELS_UNKNOWN = "How many of these rules are checked against the code text isn't known for this result."
+
+
+def level_words(item: dict) -> str:
+    """The level line for a finding: unchecked unless the finding says otherwise with the record to show it."""
+    level = item.get("check_level")
+    if level == REVIEWED and item.get("rule_reviewed_by") and item.get("rule_reviewed_on"):
+        return REVIEWED_NOTE.format(reviewed_by=item["rule_reviewed_by"], reviewed_on=item["rule_reviewed_on"])
+    if level in (TRANSCRIBED, REVIEWED):
+        return TRANSCRIBED_NOTE
+    return UNVERIFIED_NOTE
+
+
+def is_unchecked(item: Optional[dict]) -> bool:
+    """True unless the item says its level is transcribed or reviewed. A missing level is unchecked."""
+    return not item or item.get("check_level") not in (TRANSCRIBED, REVIEWED)
+
+
 # Under the occupant-load table when some of its square-feet-per-person factors are not yet read from the code text.
 UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
 # Beside a figure or a permit that rests on such values: the occupant load, the occupancy group, the exits required.
@@ -891,7 +972,7 @@ def to_markdown(result: dict, title: Optional[str] = None) -> str:
            f"**{STATUS_WORD['fail']}: {s['fails']}  |  {STATUS_WORD['review']}: {s['reviews']}  |  "
            f"{STATUS_WORD['pass']}: {s['passes']}**", "",
            f"_{PRECHECK_NOTE}_", "",
-           *([f"_{SOME_UNVERIFIED}_", ""] if any(not f.get("rule_verified") for f in result["findings"]) else []),
+           f"_{result_counts_sentence(result)}_", "",
            "## Fix list", ""]
     for f in result["findings"]:
         if f["status"] == "pass":
@@ -901,13 +982,12 @@ def to_markdown(result: dict, title: Optional[str] = None) -> str:
             out.append(f"  Fix: {f['fix']}  ")
         if f.get("reviewed_by"):
             out.append(f"  Who to ask: {f['reviewed_by']}  ")
-        out.append(f"  Code: {f['citation']}")
-        if not f.get("rule_verified"):
-            out.append(f"  {UNVERIFIED_NOTE}")
+        out.append(f"  Code: {f['citation']}  ")
+        out.append(f"  {level_words(f)}")
     if not (s["fails"] or s["reviews"]):
         out.append(NOTHING_OPEN)
     out += ["", f"## {STATUS_WORD['pass']}", ""]
-    out += [f"- {f['title']}: {f['detail']} ({f['citation']})" for f in result["findings"] if f["status"] == "pass"]
+    out += [f"- {f['title']}: {f['detail']} ({f['citation']}) {level_words(f)}" for f in result["findings"] if f["status"] == "pass"]
     out += ["", "## Permits and approvals you will likely need", ""]
     out += [f"- **{p['name']}**: {p['agency']}" for p in result["permits_likely_required"]]
     out += local_data_markdown(result.get("local_review_data"))
@@ -915,7 +995,7 @@ def to_markdown(result: dict, title: Optional[str] = None) -> str:
             "| Space | Use | Area (sq ft) | Sq ft per person | Load |", "|---|---|---|---|---|"]
     out += [f"| {r['space']} | {r['use']} | {r['area_sqft']:g} | {r['factor']} | {r['load']} |"
             for r in result["occupant_load"]["by_space"]]
-    if not result["occupant_load"].get("rule_verified"):
+    if is_unchecked(result["occupant_load"]):
         out += ["", f"_{UNVERIFIED_FACTORS}_"]
     out += ["", f"_Code basis: {result['code_basis']}_", "", f"_{result['disclaimer']}_", ""]
     return "\n".join(out)

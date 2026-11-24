@@ -16,9 +16,11 @@ from __future__ import annotations
 from typing import Any, Optional
 
 UNFILLED = "to be filled in by the applicant"
-# The same words as rules_engine.UNVERIFIED_NOTE and SOME_UNVERIFIED (this module imports no rules; a test keeps them equal).
+# The same words as rules_engine's level notes and counts sentence (this module imports no rules; a test keeps them equal).
 UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
-SOME_UNVERIFIED = "Some rule values are still being checked against the code."
+TRANSCRIBED_NOTE = "Checked against the code text by our team."
+REVIEWED_NOTE = "Reviewed by {reviewed_by}, {reviewed_on}."
+LEVELS_UNKNOWN = "How many of these rules are checked against the code text isn't known for this result."
 UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
 UNVERIFIED_VALUE = "Still being checked against the code."
 UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code."
@@ -124,7 +126,7 @@ def sheet(result: dict) -> dict[str, Any]:
             ("Type of occupancy", f"Group {s['occupancy_group']} (calculated by the pre-check; your designer confirms)"
              + _unchecked(_checked(result, "OCC-1")), TI_STANDARDS),
             ("Occupant load calculations", f"{s['occupant_load']} people (table below)"
-             + _unchecked(result["occupant_load"].get("rule_verified")) if spaces else None, TI_STANDARDS),
+             + _unchecked(not _is_unchecked(result["occupant_load"])) if spaces else None, TI_STANDARDS),
             ("Exits", f"{s['exits_shown']} shown on the plan; the pre-check calculates {s['exits_required']} required"
              + _unchecked(_checked(result, "EG-1")), TI_STANDARDS),
             ("Exit doors and swing", f"As read from the plan: {exit_doors}" if exit_doors else None, TI_STANDARDS),
@@ -135,15 +137,15 @@ def sheet(result: dict) -> dict[str, Any]:
         ],
         "rooms": spaces,
         # under the rooms table when some of its factors are not yet read from the code text (rule OL-0)
-        "rooms_unverified": None if result["occupant_load"].get("rule_verified") else UNVERIFIED_FACTORS,
+        "rooms_unverified": UNVERIFIED_FACTORS if _is_unchecked(result["occupant_load"]) else None,
         "uploads": UPLOADS,
         "permits": result["permits_likely_required"],
         # one line each, to keep the sheet short: the report has the detail, the fix and the code section
         "open_items": [f"{STATUS_LABEL[f['status']]}: {f['title']} ({f['severity']})"
-                       + ("" if f.get("rule_verified") else f". {UNVERIFIED_NOTE}")
+                       + f". {level_words(f)}"
                        for f in result["findings"] if f["status"] != "pass"],
-        # once, at the top, when any finding uses a rule whose values are still being checked against the code
-        "unverified": SOME_UNVERIFIED if any(not f.get("rule_verified") for f in result["findings"]) else None,
+        # once, at the top: how many rules are checked against the code text and reviewed (the result's own counts)
+        "levels": counts_sentence(result.get("rule_levels")),
         "open_pointer": OPEN_POINTER,
         "nothing_open": "No issues found in the checks we ran.",
         "disclaimer": result["disclaimer"],
@@ -151,8 +153,35 @@ def sheet(result: dict) -> dict[str, Any]:
 
 
 def _checked(result: dict, rule_id: str) -> bool:
-    """Whether the finding for this rule says its values were checked against the code (rule_verified)."""
-    return any(f["rule_id"] == rule_id and f.get("rule_verified") for f in result["findings"])
+    """Whether the finding for this rule says it is transcribed or reviewed (check_level)."""
+    return any(f["rule_id"] == rule_id and not _is_unchecked(f) for f in result["findings"])
+
+
+def _is_unchecked(item: Optional[dict]) -> bool:
+    return not item or item.get("check_level") not in ("transcribed", "reviewed")
+
+
+def level_words(item: dict) -> str:
+    """The level line for a finding, as rules_engine.level_words."""
+    if item.get("check_level") == "reviewed" and item.get("rule_reviewed_by") and item.get("rule_reviewed_on"):
+        return REVIEWED_NOTE.format(reviewed_by=item["rule_reviewed_by"], reviewed_on=item["rule_reviewed_on"])
+    return UNVERIFIED_NOTE if _is_unchecked(item) else TRANSCRIBED_NOTE
+
+
+def counts_sentence(counts: Optional[dict]) -> str:
+    """The counts sentence, as rules_engine.rules_checked_sentence."""
+    if not counts or not counts.get("rules"):
+        return LEVELS_UNKNOWN
+    n, r = counts["rules"], counts.get("reviewed", 0)
+    c = counts.get("transcribed", 0) + r
+    if not c:
+        checked = f"None of the {n} rules is checked against the code text yet"
+    elif c == n:
+        checked = f"All {n} rules are checked against the code text"
+    else:
+        checked = f"{c} of the {n} rules {'is' if c == 1 else 'are'} checked against the code text"
+    reviewed = "none" if not r else ("all" if r == n else str(r))
+    return f"{checked}; {reviewed} reviewed by an expert."
 
 
 def _unchecked(checked: Optional[bool]) -> str:
@@ -163,7 +192,7 @@ def to_markdown(result: dict) -> str:
     """The preparation sheet for one audit result, as Markdown."""
     d = sheet(result)
     out = [f"# {d['title']}", "", f"> **{d['notice']}**", ">", f"> {d['currency']}", "",
-           *([f"> {d['unverified']}", ""] if d["unverified"] else []),
+           f"> {d['levels']}", "",
            f"## {SECTIONS[0]}", ""]
     out += _table(d["portal"])
     out += ["", f"## {SECTIONS[1]}", ""]
@@ -178,7 +207,7 @@ def to_markdown(result: dict) -> str:
     out += [f"- [ ] {item} ({source})" for item, source in d["uploads"]]
 
     out += ["", f"## {SECTIONS[3]}", "", f"**{PERMITS_HEADING}**", ""]
-    out += [f"- {p['name']}{'' if p.get('rule_verified', True) else '. ' + UNVERIFIED_PERMIT}"
+    out += [f"- {p['name']}{'. ' + UNVERIFIED_PERMIT if 'check_level' in p and _is_unchecked(p) else ''}"
             f"{'' if p.get('entry_verified', True) else '. ' + UNVERIFIED_ENTRY}: {p['agency']}" for p in d["permits"]]
     out += ["", f"**{OPEN_HEADING} ({len(d['open_items'])})**", ""]
     out += [f"- {line}" for line in d["open_items"]] or [f"- {d['nothing_open']}"]
