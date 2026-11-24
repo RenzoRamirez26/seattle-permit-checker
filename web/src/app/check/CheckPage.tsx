@@ -220,7 +220,7 @@ export function AboutBusiness({ business, meta }: { business: Business | null; m
 function NothingRead() {
   return (
     <div className="flex max-w-[80ch] flex-col items-start gap-4">
-      <p className="m-0">No plan has been read in this browser tab yet.</p>
+      <p className="m-0">We haven&apos;t read a plan in this browser tab yet.</p>
       <ul className="m-0 flex list-disc flex-col gap-2 pl-5">
         <li><Link href="/plan/">Upload your floor plan</Link></li>
         <li><Link href="/check/?enter=yourself">Enter the measurements yourself</Link></li>

@@ -94,7 +94,7 @@ test("Enter the readings by hand opens step 3 empty", async ({ page }) => {
   await page.goto("/plan/?problem=plan_reading_failed");
   await page.getByRole("link", { name: "Enter the readings by hand" }).click();
   await expect(page).toHaveURL(/\/check\//);
-  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page.getByText(/^You're entering the measurements yourself\. Leave/)).toBeVisible();
 });
 
 test("header: the step nav marks the current step, links done steps, and shrinks on phones", async ({ page }) => {

@@ -109,9 +109,9 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
       {changed && !editing ? (
         <p className="m-0 mt-2 font-medium text-blue">{ANSWERS.changed}</p>
       ) : unsure ? (
-        <p className="m-0 mt-2 flex items-start gap-2" data-testid="unsure-line">
+        <p className="m-0 mt-2 flex items-start gap-2" data-testid="empty-line">
           <StatusIcon mark="city" className="mt-0.5" />
-          {ANSWERS.unsureLine}
+          {ANSWERS.emptyLine}
         </p>
       ) : null}
 

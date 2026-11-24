@@ -116,7 +116,7 @@ function PlanBody() {
       <ErrorSummary ref={summary} items={problems} />
 
       {unreadable ? <Unreadable onUpload={uploadAnother} /> : null}
-      {failed ? <OtherWays meta={meta} /> : null}
+      {failed ? <OtherWays /> : null}
 
       <div className="flex flex-col gap-4">
         <p className="m-0">The plan can be a {types} file{meta ? `, up to ${formatNumber(meta.limits.max_upload_mb)} MB` : ""}. A usable plan shows:</p>
@@ -124,7 +124,7 @@ function PlanBody() {
           {USABLE_PLAN.map((t) => <li key={t}>{t}</li>)}
         </ul>
         {meta ? <p className="m-0 text-ink-muted">{NOT_SAVED(meta.limits.check_days)}</p> : null}
-        {showNoKey ? <NoModelKey meta={meta} /> : null}
+        {showNoKey ? <NoModelKey /> : null}
       </div>
 
       <div id="plan-file">
@@ -276,37 +276,38 @@ function Unreadable({ onUpload }: { onUpload: () => void }) {
   );
 }
 
-/** The ways to finish without an uploaded plan being read: by hand, or with one of the example plans from /api/meta. */
-function WithoutReading({ meta, children }: { meta: Meta | null; children?: React.ReactNode }) {
+/**
+ * The ways to finish without an uploaded plan being read: by hand, or with an example plan. The examples themselves are
+ * listed once, as the pill rows under "Try an example plan" (Examples); this only points there.
+ */
+function WithoutReading({ children }: { children?: React.ReactNode }) {
   return (
     <ul className="m-0 flex list-disc flex-col gap-1 pl-6">
       <li><Link href="/check/?enter=yourself">Enter the measurements yourself</Link></li>
-      {meta?.demo_cases.map((c) => (
-        <li key={c.id}><Link href={`/plan/reading/?example=${encodeURIComponent(c.id)}`}>Try the example plan: {c.title}</Link></li>
-      ))}
+      <li><a href="#examples">{EXAMPLES.below}</a></li>
       {children}
     </ul>
   );
 }
 
 /** When reading failed for another reason: other ways to finish (no dead ends; the model failing must not stop the owner). */
-function OtherWays({ meta }: { meta: Meta | null }) {
+function OtherWays() {
   return (
     <section aria-labelledby="other-ways" className="flex flex-col gap-2">
       <h2 id="other-ways" className="m-0 text-section-heading">Other ways to go on</h2>
-      <WithoutReading meta={meta}>
+      <WithoutReading>
         <li>Upload a clearer copy of your plan below.</li>
       </WithoutReading>
     </section>
   );
 }
 
-/** A server with no model key cannot read uploads: say so before the owner tries, and list the examples here on step 2. */
-function NoModelKey({ meta }: { meta: Meta }) {
+/** A server with no model key cannot read uploads: say so before the owner tries, and point to the examples on step 2. */
+function NoModelKey() {
   return (
     <section aria-labelledby="no-model-key" className="flex flex-col gap-2 rounded-2xl bg-tint p-6">
       <p id="no-model-key" className="m-0">This server can&apos;t read uploaded plans yet. You can still try an example plan, or enter the measurements yourself:</p>
-      <WithoutReading meta={meta} />
+      <WithoutReading />
     </section>
   );
 }

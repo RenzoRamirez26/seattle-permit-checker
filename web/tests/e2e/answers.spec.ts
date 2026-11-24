@@ -38,7 +38,7 @@ test("Check these first lists the rows the reading left empty, first, each with 
   await expect(first).toBeVisible();
   await expect(rowsOf(first).locator("h3")).toHaveText(UNSURE);
   for (const row of await rowsOf(first).all()) {
-    await expect(row.getByText("We're not sure we read this right.")).toBeVisible();
+    await expect(row.getByText("We couldn't read this from your plan.")).toBeVisible();
     await expect(row.locator('svg[data-mark="city"]')).toHaveCount(1);
     await expect(row.getByText("Not sure").first()).toBeVisible();
   }
@@ -59,19 +59,19 @@ test("a row in Check these first is changed in one step, and then says Changed b
   await page.keyboard.press("Enter");
   const row = checkFirst(page).getByRole("listitem", { name: "Customer seating" });
   await expect(row.getByText(/^Changed by you/)).toBeVisible();
-  await expect(row.getByText("We're not sure we read this right.")).toHaveCount(0);
+  await expect(row.getByText("We couldn't read this from your plan.")).toHaveCount(0);
   await expect(row.getByRole("button", { name: "Change Customer seating" })).toBeFocused();
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("precheck.facts")!).accessible_seat_count)).toBe(6);
 });
 
-test("Also used in the check holds every other row, each with Change and no unsure line", async ({ page }) => {
+test("Also used in the check holds every other row, each with Change and no empty-reading line", async ({ page }) => {
   await seed(page, { caseId: "cafe_flawed" });
   await page.goto("/check/");
   const facts = fixture("reading_cafe_flawed").facts;
   const total = 4 + facts.spaces.length + facts.doors.length + facts.aisles.length + facts.restrooms.length;
   const also = alsoUsed(page);
   await expect(also.getByRole("button", { name: /^Change / })).toHaveCount(total - UNSURE.length);
-  await expect(also.getByText("We're not sure we read this right.")).toHaveCount(0);
+  await expect(also.getByText("We couldn't read this from your plan.")).toHaveCount(0);
   await expect(also.getByRole("button", { name: "Change Door 1" })).toBeVisible();
   for (const name of ["Overall size", "Rooms", "Doors", "Aisles and routes", "Restrooms"]) {
     await expect(also.getByRole("heading", { name, level: 3, exact: true })).toBeVisible();

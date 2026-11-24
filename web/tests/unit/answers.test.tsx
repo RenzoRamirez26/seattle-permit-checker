@@ -42,14 +42,14 @@ describe("Check these first", () => {
       "fact-kitchen", "fact-fire", "fact-seats",                  // grease interceptor, emergency lighting, accessible seats
     ]);
     for (const li of within(first).getAllByRole("listitem").filter((l) => l.id)) {
-      expect(within(li).getByText(ANSWERS.unsureLine)).toBeTruthy();
+      expect(within(li).getByText(ANSWERS.emptyLine)).toBeTruthy();
       expect(li.querySelector('svg[data-mark="city"]')).toBeTruthy();
       expect(within(li).getAllByText("Not sure").length).toBeGreaterThan(0);
     }
     expect(within(first).getByText("Restroom room dimensions are not printed.")).toBeTruthy();
     // The other rows are under "Also used in the check", each with Change, and none says it is unsure.
     const also = group(ANSWERS.alsoUsed);
-    expect(within(also).queryByText(ANSWERS.unsureLine)).toBeNull();
+    expect(within(also).queryByText(ANSWERS.emptyLine)).toBeNull();
     expect(within(also).getByRole("button", { name: "Change Door 1" })).toBeTruthy();
     expect(within(also).getByRole("button", { name: "Change The whole space" })).toBeTruthy();
   });
@@ -95,7 +95,7 @@ describe("Check these first", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     const row = await screen.findByRole("listitem", { name: "Customer seating" });
     await waitFor(() => expect(within(row).getByText(ANSWERS.changed)).toBeTruthy());
-    expect(within(row).queryByText(ANSWERS.unsureLine)).toBeNull();
+    expect(within(row).queryByText(ANSWERS.emptyLine)).toBeNull();
     expect(group(ANSWERS.checkFirst).contains(row)).toBe(true);
   });
 

@@ -1,7 +1,7 @@
 "use client";
 /**
- * Start (step 1): who the pre-check is for and what happens, an invented example plan as a drawing, the step 1 form
- * (BusinessForm) on a white card in the blue band, and "How it works" in four steps. The serif headline is Start's
+ * Start (step 1): who the pre-check is for, the four steps as one short line under the intro, an invented example plan
+ * as a drawing, the step 1 form (BusinessForm) on a white card in the blue band, and "How it works" in four steps. The serif headline is Start's
  * alone (D2). In: /api/meta (through BusinessForm), /demo/plans.json for the drawing's file and size, "?deleted=1"
  * after a check was deleted.  Out: the step 1 answers, saved by BusinessForm, then /plan/.
  */
@@ -38,6 +38,14 @@ export function StartPage() {
               For anyone opening a small business in Seattle: upload the floor plan, confirm what we read, and see what to fix
               and which permits to expect. A pre-check, not a city approval.
             </p>
+            <ol aria-label="How it works, in short" className="m-0 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 font-medium">
+              {HOW.map((s, i) => (
+                <li key={s.title} className="flex gap-2">
+                  {i > 0 ? <span aria-hidden className="text-blue">·</span> : null}
+                  {s.title}
+                </li>
+              ))}
+            </ol>
           </div>
           <div className="col-span-full min-w-0 sm:col-span-6 sm:col-start-2 lg:col-span-5 lg:col-start-8">
             <ExamplePlan />

@@ -17,10 +17,19 @@ async function chooseFile(page: Page, files: Parameters<import("@playwright/test
   await (await chooser).setFiles(files);
 }
 
-test("Start: the headline, the example drawing, the step 1 form on the blue band, and How it works", async ({ page }) => {
+test("Start: the headline, the steps in one line, the example drawing, the step 1 form on the blue band, and How it works", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Check your space before you sign the lease.");
   await expect(page.getByText(/A pre-check, not a city approval\./)).toBeVisible();
+  // The four steps as one short line, directly under the intro sentence and above the form (checklist L2).
+  const strip = page.getByRole("list", { name: "How it works, in short" });
+  await expect(strip.getByRole("listitem")).toHaveText([
+    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Seattle's rules decide$/,
+  ]);
+  await expect(page.locator("p:has-text('A pre-check, not a city approval.') + ol")).toHaveAccessibleName("How it works, in short");
+  const stripBox = (await strip.boundingBox())!;
+  expect(stripBox.y).toBeLessThan((await page.getByRole("region", { name: "What kind of business is it?" }).boundingBox())!.y);
+  if (page.viewportSize()!.width >= 1024) expect(stripBox.height).toBeLessThan(36);   // one line on a laptop
   const img = page.getByRole("img", { name: "An example floor plan of a café, invented for this demo" });
   await expect(img).toBeVisible();
   await expect(img).toHaveAttribute("width", /^\d+$/);
@@ -46,7 +55,7 @@ test("Start: the headline, the example drawing, the step 1 form on the blue band
 
 test("an example plan goes from step 2's example rows to step 3 and gives the same result as the command line", async ({ page }) => {
   await page.goto("/plan/");
-  await page.getByRole("region", { name: "Try an example plan" }).getByRole("link", { name: "Café with planted problems", exact: true }).click();
+  await page.getByRole("region", { name: "Try an example plan", exact: true }).getByRole("link", { name: "Café with planted problems", exact: true }).click();
   await expect(page).toHaveURL(/\/check\/$/);
   await expect(page.getByText("The saved reading for this example plan. No model was used.")).toBeVisible();
   await page.getByRole("button", { name: "Run the check" }).click();
@@ -151,41 +160,47 @@ test("step 2: empty, chosen, refused before sending, and read states", async ({ 
   await shoot(page, "stage-2", "plan-read");
 });
 
-test("with no key, the upload path shows the no_model_key message and offers the examples and manual entry", async ({ page }) => {
+test("with no key, the upload path shows the no_model_key message and offers manual entry and the example rows", async ({ page }) => {
   await page.goto("/plan/");
   await chooseFile(page, PLAN);
   await page.getByRole("button", { name: "Read my plan", exact: true }).click();
   await expect(page).toHaveURL(/\/plan\/\?problem=no_model_key$/);           // the real API answered 503
   await expect(page.locator("[data-state]")).toHaveAttribute("data-state", "failed");
   await expect(page.getByRole("alert").filter({ hasText: "There is a problem" })).toContainText("This server can't read uploaded plans yet. Try an example plan, or enter the measurements yourself.");
-  await expect(page.getByRole("link", { name: "Enter the measurements yourself" }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Try the example plan: Café with planted problems" })).toBeVisible();
+  const other = page.getByRole("region", { name: "Other ways to go on" });
+  await expect(other.getByRole("link")).toHaveText(["Enter the measurements yourself", "Try an example plan below"]);
+  await expect(page.getByRole("region", { name: "Try an example plan", exact: true }).getByRole("link", { name: "Café with planted problems" })).toBeVisible();
   await axeBoth(page, "step 2 failed");
   await page.evaluate(() => window.scrollTo(0, 0));
   await shoot(page, "stage-2", "plan-failed");
   await page.getByRole("link", { name: "Enter the measurements yourself" }).first().click();
-  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page.getByText(/^You're entering the measurements yourself\. Leave/)).toBeVisible();
 });
 
-test("with no key, step 2 lists the example plans itself instead of sending the owner back to Start", async ({ page }) => {
+test("with no key, step 2 lists the example plans once, as the pill rows, and the notice points to them", async ({ page }) => {
   const meta = fixture("meta");
   expect(meta.features.model_api_key).toBe(false);                     // the e2e API runs with no key
   await page.goto("/plan/");
   const notice = page.getByRole("region", { name: /^This server can't read uploaded plans yet\./ });
   await expect(notice).toBeVisible();
-  await expect(notice.getByRole("link")).toHaveText([
-    "Enter the measurements yourself",
-    ...meta.demo_cases.map((c: { title: string }) => `Try the example plan: ${c.title}`),
-  ]);
+  await expect(notice.getByRole("link")).toHaveText(["Enter the measurements yourself", "Try an example plan below"]);
+  await expect(notice.getByRole("link", { name: "Try an example plan below" })).toHaveAttribute("href", "#examples");
+  const rows = page.getByRole("region", { name: "Try an example plan", exact: true }).getByRole("link");
+  await expect(rows).toHaveText(meta.demo_cases.map((c: { title: string }) => c.title));
   for (const c of meta.demo_cases as { id: string; title: string }[]) {
-    await expect(notice.getByRole("link", { name: `Try the example plan: ${c.title}` })).toHaveAttribute("href", `/plan/reading/?example=${c.id}`);
+    await expect(page.getByRole("link", { name: c.title, exact: true })).toHaveCount(1);       // once on the page
+    await expect(page.getByRole("link", { name: c.title, exact: true })).toHaveAttribute("href", `/plan/reading/?example=${c.id}`);
   }
+  await expect(page.getByRole("link", { name: /^Try the example plan:/ })).toHaveCount(0);
   await expect(page.locator('main a[href="/"]').filter({ hasNotText: "Back" })).toHaveCount(0);   // no link back to Start for the examples (Back goes to step 1)
   await axeBoth(page, "step 2 no key");
   await expectNoSidewaysScroll(page);
   await expectTouchTargets(page);
 
-  await notice.getByRole("link", { name: "Try the example plan: Café with planted problems" }).click();
+  await notice.getByRole("link", { name: "Try an example plan below" }).click();
+  await expect(page).toHaveURL(/\/plan\/#examples$/);
+  await expect(page.getByRole("heading", { name: "Try an example plan" })).toBeInViewport();
+  await rows.filter({ hasText: "Café with planted problems" }).click();
   await expect(page).toHaveURL(/\/check\/$/);
   await expect(page.getByText("The saved reading for this example plan. No model was used.")).toBeVisible();
 });
@@ -222,7 +237,7 @@ test("an uploaded plan read by the model (intercepted 200) opens step 3 with the
   await expect(page).toHaveURL(/\/check\/$/, { timeout: 15_000 });
   expect(form).toContain('name="file"; filename="flawed_plan.png"');
   expect(form).toContain('name="business_type"');
-  await expect(page.getByText("Read by the vision model. Check every value against your plan.")).toBeVisible();
+  await expect(page.getByText("The model read your plan. Check each value against the drawing.")).toBeVisible();
   await expect(page.getByRole("img", { name: "Your floor plan: flawed_plan.png" })).toBeVisible();
 });
 
@@ -250,7 +265,7 @@ test("Start over in the header clears the answers and empties Start's form", asy
   await page.getByRole("banner").getByRole("link", { name: "Start over", exact: true }).click();
   await expect(page.getByRole("radio", { name: "Café or restaurant" })).not.toBeChecked();
   await page.goto("/check/");
-  await expect(page.getByText("No plan has been read in this browser tab yet.")).toBeVisible();
+  await expect(page.getByText("We haven't read a plan in this browser tab yet.")).toBeVisible();
 });
 
 test("F2: an example plan that replaces the owner's step 1 answers says so, and Keep my answers puts them back", async ({ page }) => {

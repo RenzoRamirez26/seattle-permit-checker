@@ -16,6 +16,8 @@ export const READY_TO_READ = "Ready to read. It is sent only when you press Read
 export const EXAMPLES = {
   heading: "Try an example plan",
   text: "Invented plans, to see how the pre-check works without your own.",
+  /** The link from the no-key notice and "Other ways to go on" down to the example rows. */
+  below: "Try an example plan below",
 };
 
 /** When the model could not read an uploaded plan (?problem=plan_reading_failed). */

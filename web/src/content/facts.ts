@@ -156,8 +156,8 @@ export const NOT_A_ROW: (keyof Facts)[] = ["uncertainties"];
 
 export const SOURCE_WORDS: Record<string, string> = {
   saved_reading: "The saved reading for this example plan. No model was used.",
-  vision_model: "Read by the vision model. Check every value against your plan.",
-  manual: "You are entering the measurements yourself. Leave anything you are not sure of empty.",
+  vision_model: "The model read your plan. Check each value against the drawing.",
+  manual: "You're entering the measurements yourself. Leave anything you're not sure of empty.",
 };
 
 export const NOT_SURE = "Not sure";
@@ -166,7 +166,11 @@ export const NOT_SURE = "Not sure";
 export const ANSWERS = {
   intro: "Change anything that's wrong. Anything left as Not sure is listed under Check with the city.",
   checkFirst: "Check these first",
-  unsureLine: "We're not sure we read this right.",
+  /**
+   * Under a row the reading left empty. The API marks no single reading as uncertain (its `uncertainties` is a free-text
+   * list, shown as "Noted while reading your plan"), so there is no "not sure we read this right" line.
+   */
+  emptyLine: "We couldn't read this from your plan.",
   notes: "Noted while reading your plan",
   alsoUsed: "Also used in the check",
   /** Manual entry: nothing was read, so there is nothing to check first. */

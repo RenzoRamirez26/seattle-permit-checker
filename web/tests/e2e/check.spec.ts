@@ -148,7 +148,7 @@ test("an error shows next to the field and in the summary, which links to it", a
 test("manual entry starts with every fact empty and can still run the check", async ({ page }) => {
   await page.addInitScript((b) => { if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); sessionStorage.setItem("precheck.business", JSON.stringify(b)); } }, SALON_BUSINESS);
   await page.goto("/check/?enter=yourself");
-  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page.getByText(/^You're entering the measurements yourself\. Leave/)).toBeVisible();
   await expect(page.getByText("None added yet.")).toHaveCount(4);
   await expect(page.getByText(/You're entering the measurements yourself, so there's no plan here/)).toBeVisible();
   await axeBoth(page, "manual entry");
@@ -161,7 +161,7 @@ test("D2: after an example was read, \"Enter the measurements yourself\" still o
   await seed(page, { caseId: "cafe_flawed" });
   await page.goto("/plan/?problem=no_model_key");                     // an upload failed after the example café was read
   await page.getByRole("link", { name: "Enter the measurements yourself" }).first().click();
-  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page.getByText(/^You're entering the measurements yourself\. Leave/)).toBeVisible();
   await expect(page).toHaveURL(/\/check\/$/);
   await expect(page.getByText("The saved reading for this example plan. No model was used.")).toHaveCount(0);
   await expect(page.getByRole("img", { name: /^Example floor plan:/ })).toHaveCount(0);
@@ -175,7 +175,7 @@ test("D2: after an example was read, \"Enter the measurements yourself\" still o
   await form.getByRole("textbox", { name: "Name" }).fill("Front door");
   await form.getByRole("button", { name: "Save changes" }).click();
   await page.reload();
-  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page.getByText(/^You're entering the measurements yourself\. Leave/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Front door" })).toBeVisible();
 });
 
@@ -184,7 +184,7 @@ test("after a refresh an uploaded plan is gone but the facts stay, and the file 
   await seed(page, { reading });
   await page.goto("/check/");
   await expect(page.getByText("The plan isn't kept after a refresh. Choose the file again to see it here. It was my-plan.png.")).toBeVisible();
-  await expect(page.getByText("Read by the vision model. Check every value against your plan.")).toBeVisible();
+  await expect(page.getByText("The model read your plan. Check each value against the drawing.")).toBeVisible();
   await axeBoth(page, "refresh without plan");
   await shoot(page, "stage-1", "refresh-without-plan", { fullPage: false });
   const chooser = page.waitForEvent("filechooser");
