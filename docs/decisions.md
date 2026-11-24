@@ -6,6 +6,38 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Hybrid voice input: on the device first, our server second, never a third party
+
+- **Decision:** a spoken question comes in one of three ways (DESIGN.md, Voice):
+  - **A, on this device:** the browser's SpeechRecognition, only with `processLocally = true`. It is used only when
+    the browser exposes `processLocally`. `available()` is checked where it exists, and `install()` runs from the mic
+    press when the language pack is `downloadable`. Words appear live (`interimResults`).
+  - **B, recorded:** MediaRecorder in the first of `audio/webm;codecs=opus`, `audio/mp4`, `audio/ogg` the browser
+    supports. It is sent to `/api/transcribe` with its real content type. The API converts it with ffmpeg (API layer
+    only) before faster-whisper.
+  - **C, none:** typing.
+- **Why:**
+  - Live words where the device can do it, with no audio leaving it.
+  - Safari, which had no working path (docs/voice.md), now records MP4 that our server can read.
+  - The browser no longer decodes and resamples to WAV, so `wav.ts` is gone.
+- **Rejected:**
+  - Web Speech without `processLocally`: Chrome and Safari send that audio to Google or Apple.
+  - Keeping WAV conversion in the browser: it was slower, and Safari's decoding was a suspect in the Safari bug.
+  - Piping ffmpeg through stdin: an MP4 can keep its index at the end, which a pipe cannot seek to.
+- **Privacy, as built:**
+  - A WebM, MP4 or Ogg recording is written to a private temporary folder only while ffmpeg converts it. The folder
+    is deleted before transcription, and a test checks this after a good and a failed conversion.
+  - A WAV is never written. Nothing is stored or logged.
+- **Accessibility:**
+  - One toggle button with `aria-pressed`, labelled "Start voice input" and "Stop voice input".
+  - "Listening…" while listening, and the words heard in an `aria-live="polite"` line.
+  - Focus stays on the button while words arrive. An old effect moved focus to the box on every text change; it now
+    runs only when a question is put in the box.
+- **Guard:** `SpeechRecognition` may appear only in `src/voice/ondevice.ts`, which must set
+  `processLocally = true`. `processLocally = false` fails anywhere.
+- **Who:** owner (the three paths, the words, no third party); team (how). Choices made without asking are in the PR
+  under "Decisions I made".
+
 ## 2026-11-24 · Three check levels for rules: unchecked, transcribed, reviewed
 
 - **Decision:** `"verified": true/false` on each rule is replaced by `check_level`: `unchecked`, `transcribed`

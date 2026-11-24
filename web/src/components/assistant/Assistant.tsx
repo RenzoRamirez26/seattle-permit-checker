@@ -10,7 +10,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExter
 import { usePathname, useSearchParams } from "next/navigation";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { Mic, MessageCircleQuestion, Square, Volume2, X } from "lucide-react";
-import { canRecord, startRecording, type Recording } from "@/voice/recorder";
+import { canRecord, fileName, startRecording, type Recording } from "@/voice/recorder";
+import { installOnDevice, listen, onDeviceStatus, type Listening } from "@/voice/ondevice";
 import { canSpeak, speak, stopSpeaking, voiceSetting } from "@/voice/speech";
 import { api, ApiProblem, call, loadCheck, type Check } from "@/api/client";
 import { errorWords } from "@/api/errors";
@@ -185,24 +186,46 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [seenDraft, setSeenDraft] = useState(s.draftVersion);
   const [voiceOn, setVoiceOn] = useState(() => voiceSetting.get());
-  const [mic, setMic] = useState<{ state: "idle" } | { state: "recording"; seconds: number } | { state: "converting" } | { state: "problem"; code: string }>({ state: "idle" });
+  const [mic, setMic] = useState<MicState>({ state: "idle" });
   const [spokenNext, setSpokenNext] = useState(false);       // the text in the box came from the microphone
+  const [heard, setHeard] = useState("");                     // the words heard, for the live region
   const [reading, setReading] = useState<number | null>(null);
   const recording = useRef<Recording | null>(null);
+  const listening = useRef<Listening | null>(null);
+  const before = useRef("");                                  // what was in the box when listening started
+  const words = useRef("");                                   // the box's text while listening on the device
   const maxSeconds = meta?.limits.max_audio_seconds ?? 30;
-  const showMic = !!meta?.features.speech_to_text && voiceOn && canRecord();
-  // The server can write down speech, but this browser cannot record: say so, and keep typing as the way in.
-  const micUnavailable = !!meta?.features.speech_to_text && voiceOn && !canRecord();
+  // Which way a spoken question comes in (DESIGN.md, Voice): A on this device, B recorded and sent to our API, C none.
+  const [onDevice, setOnDevice] = useState<"checking" | "available" | "downloadable" | "unavailable">("checking");
+  useEffect(() => {
+    let live = true;
+    onDeviceStatus().then((s) => live && setOnDevice(s), () => live && setOnDevice("unavailable"));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const serverVoice = !!meta?.features.speech_to_text;
+  const path: VoicePath = !voiceOn || onDevice === "checking" ? "none"
+    : onDevice !== "unavailable" ? "ondevice"
+    : serverVoice && canRecord() ? "record" : "none";
+  const showMic = path !== "none";
+  const voiceKnown = onDevice !== "checking";
+  // The server can write down speech, but this browser can neither listen on the device nor record: say so.
+  const micUnavailable = voiceOn && voiceKnown && path === "none" && serverVoice;
+  const busy = mic.state === "listening" || mic.state === "preparing";
 
   // A question put in the box by "Ask about this" (or cleared): show it, and put the cursor there.
   if (seenDraft !== s.draftVersion) {
     setSeenDraft(s.draftVersion);
     setText(s.draft);
   }
+  // Only when a question is put in the box (draftVersion), not on every change to its text: live voice words change
+  // the text while focus must stay on Stop voice input.
   useEffect(() => {
     if (s.draft) box.current?.focus();
     else titleRef.current?.focus();
-  }, [s.draftVersion, s.draft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.draftVersion]);
 
   useEffect(() => {
     let live = true;
@@ -251,53 +274,105 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
     speak(answer, () => setReading((r) => (r === index ? null : r)));
   }
 
-  // Recording stops by itself at the API's limit.
+  // Listening stops by itself at the API's limit.
   useEffect(() => {
-    if (mic.state !== "recording") return;
+    if (mic.state !== "listening") return;
     if (mic.seconds >= maxSeconds) {
       void stopMic();
       return;
     }
-    const t = setTimeout(() => setMic((m) => (m.state === "recording" ? { state: "recording", seconds: m.seconds + 1 } : m)), 1000);
+    const t = setTimeout(() => setMic((m) => (m.state === "listening" ? { ...m, seconds: m.seconds + 1 } : m)), 1000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mic]);
 
-  useEffect(() => () => recording.current?.cancel(), []);
+  useEffect(() => () => {
+    recording.current?.cancel();
+    listening.current?.cancel();
+  }, []);
 
   // The panel and the sheet are different elements: keep the question as it is typed, so the one that replaces
   // the other (rotating a tablet) starts with it. Saved on every change, not on unmount: the new one renders first.
   useEffect(() => assistant.keepDraft(text), [text]);
 
+  /** The words heard go in the box (nothing is sent until Send) and, once, in the live region. */
+  function done(words: string) {
+    setText(words);
+    setHeard(words);
+    setSpokenNext(!!words.trim());
+    setMic({ state: "idle" });
+    requestAnimationFrame(() => box.current?.focus());
+  }
+
   async function startMic() {
     stopSpeaking();
+    setHeard("");
+    setSpokenNext(false);
+    if (path === "ondevice") {
+      if (onDevice === "downloadable") {
+        setMic({ state: "preparing" });         // install() needs this press; it happens once on this device
+        if (!(await installOnDevice())) {
+          setOnDevice("unavailable");           // Path B from now on, if this browser can record
+          setMic({ state: "problem", code: "ondevice_failed" });
+          return;
+        }
+        setOnDevice("available");
+      }
+      before.current = text.trim();
+      words.current = before.current;
+      const join = (...parts: string[]) => parts.filter(Boolean).join(" ");
+      try {
+        listening.current = listen({
+          onWords: (final, interim) => {
+            words.current = join(before.current, final, interim);     // final words replace the interim ones
+            setText(words.current);
+          },
+          onEnd: () => {
+            listening.current = null;
+            done(words.current);
+          },
+          onError: (code) => {
+            listening.current = null;
+            if (code === "ondevice_failed") setOnDevice("unavailable");
+            setText(before.current);
+            setMic({ state: "problem", code });
+          },
+        });
+        setMic({ state: "listening", seconds: 0, way: "ondevice" });
+      } catch {
+        setOnDevice("unavailable");
+        setMic({ state: "problem", code: "ondevice_failed" });
+      }
+      return;
+    }
     try {
       recording.current = await startRecording();
-      setMic({ state: "recording", seconds: 0 });
+      setMic({ state: "listening", seconds: 0, way: "record" });
     } catch {
       setMic({ state: "problem", code: "microphone_blocked" });
     }
   }
 
   async function stopMic() {
+    if (listening.current) {
+      listening.current.stop();                 // onEnd puts the final words in the box
+      return;
+    }
     const r = recording.current;
     recording.current = null;
     if (!r) return;
     setMic({ state: "converting" });
     try {
-      const wav = await r.stop();
-      const heard = await call(() => api.POST("/api/transcribe", {
+      const clip = await r.stop();
+      const words = await call(() => api.POST("/api/transcribe", {
         body: {} as never,
         bodySerializer: () => {
           const fd = new FormData();
-          fd.append("audio", wav, "question.wav");
+          fd.append("audio", clip, fileName(r.type));   // sent with its real type: audio/webm, audio/mp4 or audio/ogg
           return fd;
         },
       }));
-      setText(heard.text);                     // the words heard go in the box; nothing is sent until Send
-      setSpokenNext(true);
-      setMic({ state: "idle" });
-      requestAnimationFrame(() => box.current?.focus());
+      done(words.text);
     } catch (e) {
       setMic({ state: "problem", code: e instanceof ApiProblem ? e.code : "network" });
     }
@@ -367,31 +442,37 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
           aria-describedby="assistant-hint"
           className="block w-full resize-y rounded-2xl border border-field bg-white px-4 py-3 text-body"
         />
-        {mic.state === "recording" ? (
-          <p className="m-0 font-medium nums" role="status">Recording {mic.seconds} s of {maxSeconds}. Press Stop when you have finished.</p>
+        {mic.state === "listening" ? (
+          <p className="m-0 font-medium nums" role="status">{LISTENING} {mic.seconds} s of {maxSeconds}. Press Stop voice input when you have finished.</p>
+        ) : mic.state === "preparing" ? (
+          <p className="m-0 text-ink-muted" role="status">{PREPARING}</p>
         ) : mic.state === "converting" ? (
-          <p className="m-0 text-ink-muted" role="status">Writing down what you said…</p>
+          <p className="m-0 text-ink-muted" role="status">{CONVERTING}</p>
         ) : mic.state === "problem" ? (
           <p className="m-0 font-medium text-fix" role="alert">{errorWords(mic.code)}</p>
-        ) : spokenNext ? (
-          <p className="m-0 text-ink-muted" role="status">These are the words heard. Correct them if needed, then press Send.</p>
         ) : micUnavailable ? (
           <p id="mic-unavailable" className="m-0 text-ink-muted">Voice isn&rsquo;t available in this browser. Type your question instead.</p>
         ) : null}
+        {/* The words heard, said once by a screen reader when voice input ends. Always in the page, so it is announced. */}
+        <p className="m-0 text-ink-muted break-words empty:hidden" aria-live="polite" data-testid="heard">
+          {spokenNext && heard ? `We heard: “${heard}”. Correct it if needed, then press Send.` : ""}
+        </p>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span id="assistant-hint" className="text-ink-muted">Ctrl or ⌘ and Enter also sends.</span>
           <div className="flex items-center gap-2">
             {showMic ? (
-              // One button that changes from Speak to Stop, so keyboard focus stays on it while recording.
-              <Button variant="secondary" className={mic.state === "recording" ? "border-2 border-ink" : undefined} isDisabled={mic.state === "converting" || s.pending}
-                onPress={() => void (mic.state === "recording" ? stopMic() : startMic())}>
-                {mic.state === "recording" ? <><Square aria-hidden size={16} /> Stop</> : <><Mic aria-hidden size={18} /> Speak</>}
+              // One toggle button, so keyboard focus stays on it while listening (DESIGN.md, Voice).
+              <Button variant="secondary" className={busy ? "border-2 border-ink" : undefined}
+                aria-pressed={mic.state === "listening"}
+                isDisabled={mic.state === "converting" || mic.state === "preparing" || s.pending}
+                onPress={() => void (mic.state === "listening" ? stopMic() : startMic())}>
+                {mic.state === "listening" ? <><Square aria-hidden size={16} /> {STOP_LABEL}</> : <><Mic aria-hidden size={18} /> {START_LABEL}</>}
               </Button>
             ) : micUnavailable ? (
-              <Button variant="secondary" isDisabled aria-describedby="mic-unavailable"><Mic aria-hidden size={18} /> Speak</Button>
+              <Button variant="secondary" isDisabled aria-describedby="mic-unavailable"><Mic aria-hidden size={18} /> {START_LABEL}</Button>
             ) : null}
             {s.messages.length ? <Button variant="quiet" onPress={() => assistant.clear()}>Clear the conversation</Button> : null}
-            <Button type="submit" variant="secondary" className="border-blue text-blue" isDisabled={s.pending || mic.state === "recording"}>Send</Button>
+            <Button type="submit" variant="secondary" className="border-blue text-blue" isDisabled={s.pending || busy}>Send</Button>
           </div>
         </div>
         <label className="flex min-h-11 cursor-pointer items-center gap-3 self-start">
@@ -404,13 +485,15 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
                 setReading(null);
                 recording.current?.cancel();
                 recording.current = null;
+                listening.current?.cancel();
+                listening.current = null;
                 setMic({ state: "idle" });
               }
             }} />
           <span>
             <span className="font-medium">Voice</span>
             <span className="block text-ink-muted">
-              {meta?.features.speech_to_text ? "Speak questions and hear answers read aloud." : "Hear answers read aloud. Speaking questions is not available on this server."}
+              {serverVoice || onDevice === "available" || onDevice === "downloadable" ? "Speak questions and hear answers read aloud." : "Hear answers read aloud. Speaking questions is not available on this server."}
             </span>
           </span>
         </label>
@@ -488,3 +571,13 @@ function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestio
 
 const onResults = () => typeof window !== "undefined" && window.location.pathname.startsWith("/results");
 
+
+/** The voice states (DESIGN.md, Voice; words per CONTENT.md). */
+type VoicePath = "ondevice" | "record" | "none";
+type MicState = { state: "idle" } | { state: "preparing" } | { state: "listening"; seconds: number; way: "ondevice" | "record" }
+  | { state: "converting" } | { state: "problem"; code: string };
+export const START_LABEL = "Start voice input";
+export const STOP_LABEL = "Stop voice input";
+export const LISTENING = "Listening…";
+export const PREPARING = "Getting voice ready on this device. This happens once.";
+export const CONVERTING = "Turning your speech into text…";

@@ -49,6 +49,16 @@ next to what it affects (rules 4 and 11), in muted body text with no icon or col
 A finding takes the lowest level of the rules it uses (the occupant load, the occupancy group). Unknown never claims
 more: a missing level is unchecked, and counts not yet loaded say nothing.
 
+## Voice
+
+- Name the control by what it does: "Start voice input", "Stop voice input".
+- Say what is happening, in the present: "Listening…", "Turning your speech into text…", "Getting voice ready on this
+  device. This happens once."
+- A problem says what to do next and always offers typing: "The microphone is blocked. Allow it in your browser
+  settings, or type your question." "Voice isn't available in this browser. Type your question instead."
+- Say where speech goes only as far as it is true (Help, "Voice"): on this device, or our server only, deleted after
+  it is turned into text.
+
 ## Before and after
 
 | Before | After | Rule |

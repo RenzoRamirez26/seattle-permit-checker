@@ -1,9 +1,0 @@
-{
-  "body": {
-    "error": {
-      "code": "audio_not_wav",
-      "message": "The recording must be a WAV file. Record the question again, or type it."
-    }
-  },
-  "status": 415
-}

@@ -114,6 +114,32 @@ Ask button, that opens the list in a popover. Position from IntersectionObserver
 Plain rows with 1 px hairlines: the icon, an action title, the observation, the code section from the API and
 "Ask about this →". Lists longer than five show five, then "Show all N".
 
+### Voice
+
+The assistant takes a spoken question one of three ways; the browser decides which (`web/src/voice/`). No audio ever
+goes to Google, Apple or any third party.
+
+| Path | When | What the owner sees |
+|---|---|---|
+| A, on this device | The browser's SpeechRecognition has `processLocally` and `available()` says `available` or `downloadable` | Words appear live in the question box; final words replace the interim ones |
+| B, recorded | No on-device option, and the server has speech to text (faster-whisper and ffmpeg) and the browser can record WebM, MP4 or Ogg | The recording goes to our API only; then the words appear in the box |
+| C, none | Neither | "Voice isn't available in this browser. Type your question instead." and a disabled button |
+
+States of the one toggle button (`aria-pressed`, keyboard focus stays on it):
+
+| State | Button | Line under the box (`role="status"`, or `alert` for a problem) |
+|---|---|---|
+| Idle | "Start voice input", mic icon, secondary | none |
+| Getting ready (A, first time) | disabled | "Getting voice ready on this device. This happens once." |
+| Listening | "Stop voice input", square icon, 2 px ink border, `aria-pressed="true"` | "Listening… 3 s of 30. Press Stop voice input when you have finished." |
+| Turning into text (B) | disabled | "Turning your speech into text…" |
+| Heard | "Start voice input" | In an `aria-live="polite"` line: "We heard: "…". Correct it if needed, then press Send." Focus moves to the box |
+| Microphone blocked | "Start voice input" | "The microphone is blocked. Allow it in your browser settings, or type your question." |
+| On-device voice stopped | "Start voice input" (Path B next time) | "Voice on this device stopped. Press Start voice input to record instead, or type your question." |
+
+No new colour, icon or size: the states use `ink`, `ink-muted`, the `fix` red only for a problem line, and body text.
+Nothing is sent until Send. Help's "Voice" section says where speech is processed.
+
 ## Grid
 
 | Screen width | Columns | Gutter | Side margin |

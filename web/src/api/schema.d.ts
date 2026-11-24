@@ -135,8 +135,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * The words in one recorded question (WAV), for the owner to check before sending it
-         * @description Held in memory only: never written to disk, logged or stored. Calls checker.voice.transcribe() unchanged.
+         * The words in one recorded question (WebM, MP4, Ogg or WAV), for the owner to check before sending it
+         * @description Never stored or logged. A WebM, MP4 or Ogg recording is written to a private temporary folder only while ffmpeg
+         *     converts it to WAV, and that folder is deleted before transcription starts (api/audio.py). The WAV is held in
+         *     memory and passed to checker.voice.transcribe() unchanged.
          */
         post: operations["transcribe_api_transcribe_post"];
         delete?: never;
@@ -370,7 +372,10 @@ export interface components {
              * @description Seattle's review records have been downloaded on the server.
              */
             seattle_database: boolean;
-            /** Speech To Text */
+            /**
+             * Speech To Text
+             * @description The server can turn a recorded question into text: faster-whisper, and ffmpeg to read WebM, MP4 and Ogg.
+             */
             speech_to_text: boolean;
         };
         /** Finding */
@@ -1568,7 +1573,7 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description One recorded question as 16 kHz mono WAV.
+                     * @description One recorded question as the browser recorded it: audio/webm (Opus), audio/mp4 or audio/ogg, or audio/wav. The part's Content-Type must name the format.
                      */
                     audio: string;
                 };

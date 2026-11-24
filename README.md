@@ -54,7 +54,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested. First results in [reports/extraction_eval.md](reports/extraction_eval.md): of 14 real problems on the two flawed plans, 12 were caught as problems, 2 were flagged to confirm, none missed, no false alarms. One run, three demo plans | Repeat the run to see how much it varies; add more plans |
 | Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
-| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
+| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). The web front end now listens on the device where the browser can (Chrome), and otherwise records WebM, MP4 or Ogg for our API ([docs/voice.md](docs/voice.md#the-web-front-end-three-paths)); **neither path has been tried by a person yet, in Chrome or Safari** |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
 | Web front end (version 1) | `web/` | **Built and tested on the branch `website-v1`** against the real API with no key and the demo plans: every page, axe, keyboard and 320 px checks, screenshots ([docs/website_progress.md](docs/website_progress.md)). A static Next.js site; no rules, no key, no model calls (a build guard enforces it) | An uploaded plan read with a key; the Protomaps tiles; a spoken question in Chrome and Safari with faster-whisper installed; testing with business owners |
 | Web API | `api/` | **Tested with the model and the network mocked.** Nine routes under `/api` for the web front end: read a plan, screen zoning, run and store a check, fetch it, both PDFs, ask a question, transcribe a spoken question, delete. It adds no rules; it calls `checker/`. Intake answers accept `null` ("Not sure"), which the rules engine treats as unknown. Docs page at `/docs` | **Read an uploaded plan with a key; try one real address through `/api/zoning`; transcribe a real recording with faster-whisper installed (`/api/transcribe`).** No login yet: add authentication and a rate limit before it is reachable from the internet. Known follow-up: reviewer examples in `/ask` (the Streamlit app gives the agent real reviewer comments; the API does not yet) |
@@ -120,6 +120,14 @@ PERMIT_TTS=kokoro python -m streamlit run app/streamlit_app.py
 ```
 
 Without the install, questions are typed and the browser reads the answers aloud. Without `PERMIT_TTS=kokoro`, the microphone works and the browser's voice reads the answers.
+
+**ffmpeg** (for the web API's `/api/transcribe`): browsers record WebM, MP4 or Ogg, and the API converts each to WAV
+with ffmpeg before faster-whisper reads it. Install it with `brew install ffmpeg` (macOS), `sudo apt-get install
+ffmpeg` (Debian, Ubuntu) or `winget install ffmpeg` (Windows), so that `ffmpeg` is on the PATH. Without it,
+`/api/meta` reports `speech_to_text: false` and the website records nothing; browsers that can turn speech into text
+on the device (recent Chrome) still take spoken questions, because their audio never reaches the server. The
+recording is kept in a private temporary folder only while ffmpeg converts it, then deleted. The API tests generate
+their WebM, MP4 and Ogg clips with ffmpeg, and skip those tests if it is missing.
 
 ## How it works
 

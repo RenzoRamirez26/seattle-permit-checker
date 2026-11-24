@@ -15,7 +15,8 @@ In:  HTTP requests from the front end.  Out: JSON (or a PDF) built by calling ch
 
 STATUS: tested with the model and the network mocked. Reading an uploaded plan with the real
 model, a real address through /api/zoning, and /api/transcribe with faster-whisper installed have
-NOT been run from this code yet.
+NOT been run from this code yet. /api/transcribe's ffmpeg conversion of WebM, MP4 and Ogg has run
+(in the tests, with clips made by ffmpeg); the speech model itself was mocked.
 """
 from __future__ import annotations
 
@@ -36,7 +37,7 @@ from pydantic import ValidationError
 from checker import agent, audit, pdf, rules_engine, voice, zoning
 from checker.extract import SPACE_USES
 
-from . import config, errors, geo, schemas, store, uploads
+from . import audio, config, errors, geo, schemas, store, uploads
 from .errors import ApiError
 
 SOURCE_LABELS = {"saved_reading": "the saved reading for this demo plan (no model call)", "vision_model": "the vision model"}
@@ -102,7 +103,7 @@ def get_meta() -> dict:
                         "cooking_on_site": bool(c["intake"].get("cooking_on_site")), "zone": c.get("zoning")}
                        for c in demo_cases().values()],
         "features": {"model_api_key": config.has_api_key(), "seattle_database": seattle_database()[0] is not None,
-                     "speech_to_text": voice.stt_available(), "kokoro_voice": voice.tts_backend() == "kokoro"},
+                     "speech_to_text": speech_to_text(), "kokoro_voice": voice.tts_backend() == "kokoro"},
         "limits": {"upload_types": sorted(config.UPLOAD_TYPES), "max_upload_mb": config.max_upload_bytes() / 1024 / 1024,
                    "max_question_chars": config.MAX_QUESTION_CHARS, "max_history_turns": config.MAX_HISTORY_TURNS,
                    "check_days": config.check_days(), "max_audio_mb": config.max_audio_bytes() / 1024 / 1024,
@@ -232,25 +233,34 @@ def ask(check_id: str, q: schemas.Question, client: Any = Depends(model_client))
 # ---------------------------------------------------------------- spoken questions
 _AUDIO_BODY = {"requestBody": {"required": True, "content": {"multipart/form-data": {"schema": {
     "type": "object", "required": ["audio"],
-    "properties": {"audio": {"type": "string", "format": "binary", "description": "One recorded question as 16 kHz mono WAV."}}}}}}}
+    "properties": {"audio": {"type": "string", "format": "binary", "description":
+        "One recorded question as the browser recorded it: audio/webm (Opus), audio/mp4 or audio/ogg, or audio/wav. "
+        "The part's Content-Type must name the format."}}}}}}}
 _MULTIPART_OVERHEAD = 16 * 1024     # the form's boundaries and headers around the clip
 
 
-def _audio_from_form(content_type: str, body: bytes) -> Optional[bytes]:
-    """The bytes of the form field "audio", parsed in memory (nothing is written to disk), or None."""
+def _audio_from_form(content_type: str, body: bytes) -> tuple[Optional[bytes], str]:
+    """The bytes of the form field "audio" and that part's content type, parsed in memory, or (None, "")."""
     if not content_type.lower().startswith("multipart/form-data"):
-        return None
+        return None, ""
     message = BytesParser(policy=HTTP).parsebytes(b"Content-Type: " + content_type.encode("latin-1") + b"\r\n\r\n" + body)
     for part in message.iter_parts() if message.is_multipart() else []:
         if part.get_param("name", header="content-disposition") == "audio":
-            return part.get_payload(decode=True) or b""
-    return None
+            return part.get_payload(decode=True) or b"", str(part.get("content-type") or "")
+    return None, ""
+
+
+def speech_to_text() -> bool:
+    """The server can turn a browser recording into text: faster-whisper, and ffmpeg to read WebM, MP4 and Ogg."""
+    return voice.stt_available() and audio.ffmpeg() is not None
 
 
 @router.post("/transcribe", response_model=schemas.Transcript, tags=["voice"], openapi_extra=_AUDIO_BODY,
-             summary="The words in one recorded question (WAV), for the owner to check before sending it")
+             summary="The words in one recorded question (WebM, MP4, Ogg or WAV), for the owner to check before sending it")
 async def transcribe(request: Request) -> dict:
-    """Held in memory only: never written to disk, logged or stored. Calls checker.voice.transcribe() unchanged."""
+    """Never stored or logged. A WebM, MP4 or Ogg recording is written to a private temporary folder only while ffmpeg
+    converts it to WAV, and that folder is deleted before transcription starts (api/audio.py). The WAV is held in
+    memory and passed to checker.voice.transcribe() unchanged."""
     if not voice.stt_available():
         raise ApiError(503, "no_speech_to_text", "Speech to text is not installed on this server. Type the question instead.")
     cap = config.max_audio_bytes() + _MULTIPART_OVERHEAD
@@ -261,15 +271,26 @@ async def transcribe(request: Request) -> dict:
         body += chunk
         if len(body) > cap:
             raise ApiError(413, "audio_too_large", f"The recording is larger than the {config.max_audio_bytes() / 1024 / 1024:g} MB limit. Ask a shorter question.")
-    audio = _audio_from_form(request.headers.get("content-type", ""), bytes(body))
+    clip, clip_type = _audio_from_form(request.headers.get("content-type", ""), bytes(body))
     del body
-    if not audio:
+    if not clip:
         raise ApiError(400, "audio_needed", "No recording was received. Record the question again, or type it.")
-    if len(audio) > config.max_audio_bytes():
+    if len(clip) > config.max_audio_bytes():
         raise ApiError(413, "audio_too_large", f"The recording is larger than the {config.max_audio_bytes() / 1024 / 1024:g} MB limit. Ask a shorter question.")
-    if not (audio[:4] == b"RIFF" and audio[8:12] == b"WAVE"):
-        raise ApiError(415, "audio_not_wav", "The recording must be a WAV file. Record the question again, or type it.")
-    text = await run_in_threadpool(voice.transcribe, audio)
+    kind = audio.kind(clip_type, clip)
+    if not kind:
+        raise ApiError(415, "audio_not_supported", "The recording must be WebM, MP4, Ogg or WAV audio, sent with its own "
+                                                   "content type. Record the question again, or type it.")
+    try:
+        wav = await run_in_threadpool(audio.to_wav, clip, kind)
+    except FileNotFoundError:
+        raise ApiError(503, "no_speech_to_text", "This server can't read this kind of recording. Type the question instead.")
+    except audio.Unreadable:
+        raise ApiError(422, "speech_not_understood", "The recording could not be made out. Try again, or type the question.")
+    finally:
+        del clip
+    text = await run_in_threadpool(voice.transcribe, wav)
+    del wav
     if not text or not text.strip():
         raise ApiError(422, "speech_not_understood", "The recording could not be made out. Try again, or type the question.")
     return {"text": text.strip()}

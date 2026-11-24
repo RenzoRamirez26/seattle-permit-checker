@@ -20,11 +20,13 @@ export const ERROR_WORDS: Record<string, string> = {
   http_error: "The pre-check service couldn't handle this request. Try again in a moment.",
   server_error: "Something went wrong on the server and nothing was saved. Try again in a moment.",
   no_speech_to_text: "This server can't take spoken questions. Type the question instead.",
-  audio_needed: "Nothing was recorded. Press Speak and say your question, or type it.",
-  audio_not_wav: "The recording couldn't be used. Press Speak to record again, or type the question.",
+  audio_needed: "Nothing was recorded. Press Start voice input and say your question, or type it.",
+  audio_not_supported: "The recording couldn't be used. Press Start voice input to record again, or type the question.",
   audio_too_large: "The recording is over the time limit. Ask a shorter question, or type it.",
   speech_not_understood: "The recording could not be made out. Try again closer to the microphone, or type the question.",
-  microphone_blocked: "The browser isn't letting this page use the microphone. Allow it in the site settings, or type the question.",
+  microphone_blocked: "The microphone is blocked. Allow it in your browser settings, or type your question.",
+  no_speech_heard: "We didn't hear a question. Press Start voice input and speak, or type your question.",
+  ondevice_failed: "Voice on this device stopped. Press Start voice input to record instead, or type your question.",
 };
 
 export function errorWords(code: string): string {
