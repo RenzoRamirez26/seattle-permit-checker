@@ -7,9 +7,10 @@ An input's "known" values are a spread of numbers (0 to a million), both boolean
 "unknown". Its "unknown" values are null, and "unknown" where the enum has it. A rule's outcome under one value is its
 worst finding (fail, then review, then pass) or "absent".
 
-`python -m tests.unknown_inputs` rewrites tests/fixtures/fix_findings_snapshot.json: a hash of every Fix finding over
-the whole grid. It was first written with the engine as it was before unknown inputs were enforced, so the test can
-show Fix findings did not change. Rewrite it only on purpose, and say why in the pull request.
+`python -m tests.unknown_inputs` rewrites tests/fixtures/fix_findings_snapshot.json: for each input, a hash of every
+Fix finding under its known values, and the Fix findings under its unknown values. It was written by the engine as it
+was before unknown inputs were enforced (commit 7dc74cf), so the test can show which Fix findings changed. Rewrite it
+only on purpose, and say why in the pull request.
 """
 from __future__ import annotations
 
@@ -137,17 +138,23 @@ def fix_findings(result: dict) -> list[list]:
     return [[f["rule_id"], f["title"], f["severity"], f["detail"], f["fix"]] for f in result["findings"] if f["status"] == "fail"]
 
 
-def fix_snapshot(rules: dict) -> dict[str, str]:
-    """case|path -> a hash of the Fix findings under every value of that input, known and unknown."""
+def _hash(o: Any) -> str:
+    return hashlib.sha256(json.dumps(o, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def fix_snapshot(rules: dict) -> dict[str, dict]:
+    """case|path -> {"known": a hash of the Fix findings under every known value,
+                     "unknown": {value: [the Fix findings' rule ids, a hash of the Fix findings]}}."""
     out = {}
     for name, path, known, unknown in grid(rules):
-        fixes = [[repr(v), fix_findings(r)] for v, r in known + unknown]
-        key = f"{name}|{'.'.join(map(str, path))}"
-        out[key] = hashlib.sha256(json.dumps(fixes, sort_keys=True).encode()).hexdigest()[:16]
+        out[f"{name}|{'.'.join(map(str, path))}"] = {
+            "known": _hash([[repr(v), fix_findings(r)] for v, r in known]),
+            "unknown": {repr(v): [[f[0] for f in fix_findings(r)], _hash(fix_findings(r))] for v, r in unknown},
+        }
     return out
 
 
 if __name__ == "__main__":
     snap = fix_snapshot(rules_engine.load_rules())
-    SNAPSHOT.write_text(json.dumps(snap, indent=0, sort_keys=True) + "\n", encoding="utf-8")
+    SNAPSHOT.write_text(json.dumps(snap, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"wrote {len(snap)} entries to {SNAPSHOT.relative_to(ROOT)}")

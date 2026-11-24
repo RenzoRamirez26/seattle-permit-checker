@@ -439,13 +439,77 @@ def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(
             "PL-1", "PL-2", "MECH-1", "HLTH-1", "HLTH-2", "ZN-1"} <= checked
 
 
-def test_unknown_handling_leaves_every_fix_finding_as_it_was(rules):
+# A Fix stays a Fix only when it holds whatever an unknown value turns out to be. These four rules used to read an
+# unknown count or door as 0 or "not an exit" and report a Fix; with the unknown, they now say Check with the city.
+UNCERTAIN_FIX_RULES = {"EG-1", "EG-4", "PL-1", "PL-2"}
+
+
+def test_unknown_handling_leaves_every_fix_finding_as_it_was(rules, unknown_grid):
     """tests/fixtures/fix_findings_snapshot.json was written by the engine before unknown inputs were enforced, over the
-    same grid of known and unknown values. Fix findings are identical: only passes and missing findings changed."""
+    same grid. Under every known value the Fix findings are identical. Under an unknown value a Fix is only ever
+    removed, only from the four rules above, and only by becoming Check with the city for the same rule."""
     before = json.loads(U.SNAPSHOT.read_text(encoding="utf-8"))
-    now = U.fix_snapshot(rules)
-    assert set(now) == set(before)
-    assert [k for k in before if before[k] != now[k]] == []
+    changed_known, problems, removed_seen = [], [], set()
+    for name, path, known, unknown in unknown_grid:
+        key = f"{name}|{'.'.join(map(str, path))}"
+        if U._hash([[repr(v), U.fix_findings(r)] for v, r in known]) != before[key]["known"]:
+            changed_known.append(key)
+        for v, r in unknown:
+            old_ids, old_hash = before[key]["unknown"][repr(v)]
+            now = U.fix_findings(r)
+            new_ids = [f[0] for f in now]
+            removed = list(old_ids)
+            for i in new_ids:
+                if i in removed:
+                    removed.remove(i)
+                else:
+                    problems.append(f"{key}={v!r}: a new Fix for {i}")
+            if not removed and U._hash(now) != old_hash:
+                problems.append(f"{key}={v!r}: a Fix changed its wording")
+            for rule_id in removed:
+                removed_seen.add(rule_id)
+                if rule_id not in UNCERTAIN_FIX_RULES:
+                    problems.append(f"{key}={v!r}: the {rule_id} Fix disappeared")
+                elif not any(f["rule_id"] == rule_id and f["status"] == "review" for f in r["findings"]):
+                    problems.append(f"{key}={v!r}: the {rule_id} Fix became nothing, not Check with the city")
+    assert changed_known == [] and problems == []
+    assert removed_seen <= UNCERTAIN_FIX_RULES and {"EG-1", "PL-1", "PL-2"} <= removed_seen   # EG-4: its own test below
+
+
+def test_an_unknown_exit_width_could_make_up_the_difference(rules, load):
+    """EG-4 used to add up only the known exit widths and report a Fix; one unknown width could cover the gap."""
+    plan = load("flawed")
+    exits = [d for d in plan["doors"] if d.get("is_exit")]
+    plan["doors"].append({**exits[0], "label": "Door X", "clear_width_in": None})
+    exits[0]["clear_width_in"] = 10
+    eg4 = [f for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)["findings"]
+           if f["rule_id"] == "EG-4"]
+    assert [f["status"] for f in eg4] == ["review"] and "Door X" in eg4[0]["detail"]
+    plan["doors"][-1]["clear_width_in"] = 2                              # known and too narrow: still a Fix
+    eg4 = [f for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)["findings"]
+           if f["rule_id"] == "EG-4"]
+    assert [f["status"] for f in eg4] == ["fail"]
+
+
+def test_an_unknown_count_is_never_reported_as_zero(rules, load):
+    plan = load("compliant")
+    for r in plan["restrooms"]:
+        r["water_closets"] = r["lavatories"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    plumbing = [f for f in result["findings"] if f["rule_id"] in ("PL-1", "PL-2")]
+    assert plumbing and all(f["status"] == "review" for f in plumbing)
+    assert not any("shows no toilets" in f["detail"] or "shows no restroom sinks" in f["detail"] for f in plumbing)
+
+
+def test_a_permit_that_rests_on_an_unknown_load_is_may_be_needed_not_dropped(rules, load):
+    plan = load("flawed")
+    dining = next(s for s in plan["spaces"] if s["use"] == "dining")
+    dining["area_sqft"] = dining["width_ft"] = dining["length_ft"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    by_id = {p["id"]: p for p in result["permits_likely_required"]}
+    for permit in ("assembly", "sprinkler"):
+        assert by_id[permit]["may_be_needed"].startswith("May be needed: check with the city.")
+        assert "Dining Room" in by_id[permit]["may_be_needed"]
 
 
 def test_the_aisle_and_seating_bugs_are_fixed(rules, load):

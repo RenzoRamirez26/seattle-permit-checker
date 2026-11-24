@@ -340,8 +340,14 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     # --- number of exits
     need = 1 + (n > eg["two_exits_above_occupant_load"]) + (n > eg["three_exits_above_occupant_load"])
     exits_seen = f"Your plan shows {_count(len(exits), 'exit')}. A space for {n} people needs {need}."
+    maybe_exits = [d["label"] for d in doors if d.get("is_exit") is None]
     if len(exits) >= need:
         F.append(Finding("EG-1", "Exits", "pass", "info", exits_seen, eg["exits_cite"]))
+    elif len(exits) + len(maybe_exits) >= need:       # a Fix only when it holds whatever the unknown doors turn out to be
+        F.append(Finding("EG-1", "Show which doors are exits", "review", "high",
+                         f"{exits_seen} Your plan doesn't show whether {', '.join(maybe_exits)} "
+                         f"{'is an exit' if len(maybe_exits) == 1 else 'are exits'}.", eg["exits_cite"],
+                         "Mark every exit on the plan."))
     else:
         more = need - len(exits)
         new = "it" if more == 1 else "them"
@@ -400,15 +406,15 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
 
     # --- egress capacity
     widths = [d["clear_width_in"] for d in exits if d.get("clear_width_in")]
-    if widths:
+    no_width = [d["label"] for d in exits if d.get("clear_width_in") is None]
+    if widths and not no_width:
         required_w = n * eg["egress_width_in_per_occupant"]
         if sum(widths) + 1e-9 < required_w:
             F.append(Finding("EG-4", "Widen the exit doors", "fail", "high",
                              f"Your exit doors add up to {sum(widths):g} in. A space for {n} people needs {required_w:.1f} in. "
                              f"({n} x {eg['egress_width_in_per_occupant']} in.).",
                              eg["egress_width_cite"], "Widen the exit doors or add an exit."))
-    no_width = [d["label"] for d in exits if d.get("clear_width_in") is None]
-    if no_width and not any(f.rule_id == "EG-4" and f.status == "fail" for f in F):
+    if no_width:
         F.append(Finding("EG-4", "Show the exit door widths", "review", "medium",
                          f"Your plan doesn't show the clear width of {', '.join(no_width)}. A space for {n} people needs "
                          f"{n * eg['egress_width_in_per_occupant']:.1f} in. of exit width in all.",
@@ -494,8 +500,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     have_total = men + women + allg
     short = max(0, fx["men"] - men) + max(0, fx["women"] - women)
     toilets_unknown = [r["label"] for r in restrooms
-                       if r.get("water_closets") is None      # urinals are optional in the reading: none drawn counts as 0
-                       or (not fx["shared_room_allowed"] and r.get("designation") in (None, "unknown"))]
+                       if r.get("water_closets") is None or r.get("designation") is None   # urinals optional: none drawn is 0
+                       or (not fx["shared_room_allowed"] and r.get("designation") == "unknown")]
     if toilets_unknown:
         unknown["PL-1"] = (f"Your plan doesn't show the toilets or who uses {', '.join(toilets_unknown)}. "
                            + unknown.get("PL-1", "")).strip()
@@ -509,6 +515,12 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          f"Your plan shows no restroom. A space for {n} people needs {_count(fx['water_closets'], 'toilet')} "
                          f"({fx['profile']}).",
                          pl["cite"], "Add the restrooms to the plan."))
+    elif (have_total < fx["water_closets"] or (not fx["shared_room_allowed"] and short > allg)) and toilets_unknown \
+            and (any(r.get("water_closets") is None or r.get("designation") is None for r in restrooms)
+                 or have_total >= fx["water_closets"]):
+        F.append(Finding("PL-1", "Show the toilets in each restroom", "review", "high",
+                         f"{unknown['PL-1']} A space for {n} people needs {fx['water_closets']} ({fx['profile']}: {basis}).",
+                         pl["cite"], "Write the number of toilets and who each restroom is for on the plan."))
     elif have_total < fx["water_closets"] or (not fx["shared_room_allowed"] and short > allg):
         F.append(Finding("PL-1", "Add more toilets", "fail", "high",
                          f"Your plan shows {_count(have_total, 'toilet')} (men {men}, women {women}, all-gender {allg}). "
@@ -521,7 +533,11 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          f"({fx['profile']}: {basis}).", pl["cite"]))
     lav_have = sum(r.get("lavatories") or 0 for r in restrooms)
     lav_need = max(fx["lavatories"], len(restrooms))
-    if restrooms and lav_have < lav_need:
+    if restrooms and lav_have < lav_need and sinks_unknown:
+        F.append(Finding("PL-2", "Show the sinks in each restroom", "review", "medium",
+                         f"Your plan doesn't show the sinks in {', '.join(sinks_unknown)}. This space needs at least {lav_need}, "
+                         f"one in each toilet room.", pl["cite"], "Write the number of sinks in each restroom on the plan."))
+    elif restrooms and lav_have < lav_need:
         F.append(Finding("PL-2", "Add a sink to each restroom", "fail", "medium",
                          f"Your plan shows {_count(lav_have, 'restroom sink')}. This space needs at least {lav_need}, "
                          f"one in each toilet room.",
@@ -702,7 +718,16 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         "historic": bool(overlays.get("historic")) or bool(intake.get("historic_district")),
         bt["key"]: True,   # permits that apply to one business type, e.g. "salon"
     }
-    permits = [{k: p[k] for k in ("id", "name", "agency")} for p in rules["permits"] if flags.get(p["when"])]
+    # A permit that rests on the number of people or the floor area, when the plan leaves one unknown, is listed as
+    # "May be needed" rather than dropped (unknown never disappears).
+    sprinkler_unknown = not spk and any(f.rule_id == "FS-2" and f.status == "review" for f in F)
+    maybe = {"assembly_permit": load_unknown and not flags["assembly_permit"],
+             "sprinkler": sprinkler_unknown and not flags["sprinkler"]}
+    missing = " or ".join(gaps) if gaps else "the floor area"
+    permits = [{k: p[k] for k in ("id", "name", "agency")}
+               | ({"may_be_needed": f"May be needed: check with the city. It depends on {missing}, which your plan "
+                                    f"doesn't show."} if maybe.get(p["when"]) else {})
+               for p in rules["permits"] if flags.get(p["when"]) or maybe.get(p["when"])]
     # A permit listed because of the number of people or the sprinkler rule rests on those rules' values; the others
     # come from the city's own permit lists (_meta.checked_against_city_sources). This never adds or drops a permit.
     rests_on = {p["id"]: PERMIT_RESTS_ON.get(p["when"]) for p in rules["permits"]}
