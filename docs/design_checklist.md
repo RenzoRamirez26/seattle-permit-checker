@@ -17,15 +17,10 @@ reviewing agent that had not built it re-scored all 26 items from the screenshot
 the assistant's template answers: **23 of 26 passed; T4, T5 and L4 failed.** The fixes made after that scoring are
 noted in each row; they were not re-scored by a separate agent. Standing now: T5 fixed; T4 and L4 still open.
 
-**Second rule-verification scoring, 24 November 2026**, after the No issues found messages, the numbers guard, the
-per-reading Answers line and the wording change. A new separate agent re-scored all 26 items: **23 of 26 passed; T4,
-T5 and L4 failed.** It confirmed the No issues found rows and the Zoning tab now pass T4's test, and found new gaps:
-Check with the city rows without the requirement (T4); the occupant-load table unmarked in the preparation sheet and
-Streamlit, and EG-3 citing an ADA section from memory (T5); and the Not sure claims on Answers and Help (L4). The last
-of these is true only because the engine reports a pass for an aisle with no width (ADA-1), which breaks "Unknown never
-becomes a pass"; that is a logic change, left for the owner. Fixed after this scoring, not re-scored: the
-occupant-load note in the preparation sheet and Streamlit, and the Answers and Help copy now say a few checks don't yet
-turn Not sure into Check with the city.
+**Rule-verification scorings, 24 November 2026.** After each owner round a new separate agent re-scored all 26
+items from the screenshots, the code, generated PDFs, the assistant's template answers, Help, Streamlit and null-value
+probes of the engine: 23, 23, 23 and 24 of 26. **The last scoring, after the unknown-handling round and its follow-ups,
+is 25 of 26: only L4 fails.** The table below is that last scoring.
 
 | # | Item | Source | design-v3 |
 |---|---|---|---|
@@ -33,8 +28,8 @@ turn Not sure into Check with the city.
 | T1 | No approval wording and no green tick anywhere | CONTENT.md rule 11; test (banned words) | Fail at scoring: the demo plan "Café that passes" and the zoning word "Likely allowed here" with a tick. Fixed after: "Café with no issues found", "No zoning issue found" |
 | T2 | The disclaimer sits beside every result and in the PDF | decisions.md (disclaimer beside results) | Pass |
 | T3 | "Check with the city" has its own calm treatment, distinct from Fix and from No issues found | decisions.md (shape-coded icons) | Pass |
-| T4 | Each finding shows the measurement, the rule and the code section | CLAUDE.md (every finding has a citation) | **Fail** (second rule-verification scoring): No issues found rows and the Zoning tab now pass. Still open: Check with the city rows such as "Your plan doesn't show fire extinguishers." give no requirement, and EG-3's missing-width row never states 32 in.; a zoning found again after the check shows no code section |
-| T5 | Rules not yet checked against the code are marked as such | CLAUDE.md (`_meta.verify`) | **Fail** (second rule-verification scoring). Fixed after: the occupant-load note in the preparation sheet and Streamlit. Still open: EG-3 counts as checked but cites ADA 404.2.3 from memory; the assembly permit and the sheet's "Group A-2" and "106 people" rest on unverified rules with only the first-page line |
+| T4 | Each finding shows the measurement, the rule and the code section | CLAUDE.md (every finding has a citation) | Pass (last scoring): every Fix, Check with the city and No issues found row states what the plan shows, what is needed and the code section, and the Zoning tab shows its section even for a zone found again. Caveat: the zoning row for an address that can't be found gives no requirement |
+| T5 | Rules not yet checked against the code are marked as such | CLAUDE.md (`_meta.verify`) | Pass (last scoring): no rule counts as checked yet (EG-3 and ADA-3 cite an ADA section from memory), every finding carries the note on the site, both PDFs, Streamlit and the assistant, and the occupant load, group, exits, occupant-load tables and the assembly, sprinkler and salon permits are marked. Tests: test_rules.py, test_pdf.py, test_permit_draft.py, test_agent_voice.py, rule-verification.spec.ts |
 | T6 | Nothing looks official: no seals, stamps or city colours | design brief section 1 | Pass |
 | **Flow** | | | |
 | F1 | Upload, a few questions, confirm, results | design brief | Pass |
@@ -59,4 +54,4 @@ turn Not sure into Check with the city.
 | L1 | Says who it is for, what it does, and that it is a pre-check | CONTENT.md | Pass |
 | L2 | "How it works" is high on the page | design brief | Fail at scoring: "How it works" sat below the form, in the order the v3 spec set. Fixed after: the four steps as one line directly under the intro sentence; the full section stays below the form. Test: flow.spec.ts (Start) |
 | L3 | No copy slop (em-dash chains, "leverage", marketese) | plain-language guides | Pass |
-| L4 | Claims no larger than the evidence | decisions.md (proof figures) | **Fail** (second rule-verification scoring): Answers and Help said a Not sure value is never counted as meeting a rule, but an aisle with no width gets No issues found (ADA-1, an engine bug). Fixed after: the copy says a few checks don't yet. Still open: the engine bug itself; "Checked by:" in the report PDF and Streamlit reads as if the city checked the finding; the footer says every rule is from Seattle codes while the food rules cite King County and WAC |
+| L4 | Claims no larger than the evidence | decisions.md (proof figures) | **Fail** (last scoring). The Answers intro holds against about 40 null probes. Still larger than the evidence: Help says a permit that depends on a Not sure value is May be needed, but with grease cooking unknown (and the cooking answer No) the mechanical and hood-suppression permits disappear; Help says the check doesn't look at ventilation, yet it checks the kitchen hood; Start step 4 and the Streamlit About still say the rules come from Seattle's building codes only; the salon licence's note says "Listed because of a value still being checked", but it is the licence entry itself that is unchecked |
