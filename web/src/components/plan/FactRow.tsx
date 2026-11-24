@@ -4,8 +4,8 @@
  * and Change. Change opens a form in place; Save keeps every other fact as it was. An empty value shows
  * "Not sure" and is sent as null.
  * In: the row's fields and values, whether the reading left one of them empty (unsure), and the callbacks.
- * Out: the saved item through onSave. A row the reading left unsure says so beside the hollow "?" mark until
- * the owner changes it.
+ * Out: the saved item through onSave. Each reading the API left empty (and the owner has not filled in) says
+ * "We couldn't read this from your plan." beside the hollow "?" mark, under that reading only, not the row's title.
  */
 import { useEffect, useId, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -78,6 +78,8 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
   const changed = original !== undefined && !sameValue(pick(item, fields), pick(original, fields));
   const where = whereField ? (item?.[whereField.key] as string | null) : null;
   const Title = level === 4 ? "h4" : "h3";
+  /** The API's reading left this value empty and it is still empty: not an added row, not a manual entry, not filled in. */
+  const readEmpty = (f: FieldSpec) => !!original && displayValue(f, original[f.key]).unsure && displayValue(f, item?.[f.key]).unsure;
 
   useEffect(() => {
     if (wasEditing.current && !editing) changeRef.current?.focus();
@@ -97,6 +99,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
               {ANSWERS.where}: {where ? where : <span className="font-medium text-blue">{NOT_SURE}</span>}
             </p>
           ) : null}
+          {whereField && !editing && readEmpty(whereField) ? <EmptyLine /> : null}
         </div>
         {!editing ? (
           <Button ref={changeRef} variant="quiet" onPress={onEdit} aria-label={`Change ${title}`}>
@@ -106,14 +109,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
         ) : null}
       </div>
 
-      {changed && !editing ? (
-        <p className="m-0 mt-2 font-medium text-blue">{ANSWERS.changed}</p>
-      ) : unsure ? (
-        <p className="m-0 mt-2 flex items-start gap-2" data-testid="empty-line">
-          <StatusIcon mark="city" className="mt-0.5" />
-          {ANSWERS.emptyLine}
-        </p>
-      ) : null}
+      {changed && !editing ? <p className="m-0 mt-2 font-medium text-blue">{ANSWERS.changed}</p> : null}
 
       {editing ? (
         <RowForm rowId={rowId} fields={fields} item={item} title={title}
@@ -123,15 +119,26 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
           {shown.map((f) => {
             const d = displayValue(f, item?.[f.key]);
             return (
-              <div key={f.key} className="flex items-baseline justify-between gap-4 py-1">
+              <div key={f.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-1">
                 <dt className="min-w-0 text-ink-muted">{f.label}</dt>
                 <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-blue font-medium")}>{d.text}</dd>
+                {readEmpty(f) ? <dd className="col-span-2 m-0"><EmptyLine /></dd> : null}
               </div>
             );
           })}
         </dl>
       )}
     </li>
+  );
+}
+
+/** Under one reading the API left empty. */
+function EmptyLine() {
+  return (
+    <p className="m-0 mt-1 flex items-start gap-2" data-testid="empty-line">
+      <StatusIcon mark="city" className="mt-0.5" />
+      {ANSWERS.emptyLine}
+    </p>
   );
 }
 
