@@ -11,6 +11,11 @@ pypdfium2==5.15.2       # first page of a PDF plan -> image
 
 #PDF downloads
 fpdf2==2.9.0            # builds the report and preparation-sheet PDFs (checker/pdf.py); pure Python, no system packages
+#web API (api/)
+fastapi==0.165.0        # the web API for a future front end: routes, request and response models, the /docs page
+uvicorn==0.54.0         # runs it: uvicorn api.main:app --reload
+python-multipart==0.0.34  # lets FastAPI accept an uploaded plan file (form uploads)
+httpx==0.28.1           # needed by FastAPI's test client (tests/test_api.py)
 
 #Seattle data
 requests==2.34.2        # open data downloads, geocoder, zoning layer
