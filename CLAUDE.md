@@ -21,6 +21,7 @@ optional: `requirements-voice.txt`.
 ```bash
 python -m pytest                                   # tests
 python -m streamlit run app/streamlit_app.py       # the website
+uvicorn api.main:app --reload                      # the web API for a front end (docs page at /docs)
 python -m checker.audit --extraction demo/flawed_extraction.json --business cafe_restaurant --cooking --zoning "NC2-55 (M)"
 python -m pipeline.run_pipeline --seattle          # download Seattle's review records
 python -m evaluation.evaluate_extraction --vision  # score the vision model on the demo plans (needs a key)
@@ -35,6 +36,15 @@ python -m evaluation.evaluate_extraction --vision  # score the vision model on t
 - `demo/`: three fictional plans and their ground truth
 - `docs/`: rulebook status, data sources, demo script
 - `tests/`: one file per part
+
+## Rules
+
+- No building-code numbers and no pass/fail logic in the front end. It only displays what the backend returns.
+- Every model call goes through the backend. The API key never reaches the browser.
+- Unknown never becomes a pass.
+- Front-end work follows `docs/design_brief.md`, `DESIGN.md` (once it exists) and Vercel's Web Interface
+  Guidelines: <https://vercel.com/design/guidelines> (source: <https://github.com/vercel-labs/web-interface-guidelines>).
+- Run `python -m pytest` before finishing any task. Work on a branch, never on `main`.
 
 ## The rule everything else follows
 
