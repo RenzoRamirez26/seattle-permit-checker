@@ -68,6 +68,8 @@ python -m evaluation.evaluate_extraction --vision  # score the vision model on t
   against the real service say `STATUS:` in the docstring; remove the note when it is no longer true
   and update the README status table.
 - Pages live in `app/pages_app/`, not `app/pages/`.
+- Front-end work follows `docs/design_brief.md` and the Vercel Web Interface Guidelines, from the GitHub
+  repository `vercel-labs/web-interface-guidelines` (https://github.com/vercel-labs/web-interface-guidelines).
 - Secrets go in `.env` (see `.env.example`). Never commit keys, `.env`, or `data/raw/`.
 - New dependencies: pin the version in `requirements.txt` with a comment saying what it is for.
 - Tests: one file per part in `tests/`. Model and network calls are mocked; no test needs a key.

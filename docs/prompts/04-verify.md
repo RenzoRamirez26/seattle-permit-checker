@@ -11,7 +11,7 @@ Check out `website-v1`. Write the results to `docs/website_verification.md`. Nev
 3. Walk each page with Playwright at 375 px and 1280 px wide. Save screenshots. Complete the whole flow with the assistant closed, and again using only the keyboard.
 4. Search `web/` and the built front-end files for building-code numbers, pass/fail logic, model calls or an API key. List what you find.
 5. Check every item in section 12 of `docs/design_brief.md` and every guard in `docs/website_plan.md`. Mark each pass, fail or could not check.
-6. Run Impeccable's audit and critique on every page. List the findings.
+6. Run a design review of each page against section 12 of `docs/design_brief.md` and the Vercel Web Interface Guidelines, plus an axe accessibility scan. List the findings.
 7. If the environment variable `ANTHROPIC_API_KEY` is set, read `demo/flawed_plan.png` once with the real model through the API, compare the facts with `demo/flawed_extraction.json`, and ask the assistant two questions about the result. If it is not set, say that the real-model check was not run.
 
 ## Then fix
