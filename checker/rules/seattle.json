@@ -14,7 +14,7 @@
       "Zoning layer URL and field names: read from the live layer. Ground-floor shops and restaurants up to 2,500 sq ft in Neighborhood Residential zones: Ordinance 127376, SMC 23.44.020.E. NC1/NC2 size limits: SDCI Commercial Zoning Summary (October 2019)."
     ],
     "rule_verification": "The rules section gives each rule id verified (true or false) and source (code edition and section). A rule is verified only when every value it uses is listed above under checked_against_city_sources; the others are false, and the site, the PDFs and the assistant say their value is still being checked. A rule that uses another rule's result (depends_on) counts as checked only when that rule is checked too. verified never changes a finding's status.",
-    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Check each before relying on it."
+    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Also from memory: the 28 to 34 in. accessible table surface height (accessibility.table_surface_height_in) and the 5 to 7 months a land use approval can take (zoning.land_use_approval_time). Check each before relying on it."
   },
   "rules": {
     "_note": "One entry per rule id the checker reports. verified is true only where the repository records that the rule's values were read from the code text (_meta.checked_against_city_sources, docs/rulebook.md); every other rule is false. source is the code edition and section. A rule missing here counts as unverified. depends_on names the rules whose results this one uses (the occupant load OL-0, the occupancy group OCC-1, the number of exits EG-1): a finding counts as checked only when its rule and every rule it depends on are verified.",
@@ -103,6 +103,8 @@
     "outward_swing_at_occupant_load": 50,
     "swing_cite": "SBC 1010.1.2.1",
     "door_min_clear_width_in": 32,
+    "door_nominal_width_in": 36,
+    "door_nominal_width_note": "The door size suggested in fix text: a 36 in. door leaf usually gives 32 in. of clear opening. Trade practice, not a code value.",
     "door_cite": "SBC 1010.1.1; ADA 404.2.3",
     "egress_width_in_per_occupant": 0.2,
     "egress_width_cite": "SBC 1005.3.2",
@@ -115,6 +117,7 @@
     "turning_space_diameter_in": 60,
     "turning_cite": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
     "accessible_seating_share": 0.05,
+    "table_surface_height_in": {"min": 28, "max": 34},
     "seating_cite": "SBC Chapter 11; ADA 226.1"
   },
   "plumbing": {
@@ -258,6 +261,7 @@
     "cite": "Seattle Municipal Code Title 23 (Land Use Code)",
     "source": "District statuses below are a first screen for the demo, not a zoning determination. Overlays, pedestrian (P) designations, shoreline and historic districts add their own rules.",
     "contact": "SDCI land use coaching (free) or the Office of Economic Development, (206) 684-8090",
+    "land_use_approval_time": "5 to 7 months",
     "map_name": "the Seattle zoning map (SDCI GIS)",
     "lookup": {
       "layer": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Current_Land_Use_Zoning_Detail_2/FeatureServer/0/query",

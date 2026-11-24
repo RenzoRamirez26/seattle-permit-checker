@@ -305,7 +305,7 @@
       },
       {
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
-        "detail": "Café or restaurant for 106 people: Group A-2.",
+        "detail": "Your plan holds 106 people. The building code puts a café or restaurant that size in Group A-2.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
@@ -341,7 +341,7 @@
       },
       {
         "citation": "SBC 1005.3.2",
-        "detail": "Your exit doors add up to 36 in. A space for 106 people needs 21.2 in.",
+        "detail": "Your exit doors add up to 36 in. A space for 106 people needs 21.2 in. (106 x 0.2 in.).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
@@ -353,7 +353,7 @@
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "Your plan shows 2 restroom sinks.",
+        "detail": "Your plan shows 2 restroom sinks. This space needs at least 2, one in each toilet room.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
@@ -365,7 +365,7 @@
       },
       {
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
-        "detail": "Your plan shows a three-compartment sink.",
+        "detail": "Your plan shows a three-compartment sink. Washing dishes needs one, or a dish machine that Public Health accepts.",
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-2",

@@ -291,13 +291,13 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         F.append(Finding("OL-0", "Add the missing room areas", "review", "high",
                          f"Your plan shows no area for {', '.join(ol['missing_area'])}. Without it, the count of people "
                          f"may come out too low.",
-                         "SBC Table 1004.5", "Add dimensions or areas for these rooms to the plan."))
+                         rules["rules"]["OL-0"]["source"], "Add dimensions or areas for these rooms to the plan."))
     if not ol["by_space"]:
         F.append(Finding("OL-0", "Label each room's use and area", "review", "high",
                          "Your plan shows no room with a use and an area we can read, so these checks treat the space as empty.",
-                         "SBC Table 1004.5", "Label each room with its use and its area or dimensions."))
+                         rules["rules"]["OL-0"]["source"], "Label each room with its use and its area or dimensions."))
     F.append(Finding("OCC-1", "Occupancy classification", "pass", "info",
-                     f"{bt['label']} for {n} people: Group {group}.",
+                     f"Your plan holds {n} people. The building code puts a {bt['label'].lower()} that size in Group {group}.",
                      rules["occupancy"]["cite"]))
 
     doors = extraction.get("doors", [])
@@ -343,7 +343,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
             F.append(Finding("EG-3", f"Widen the door: {who}", "fail", "critical" if d.get("is_exit") else "high",
                              f"Your plan shows {w:g} in. clear. A door needs at least {eg['door_min_clear_width_in']} in.",
                              eg["door_cite"], f"Widen the opening to at least {eg['door_min_clear_width_in']} in. clear. "
-                                              f"A 36 in. door usually gives this."))
+                                              f"A {eg['door_nominal_width_in']} in. door usually gives this."))
     if not doors:
         F.append(Finding("EG-3", "Label the doors on the plan", "review", "high",
                          "Your plan shows no door with a label we can read.", eg["door_cite"],
@@ -372,7 +372,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                              f"Your plan shows {_count(signs, 'exit sign')}. Each of the {need} exits needs one.",
                              eg["exit_sign_cite"], "Add an illuminated exit sign at each required exit."))
         else:
-            F.append(Finding("FS-1", "Exit signs", "pass", "info", f"Your plan shows {_count(signs, 'exit sign')}.",
+            F.append(Finding("FS-1", "Exit signs", "pass", "info",
+                             f"Your plan shows {_count(signs, 'exit sign')}. Each of the {need} exits needs one.",
                              eg["exit_sign_cite"]))
 
     # --- accessible routes
@@ -405,7 +406,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
             if not already:
                 F.append(Finding("ADA-3", f"Widen the restroom door: {r['label']}", "fail", "high",
                                  f"Your plan shows {dw:g} in. clear. A restroom door needs at least {eg['door_min_clear_width_in']} in.",
-                                 eg["door_cite"], "Install a 36 in. door."))
+                                 eg["door_cite"], f"Install a {eg['door_nominal_width_in']} in. door."))
 
     # --- restrooms: fixture count
     fx = fixtures_required(n, bt, rules)
@@ -448,7 +449,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
             F.append(Finding("ADA-4", "Mark the accessible seats", "review", "medium",
                              f"Your plan doesn't mark accessible seats. {need_acc} of your {seats} seats need to be at "
                              f"accessible tables.", acc["seating_cite"],
-                             "Mark accessible tables (knee clearance, 28-34 in. surface height) on the plan."))
+                             f"Mark accessible tables (knee clearance, {acc['table_surface_height_in']['min']}-"
+                             f"{acc['table_surface_height_in']['max']} in. surface height) on the plan."))
         elif acc_seats < need_acc:
             F.append(Finding("ADA-4", "Add accessible seats", "fail", "medium",
                              f"Your plan marks {_count(acc_seats, 'accessible seat')}. Your {seats} seats need {need_acc} "
@@ -521,24 +523,35 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     spk_cite = spk["cite"] if spk else fire["sprinkler_cite_default"]
     all_doors = "The door on your plan is" if len(doors) == 1 else f"All {len(doors)} doors on your plan are"
     passes = [
-        ("EG-2", "Exit door swing", "Every exit door on your plan swings outward.", eg["swing_cite"],
+        ("EG-2", "Exit door swing", f"Every exit door on your plan swings outward. A space for "
+                                    f"{eg['outward_swing_at_occupant_load']} or more people needs exit doors that swing out.",
+         eg["swing_cite"],
          n >= eg["outward_swing_at_occupant_load"] and bool(exits)),
-        ("EG-3", "Door widths", f"{all_doors} at least {eg['door_min_clear_width_in']} in. clear.", eg["door_cite"], bool(doors)),
+        ("EG-3", "Door widths", f"{all_doors} at least {eg['door_min_clear_width_in']} in. clear. Each door needs "
+                                f"{eg['door_min_clear_width_in']} in.", eg["door_cite"], bool(doors)),
         ("EG-4", "Exit capacity", f"Your exit doors add up to {sum(widths):g} in. A space for {n} people needs "
-                                  f"{n * eg['egress_width_in_per_occupant']:.1f} in.",
+                                  f"{n * eg['egress_width_in_per_occupant']:.1f} in. ({n} x {eg['egress_width_in_per_occupant']} in.).",
          eg["egress_width_cite"], bool(widths)),
-        ("ADA-1", "Aisle and route widths", f"Every route width on your plan is at least {acc['route_min_width_in']} in.",
+        ("ADA-1", "Aisle and route widths", f"Every route width on your plan is at least {acc['route_min_width_in']} in. "
+                                            f"An accessible route needs {acc['route_min_width_in']} in.",
          acc["route_cite"], True),
-        ("ADA-2", "Restroom turning space", f"Each restroom on your plan shows a {acc['turning_space_diameter_in']} in. turning circle.",
+        ("ADA-2", "Restroom turning space", f"Each restroom on your plan shows a {acc['turning_space_diameter_in']} in. turning "
+                                            f"circle. A wheelchair needs {acc['turning_space_diameter_in']} in. to turn.",
          acc["turning_cite"], bool(restrooms)),
-        ("ADA-4", "Accessible seating", f"Your plan marks {acc_seats} of {seats} seats as accessible.", acc["seating_cite"],
+        ("ADA-4", "Accessible seating", f"Your plan marks {acc_seats} of {seats} seats as accessible. At least "
+                                        f"{acc['accessible_seating_share']:.0%} of seats need to be.", acc["seating_cite"],
          bool(seats) and bool(bt.get("seating"))),
-        ("PL-2", "Restroom sinks", f"Your plan shows {_count(lav_have, 'restroom sink')}.", pl["cite"], bool(restrooms)),
-        ("MECH-1", "Kitchen hood", "Your plan shows a Type I hood with fire suppression over the cooking line.", fire["hood_cite"], cooking),
-        ("HLTH-1", "Handwashing sink", "Your plan shows a hand sink in the food prep area.", health["cite"], food),
-        ("HLTH-2", "Warewashing", "Your plan shows a three-compartment sink.", health["cite"], food),
-        ("FS-2", "Sprinklers", "This space needs sprinklers, and your plan shows them.", spk_cite, bool(spk)),
-        ("FS-3", "Fire extinguishers", f"Your plan shows {_count(fs.get('fire_extinguishers_shown') or 0, 'fire extinguisher')}.",
+        ("PL-2", "Restroom sinks", f"Your plan shows {_count(lav_have, 'restroom sink')}. This space needs at least {lav_need}, "
+                                   f"one in each toilet room.", pl["cite"], bool(restrooms)),
+        ("MECH-1", "Kitchen hood", "Your plan shows a Type I hood with fire suppression over the cooking line. Cooking that "
+                                   "makes grease or smoke needs one.", fire["hood_cite"], cooking),
+        ("HLTH-1", "Handwashing sink", "Your plan shows a hand sink in the food prep area. Food prep needs its own hand "
+                                       "sink.", health["cite"], food),
+        ("HLTH-2", "Warewashing", "Your plan shows a three-compartment sink. Washing dishes needs one, or a dish machine "
+                                  "that Public Health accepts.", health["cite"], food),
+        ("FS-2", "Sprinklers", f"Your plan shows sprinklers. This Group {group} space needs them.", spk_cite, bool(spk)),
+        ("FS-3", "Fire extinguishers", f"Your plan shows {_count(fs.get('fire_extinguishers_shown') or 0, 'fire extinguisher')}. "
+                                       "The space needs portable fire extinguishers placed where people can reach them.",
          fire["extinguisher_cite"], True),
     ]
     for rule_id, title, detail, cite, applies in passes:
@@ -652,7 +665,7 @@ def local_data_markdown(d: Optional[dict]) -> list[str]:
         out.append(f"- Half spent {sm['median_days_with_applicant']:g} days or more waiting on the applicant's corrections.")
     rows = d.get("corrections_by_review_type") or []
     if rows:
-        out += ["", "| Review | Projects reviewed | Sent back for corrections in round 1 |", "|---|---|---|"]
+        out += ["", "| Review | Projects reviewed | Sent back for corrections in the first round |", "|---|---|---|"]
         out += [f"| {r['review_type']} | {r['permits']} | {r['share_corrections']:.0%} |" for r in rows]
     subj = d.get("top_comment_subjects") or []
     if subj:

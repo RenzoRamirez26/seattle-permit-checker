@@ -165,7 +165,7 @@
     "findings": [
       {
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
-        "detail": "Café or restaurant for 106 people: Group A-2.",
+        "detail": "Your plan holds 106 people. The building code puts a café or restaurant that size in Group A-2.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
@@ -189,7 +189,7 @@
       },
       {
         "citation": "SBC 1013.1",
-        "detail": "Your plan shows 3 exit signs.",
+        "detail": "Your plan shows 3 exit signs. Each of the 2 exits needs one.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "FS-1",
@@ -225,7 +225,7 @@
       },
       {
         "citation": "SBC 1010.1.2.1",
-        "detail": "Every exit door on your plan swings outward.",
+        "detail": "Every exit door on your plan swings outward. A space for 50 or more people needs exit doors that swing out.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-2",
@@ -237,7 +237,7 @@
       },
       {
         "citation": "SBC 1010.1.1; ADA 404.2.3",
-        "detail": "All 5 doors on your plan are at least 32 in. clear.",
+        "detail": "All 5 doors on your plan are at least 32 in. clear. Each door needs 32 in.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
@@ -249,7 +249,7 @@
       },
       {
         "citation": "SBC 1005.3.2",
-        "detail": "Your exit doors add up to 108 in. A space for 106 people needs 21.2 in.",
+        "detail": "Your exit doors add up to 108 in. A space for 106 people needs 21.2 in. (106 x 0.2 in.).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
@@ -261,7 +261,7 @@
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
-        "detail": "Every route width on your plan is at least 36 in.",
+        "detail": "Every route width on your plan is at least 36 in. An accessible route needs 36 in.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
@@ -273,7 +273,7 @@
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
-        "detail": "Each restroom on your plan shows a 60 in. turning circle.",
+        "detail": "Each restroom on your plan shows a 60 in. turning circle. A wheelchair needs 60 in. to turn.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
@@ -285,7 +285,7 @@
       },
       {
         "citation": "SBC Chapter 11; ADA 226.1",
-        "detail": "Your plan marks 12 of 56 seats as accessible.",
+        "detail": "Your plan marks 12 of 56 seats as accessible. At least 5% of seats need to be.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-4",
@@ -297,7 +297,7 @@
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "Your plan shows 2 restroom sinks.",
+        "detail": "Your plan shows 2 restroom sinks. This space needs at least 2, one in each toilet room.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
@@ -309,7 +309,7 @@
       },
       {
         "citation": "Seattle Mechanical Code 507 (Type I hood over grease- or smoke-producing appliances); Seattle Fire Code 904 (hood fire suppression)",
-        "detail": "Your plan shows a Type I hood with fire suppression over the cooking line.",
+        "detail": "Your plan shows a Type I hood with fire suppression over the cooking line. Cooking that makes grease or smoke needs one.",
         "fix": "",
         "reviewed_by": "SDCI Mechanical review",
         "rule_id": "MECH-1",
@@ -321,7 +321,7 @@
       },
       {
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
-        "detail": "Your plan shows a hand sink in the food prep area.",
+        "detail": "Your plan shows a hand sink in the food prep area. Food prep needs its own hand sink.",
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-1",
@@ -333,7 +333,7 @@
       },
       {
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
-        "detail": "Your plan shows a three-compartment sink.",
+        "detail": "Your plan shows a three-compartment sink. Washing dishes needs one, or a dish machine that Public Health accepts.",
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-2",
@@ -345,7 +345,7 @@
       },
       {
         "citation": "SBC 903.2.1.2 (Group A-2)",
-        "detail": "This space needs sprinklers, and your plan shows them.",
+        "detail": "Your plan shows sprinklers. This Group A-2 space needs them.",
         "fix": "",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-2",
@@ -357,7 +357,7 @@
       },
       {
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
-        "detail": "Your plan shows 3 fire extinguishers.",
+        "detail": "Your plan shows 3 fire extinguishers. The space needs portable fire extinguishers placed where people can reach them.",
         "fix": "",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",

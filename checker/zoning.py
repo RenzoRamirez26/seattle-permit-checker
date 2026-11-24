@@ -114,7 +114,7 @@ def classify(district: Optional[str], rules: dict, *, business_type: Optional[st
     if status == "not_permitted":
         return out | {"status": status,
                       "detail": f"{note} A {use} is generally not a permitted use.",
-                      "fix": f"Choose a different site, or talk to {contact} about your options (a land use approval can take 5 to 7 months)."}
+                      "fix": f"Choose a different site, or talk to {contact} about your options (a land use approval can take {z['land_use_approval_time']})."}
     return out | {"status": "needs_review",
                   "detail": f"{note}{size}",
                   "fix": f"Confirm the use with {contact} before signing a lease."}

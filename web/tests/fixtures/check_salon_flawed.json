@@ -172,7 +172,7 @@
       },
       {
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
-        "detail": "Salon, barbershop or spa for 15 people: Group B.",
+        "detail": "Your plan holds 15 people. The building code puts a salon, barbershop or spa that size in Group B.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
@@ -208,7 +208,7 @@
       },
       {
         "citation": "SBC 1005.3.2",
-        "detail": "Your exit doors add up to 34 in. A space for 15 people needs 3.0 in.",
+        "detail": "Your exit doors add up to 34 in. A space for 15 people needs 3.0 in. (15 x 0.2 in.).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
@@ -220,7 +220,7 @@
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "Your plan shows 1 restroom sink.",
+        "detail": "Your plan shows 1 restroom sink. This space needs at least 1, one in each toilet room.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",

@@ -341,3 +341,65 @@ def test_report_markdown_marks_unverified_rules(rules, load):
     assert rules_engine.SOME_UNVERIFIED in md and rules_engine.UNVERIFIED_FACTORS in md
     unverified_open = [f for f in result["findings"] if f["status"] != "pass" and not f["rule_verified"]]
     assert unverified_open and md.count(rules_engine.UNVERIFIED_NOTE) == len(unverified_open)
+
+
+# ---------------------------------------------------------------- message numbers come from the rulebook
+import ast  # noqa: E402
+
+MESSAGE_MODULES = [ROOT / "checker" / "rules_engine.py", ROOT / "checker" / "zoning.py"]
+_KEY = re.compile(r"^([A-Z]+-\d+|[a-z0-9_]+|utf-8)$")      # rule ids, dict keys and field names, not words a person reads
+
+
+def _written_numbers(path):
+    """Every string a person could read, written in the source, that contains a digit. Docstrings, format specs
+    (':.1f'), rule ids and dict keys are left out: the guard is about message, title and fix text."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    skip = set()
+    for n in ast.walk(tree):
+        body = getattr(n, "body", None)
+        if isinstance(body, list) and body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+            skip.add(id(body[0].value))
+        if isinstance(n, ast.FormattedValue) and n.format_spec:
+            skip.update(id(m) for m in ast.walk(n.format_spec))
+    return [(n.lineno, n.value) for n in ast.walk(tree)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in skip
+            and re.search(r"\d", n.value) and not _KEY.match(n.value)]
+
+
+@pytest.mark.parametrize("path", MESSAGE_MODULES, ids=lambda p: p.name)
+def test_no_rule_message_or_fix_writes_a_number_itself(path):
+    """A finding's title, message and fix get every number from seattle.json or from the plan, never from the source."""
+    assert _written_numbers(path) == []
+
+
+def test_the_guard_catches_a_written_number(tmp_path):
+    bad = tmp_path / "bad.py"
+    bad.write_text('def f(eg):\n    """SBC 1010.1.1 in a docstring is fine."""\n'
+                   '    return Finding("ADA-3", "Widen", "fail", "high", f"{eg[\'w\']:.1f} in.", "c", "Install a 36 in. door.")\n')
+    assert _written_numbers(bad) == [(3, "Install a 36 in. door.")]
+
+
+def test_the_door_size_in_fix_text_comes_from_the_rulebook(rules, load):
+    plan = load("flawed")
+    plan["restrooms"][0]["door_clear_width_in"] = 28
+    plan["doors"] = [d for d in plan["doors"] if plan["restrooms"][0]["label"] not in d["label"]]
+    bigger = json.loads(json.dumps(rules))
+    bigger["egress"]["door_nominal_width_in"] = 40
+    fixes = [f["fix"] for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, bigger)["findings"]
+             if f["rule_id"] == "ADA-3"]
+    assert fixes == ["Install a 40 in. door."]
+
+
+def test_every_no_issues_found_row_says_what_the_plan_shows_and_what_is_needed(rules, load):
+    """Two sentences each: the observation, then the requirement it meets (CONTENT.md rule 2)."""
+    seen = set()
+    for business, facts in _cases(load):
+        result = rules_engine.run_checks(facts, {"business_type": business, "cooking_on_site": True}, rules)
+        for f in result["findings"]:
+            if f["status"] != "pass" or f["rule_id"] == "ZN-1":
+                continue
+            seen.add(f["rule_id"])
+            sentences = [x for x in re.split(r"(?<=\.)\s+(?=[A-Z])", f["detail"]) if x]
+            assert len(sentences) >= 2, f"{f['rule_id']}: {f['detail']}"
+            assert re.search(r"\b(need|needs|puts)\b", sentences[-1]), f"{f['rule_id']}: {f['detail']}"
+    assert {"EG-1", "EG-3", "FS-1", "PL-1", "PL-2", "OCC-1"} <= seen

@@ -88,6 +88,17 @@ is not listed as checked.
 rule it depends on are verified, so a sprinkler finding built on an occupant load with an unverified factor says its
 value is still being checked. The occupant-load table in the PDFs carries the same mark (OL-0).
 
+## Values used only in fix text
+
+Numbers in a finding's title, message or fix come from `seattle.json` or from the plan; `tests/test_rules.py` reads the
+source of `rules_engine.py` and `zoning.py` and fails on any number written there.
+
+| Value | Where | Status |
+| --- | --- | --- |
+| 36 in. door, suggested to get 32 in. clear | `egress.door_nominal_width_in` (EG-3 and ADA-3 fixes) | Trade practice, not a code value |
+| 28 to 34 in. accessible table surface height | `accessibility.table_surface_height_in` (ADA-4 fix) | From memory (`_meta.verify`) |
+| 5 to 7 months for a land use approval | `zoning.land_use_approval_time` (zoning fix) | From memory (`_meta.verify`) |
+
 ## What the checker does not look at
 
 Travel distance and common path, corridor ratings, stairs, structural, energy, ventilation rates, electrical, parking, signage rules, landmark design review, stormwater, and anything about the building outside the tenant space.
