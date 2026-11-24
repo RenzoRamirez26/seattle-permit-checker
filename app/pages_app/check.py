@@ -281,12 +281,12 @@ if extraction:
 # ----------------------------------------------------------------------------------
 # 4. Results
 # ----------------------------------------------------------------------------------
-ICON = {"fail": "❌", "review": "❓", "pass": "✅"}
+ICON = {"fail": "❌", "review": "❓", "pass": "✓"}   # a plain check, never a green tick (CONTENT.md rule 11)
 # One colour per status, used the same way everywhere on this page, and never as the only signal: each status
 # also has its icon and its words. The colours themselves are set in .streamlit/config.toml (red, orange, green).
 # These are fixed strings; nothing read from a plan or typed by the owner is ever placed inside a colour.
-STATUS_WORDS = {"fail": "Fix", "review": "Check with the city", "pass": "OK"}
-STATUS_LABEL = {"fail": ":red[**Fix**]", "review": ":orange[**Check with the city**]", "pass": ":green[**OK**]"}
+STATUS_WORDS = {"fail": "Fix before you apply", "review": "Check with the city", "pass": "No issues found"}
+STATUS_LABEL = {"fail": ":red[**Fix before you apply**]", "review": ":blue[**Check with the city**]", "pass": ":gray[**No issues found**]"}
 
 result = st.session_state.get(ac.KEY_RESULT)
 if result:
@@ -295,10 +295,10 @@ if result:
         st.subheader("4. Results")
         m1, m2, m3 = st.columns(3)
         m1.metric(f"{ICON['fail']} {STATUS_LABEL['fail']}", s["fails"], border=True,
-                  help="Problems the rules found. Fix these before you submit.")
+                  help="What the rules found to change before you apply.")
         m2.metric(f"{ICON['review']} {STATUS_LABEL['review']}", s["reviews"], border=True,
-                  help="The plan does not show enough to decide. Confirm these.")
-        m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks the plan passed.")
+                  help="Your plan doesn't show enough to decide. Ask the city about these.")
+        m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks where we found no issue.")
         st.caption(f"Occupant load {s['occupant_load']} · Group {s['occupancy_group']} · "
                    f"Exits: {s['exits_shown']} shown, {s['exits_required']} required")
 
@@ -307,7 +307,7 @@ if result:
         with fix_col:
             st.markdown("**Fix list** (most serious first)")
             if not open_items:
-                st.success("Nothing to fix on the items this tool checks.", icon="✅")
+                st.info("Nothing to fix before you apply.", icon="✓")
             for f in open_items:
                 with st.container(border=True):
                     st.markdown(f"{ICON[f['status']]} {STATUS_LABEL[f['status']]} &nbsp; **{f['title']}** &nbsp; "
@@ -317,7 +317,7 @@ if result:
                         st.markdown(f"**Fix:** {f['fix']}")
                     st.caption(f"Checked by: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
 
-            with st.expander(f"Checks passed ({s['passes']})"):
+            with st.expander(f"No issues found ({s['passes']})"):
                 for f in result["findings"]:
                     if f["status"] == "pass":
                         st.markdown(f"{ICON['pass']} {STATUS_LABEL['pass']} &nbsp; **{f['title']}**: {f['detail']}  \n"

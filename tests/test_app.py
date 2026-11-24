@@ -20,10 +20,10 @@ def app(monkeypatch, tmp_path):
 
 
 def _plain(label: str) -> str:
-    """A count's label without its icon and colour: '❌ :red[**Fix**]' -> 'Fix'."""
+    """A count's label without its icon and colour: '❌ :red[**Fix before you apply**]' -> 'Fix before you apply'."""
     import re
 
-    return re.sub(r":\w+\[\*\*(.*?)\*\*\]", r"\1", label).lstrip("❌❓✅ ").strip()
+    return re.sub(r":\w+\[\*\*(.*?)\*\*\]", r"\1", label).lstrip("❌❓✓ ").strip()
 
 
 def _metrics(at):
@@ -48,7 +48,7 @@ def test_cafe_flow(app):
     at.button(key="btn_check").click().run()
     assert not at.exception
     m = _metrics(at)
-    assert (m["Fix"], m["Check with the city"], m["OK"], m["Occupant load"]) == ("11", "2", "6", "106")
+    assert (m["Fix before you apply"], m["Check with the city"], m["No issues found"], m["Occupant load"]) == ("11", "2", "6", "106")
     text = " ".join(x.value for x in at.markdown)
     assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
     assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
@@ -63,7 +63,7 @@ def test_salon_flow_and_questions(app):
     at.button(key="btn_read").click().run()
     at.button(key="btn_check").click().run()
     m = _metrics(at)
-    assert (m["Fix"], m["Check with the city"], m["Occupant load"]) == ("3", "2", "15")
+    assert (m["Fix before you apply"], m["Check with the city"], m["Occupant load"]) == ("3", "2", "15")
     permits = _permits(at)
     assert any("Salon or shop licence" in p for p in permits) and not any("Food service" in p for p in permits)
 
@@ -245,22 +245,23 @@ def test_layout_of_the_check_page(app):
     assert not at.exception
     assert [h.value for h in at.subheader] == ["1. Your floor plan", "2. Your business", "3. What was read from the plan",
                                                "4. Results", "5. Ask about your results"]
-    assert [_plain(m.label) for m in at.metric][:3] == ["Fix", "Check with the city", "OK"]  # the top row, in this order
+    assert [_plain(m.label) for m in at.metric][:3] == ["Fix before you apply", "Check with the city", "No issues found"]  # the top row, in this order
     # colour is never the only signal: each count carries its icon, its words and its colour
-    assert [m.label for m in at.metric][:3] == ["❌ :red[**Fix**]", "❓ :orange[**Check with the city**]", "✅ :green[**OK**]"]
+    assert [m.label for m in at.metric][:3] == ["❌ :red[**Fix before you apply**]", "❓ :blue[**Check with the city**]", "✓ :gray[**No issues found**]"]
     assert [m.value for m in at.metric][:3] == ["11", "2", "6"]
     assert any(c.value.startswith("Occupant load 106 · Group A-2 · Exits: 1 shown, 2 required") for c in at.caption)
 
     # the fix list: problems first, then items to confirm; passed checks are not in it
     titles = [m.value for m in at.markdown if m.value.startswith(("❌", "❓"))]
     assert len(titles) == 13 and [t[0] for t in titles] == ["❌"] * 11 + ["❓"] * 2
-    assert all(t.startswith("❌ :red[**Fix**] ") for t in titles[:11])                         # icon, colour and words on each finding
-    assert all(t.startswith("❓ :orange[**Check with the city**] ") for t in titles[11:])
-    # red and amber are used for nothing else on the page, and no finding's own text sits inside a colour
+    assert all(t.startswith("❌ :red[**Fix before you apply**] ") for t in titles[:11])                         # icon, colour and words on each finding
+    assert all(t.startswith("❓ :blue[**Check with the city**] ") for t in titles[11:])
+    # red and blue mark the statuses and nothing else, and no finding's own text sits inside a colour
     page_text = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
     import re
-    assert set(re.findall(r":(red|orange|green)\[(.*?)\]", page_text)) == {("red", "**Fix**"), ("orange", "**Check with the city**"), ("green", "**OK**")}
-    assert any(e.label == "Checks passed (6)" for e in at.expander)
+    assert set(re.findall(r":(red|blue|gray|orange|green)\[(\*\*.*?\*\*)\]", page_text)) == {   # bold status labels (grey also sets citations)
+        ("red", "**Fix before you apply**"), ("blue", "**Check with the city**"), ("gray", "**No issues found**")}
+    assert any(e.label == "No issues found (6)" for e in at.expander)
 
     # one primary button per step: read (1), run (3), download the report (4), ask (5); everything else is secondary
     kinds = {b.label: b.proto.type for b in at.button}
@@ -362,7 +363,7 @@ def test_an_old_seattle_database_is_explained_on_the_page(monkeypatch, tmp_path)
     at = AppTest.from_file(APP, default_timeout=30).run()
     at.button(key="btn_read").click().run()
     at.button(key="btn_check").click().run()
-    assert not at.exception and _metrics(at)["Fix"] == "11"                    # the check itself is unaffected
+    assert not at.exception and _metrics(at)["Fix before you apply"] == "11"                    # the check itself is unaffected
     assert any("different column names" in e.value and "python -m pipeline.run_pipeline --seattle" in e.value for e in at.error)
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception and any("different column names" in e.value for e in at.error)
@@ -404,7 +405,7 @@ def test_pages_with_the_seattle_database(monkeypatch, tmp_path):
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception
     m = _metrics(at)
-    assert m["Permits with plan review"] == "3" and m["Passed in one round"] == "33%"
+    assert m["Permits with plan review"] == "3" and m["Through review in one round"] == "33%"
     assert any("Paraphrased for the test" in x.value for x in at.markdown)       # a reviewer comment is shown
     at.selectbox[0].set_value("salon").run()
     assert not at.exception and _metrics(at)["Permits with plan review"] == "1"
