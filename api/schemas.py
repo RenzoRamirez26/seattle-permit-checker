@@ -134,6 +134,9 @@ class Rulebook(BaseModel):
     edition_date: Optional[str] = Field(description="The rulebook's edition date (_meta.edition_date), for the site's footer. "
                                                     "null while the rulebook still holds the placeholder.")
     code_basis: str
+    rules: int = Field(description="How many rules the rulebook lists (rulebook: rules).")
+    rules_unverified: int = Field(description="How many of them still have values not checked against the code text. "
+                                              "The site says some values are still being checked while this is above 0.")
 
 
 class Meta(BaseModel):
@@ -245,6 +248,11 @@ class Finding(BaseModel):
     citation: str
     fix: str = ""
     reviewed_by: str = ""
+    rule_verified: bool = Field(default=False, description="True only when this rule's values were read from the code text "
+                                                           "(rulebook: rules). False, the default, means still being checked. "
+                                                           "It never changes the status.")
+    rule_source: str = Field(default="", description="The code edition and section the rule comes from, e.g. "
+                                                    "\"SBC 2021 1010.1.1\".")
 
 
 class Permit(BaseModel):

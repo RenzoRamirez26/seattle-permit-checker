@@ -116,6 +116,8 @@
         "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
+        "rule_source": "SBC 2021 1010.1.1",
+        "rule_verified": true,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom door (Restroom)"
@@ -126,6 +128,8 @@
         "fix": "Move furniture or fixtures to give 36 in. clear.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the aisle: Aisle A (between chairs)"
@@ -136,6 +140,8 @@
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the restroom so a wheelchair can turn: Restroom"
@@ -146,6 +152,8 @@
         "fix": "Confirm the use with SDCI land use coaching (free) or the Office of Economic Development, (206) 684-8090 before signing a lease.",
         "reviewed_by": "SDCI Zoning review",
         "rule_id": "ZN-1",
+        "rule_source": "SMC Title 23",
+        "rule_verified": false,
         "severity": "high",
         "status": "review",
         "title": "Confirm the zoning: NR3"
@@ -156,6 +164,8 @@
         "fix": "Show extinguisher locations.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
+        "rule_source": "SFC 2021 906.1; SFC 2021 906.4",
+        "rule_verified": false,
         "severity": "medium",
         "status": "review",
         "title": "Show the fire extinguishers"
@@ -166,6 +176,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
+        "rule_source": "SBC 2021 303.1.1; SBC 2021 Chapter 3",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Occupancy classification"
@@ -176,6 +188,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
+        "rule_source": "SBC 2021 Table 1006.2.1; SBC 2021 1006.3",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exits"
@@ -186,6 +200,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
+        "rule_source": "SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Toilet count"
@@ -196,6 +212,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
+        "rule_source": "SBC 2021 1005.3.2",
+        "rule_verified": true,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
@@ -206,6 +224,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
+        "rule_source": "SBC 2021 Table 2902.1",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Restroom sinks"

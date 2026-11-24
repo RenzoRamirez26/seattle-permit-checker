@@ -88,6 +88,8 @@
   },
   "rulebook": {
     "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
-    "edition_date": null
+    "edition_date": null,
+    "rules": 21,
+    "rules_unverified": 15
   }
 }

@@ -392,6 +392,18 @@ export interface components {
             /** Rule Id */
             rule_id: string;
             /**
+             * Rule Source
+             * @description The code edition and section the rule comes from, e.g. "SBC 2021 1010.1.1".
+             * @default
+             */
+            rule_source: string;
+            /**
+             * Rule Verified
+             * @description True only when this rule's values were read from the code text (rulebook: rules). False, the default, means still being checked. It never changes the status.
+             * @default false
+             */
+            rule_verified: boolean;
+            /**
              * Severity
              * @enum {string}
              */
@@ -656,6 +668,16 @@ export interface components {
              * @description The rulebook's edition date (_meta.edition_date), for the site's footer. null while the rulebook still holds the placeholder.
              */
             edition_date: string | null;
+            /**
+             * Rules
+             * @description How many rules the rulebook lists (rulebook: rules).
+             */
+            rules: number;
+            /**
+             * Rules Unverified
+             * @description How many of them still have values not checked against the code text. The site says some values are still being checked while this is above 0.
+             */
+            rules_unverified: number;
         };
         /** Space */
         Space: {

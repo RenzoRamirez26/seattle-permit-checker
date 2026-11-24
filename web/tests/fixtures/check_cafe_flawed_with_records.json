@@ -153,6 +153,8 @@
         "fix": "Place it far from the one you have, or make the public area smaller so the space holds 49 people or fewer.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
+        "rule_source": "SBC 2021 Table 1006.2.1; SBC 2021 1006.3",
+        "rule_verified": false,
         "severity": "critical",
         "status": "fail",
         "title": "Add a second exit"
@@ -163,6 +165,8 @@
         "fix": "Add a Type I hood and suppression system over the cooking line, or limit the menu to equipment that does not need one.",
         "reviewed_by": "SDCI Mechanical review",
         "rule_id": "MECH-1",
+        "rule_source": "SMC 2021 507; SFC 2021 904",
+        "rule_verified": false,
         "severity": "critical",
         "status": "fail",
         "title": "Add a Type I hood over the cooking line"
@@ -173,6 +177,8 @@
         "fix": "Ask the landlord whether the building has sprinklers and note it on the plan. If it has none, budget for a system or plan for fewer people.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-2",
+        "rule_source": "SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7",
+        "rule_verified": true,
         "severity": "critical",
         "status": "fail",
         "title": "Add a sprinkler system"
@@ -183,6 +189,8 @@
         "fix": "Re-hang the door to swing outward. Check that it doesn't block the sidewalk or a required clear space.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-2",
+        "rule_source": "SBC 2021 1010.1.2.1",
+        "rule_verified": true,
         "severity": "high",
         "status": "fail",
         "title": "Turn the exit door to swing outward: Door 1"
@@ -193,6 +201,8 @@
         "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
+        "rule_source": "SBC 2021 1010.1.1",
+        "rule_verified": true,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom 1 door (Restroom 1)"
@@ -203,6 +213,8 @@
         "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
+        "rule_source": "SBC 2021 1010.1.1",
+        "rule_verified": true,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom 2 door (Restroom 2)"
@@ -213,6 +225,8 @@
         "fix": "Add an illuminated exit sign at each required exit.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "FS-1",
+        "rule_source": "SBC 2021 1013.1",
+        "rule_verified": true,
         "severity": "high",
         "status": "fail",
         "title": "Add an exit sign at each exit"
@@ -223,6 +237,8 @@
         "fix": "Move furniture or fixtures to give 36 in. clear.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the aisle: Aisle A (between tables)"
@@ -233,6 +249,8 @@
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the restroom so a wheelchair can turn: Restroom 1"
@@ -243,6 +261,8 @@
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the restroom so a wheelchair can turn: Restroom 2"
@@ -253,6 +273,8 @@
         "fix": "Add a hand sink in the prep area (separate from the dish sink).",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-1",
+        "rule_source": "King County Board of Health Code Title 5; WAC 246-215",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Add a handwashing sink in the food prep area"
@@ -263,6 +285,8 @@
         "fix": "Mark accessible tables (knee clearance, 28-34 in. surface height) on the plan.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-4",
+        "rule_source": "SBC 2021 Chapter 11; 2010 ADA 226.1",
+        "rule_verified": false,
         "severity": "medium",
         "status": "review",
         "title": "Mark the accessible seats"
@@ -273,6 +297,8 @@
         "fix": "Show extinguisher locations; add a Class K unit at the cooking line.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
+        "rule_source": "SFC 2021 906.1; SFC 2021 906.4",
+        "rule_verified": false,
         "severity": "medium",
         "status": "review",
         "title": "Show the fire extinguishers"
@@ -283,6 +309,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
+        "rule_source": "SBC 2021 303.1.1; SBC 2021 Chapter 3",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Occupancy classification"
@@ -293,6 +321,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
+        "rule_source": "SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Toilet count"
@@ -303,6 +333,8 @@
         "fix": "",
         "reviewed_by": "SDCI Zoning review",
         "rule_id": "ZN-1",
+        "rule_source": "SMC Title 23",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Zoning: NC2-55 (M)"
@@ -313,6 +345,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
+        "rule_source": "SBC 2021 1005.3.2",
+        "rule_verified": true,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
@@ -323,6 +357,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
+        "rule_source": "SBC 2021 Table 2902.1",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Restroom sinks"
@@ -333,6 +369,8 @@
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-2",
+        "rule_source": "King County Board of Health Code Title 5; WAC 246-215",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Warewashing"

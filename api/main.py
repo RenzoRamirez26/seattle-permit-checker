@@ -106,8 +106,15 @@ def get_meta() -> dict:
                    "max_question_chars": config.MAX_QUESTION_CHARS, "max_history_turns": config.MAX_HISTORY_TURNS,
                    "check_days": config.check_days(), "max_audio_mb": config.max_audio_bytes() / 1024 / 1024,
                    "max_audio_seconds": config.MAX_AUDIO_SECONDS},
-        "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"]},
+        "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"],
+                     **rule_counts(rules())},
     }
+
+
+def rule_counts(rulebook: dict) -> dict[str, int]:
+    """How many rules the rulebook lists, and how many are not yet checked against the code text (not verified: true)."""
+    entries = {k: v for k, v in (rulebook.get("rules") or {}).items() if not k.startswith("_")}
+    return {"rules": len(entries), "rules_unverified": sum(v.get("verified") is not True for v in entries.values())}
 
 
 def edition_date(rulebook: dict) -> Optional[str]:
