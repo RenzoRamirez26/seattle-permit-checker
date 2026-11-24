@@ -4,20 +4,33 @@
  * /demo/, an uploaded PNG or JPG as an object URL, an uploaded PDF drawn by PDF.js. The file is held in
  * memory; after a refresh it is gone (D12) and the owner can choose it again to see it here.
  * Zoom with the buttons (keyboard and one hand) or by pinching.
+ * In: the example's id or the uploaded file, and the reading being changed or focused (`selected`).
+ * Out: the picture, with a caption above it naming the selected reading and, in words, where it is. The API gives
+ * no positions on the plan, only that "where" text, so nothing is drawn on the picture.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { FileTrigger } from "react-aria-components";
 import { Minus, Plus, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ANSWERS } from "@/content/facts";
 import { planFile } from "@/state/flow";
+import type { SelectedRow } from "./FactGroup";
+
+/** "Selected: Door 1. Where: main entry, south wall." */
+export function selectedWords(row: Pick<SelectedRow, "title" | "where">): string {
+  const end = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`);
+  const where = row.where?.trim() || ANSWERS.notMarked;
+  return `${ANSWERS.selected}: ${end(row.title)} ${ANSWERS.where}: ${end(where)}`;
+}
 
 const ZOOMS = [1, 1.5, 2, 3, 4];
 
-export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
+export function PlanViewer({ caseId, caseTitle, manual, fileName, selected }: {
   caseId?: string | null;
   caseTitle?: string | null;
   manual?: boolean;
   fileName?: string | null;
+  selected?: SelectedRow | null;
 }) {
   const file = useSyncExternalStore(planFile.subscribe, planFile.get, () => null);
   const [demo, setDemo] = useState<{ src: string; size: Size } | null>(null);
@@ -40,12 +53,19 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
 
   const label = caseId ? `Example floor plan: ${caseTitle ?? "example"}` : `Your floor plan${file ? `: ${file.name}` : ""}`;
   const hasPicture = !!(file || demo);
+  // Always in the page, so a screen reader hears each new selection; empty (and without its margin) when none.
+  const caption = (where: "above" | "below") => (
+    <div aria-live="polite" data-testid="plan-caption" className={where === "above" ? "not-empty:mb-4" : "not-empty:mt-4"}>
+      {selected ? <p className="m-0 rounded-2xl bg-tint p-4 break-words">{selectedWords(selected)}</p> : null}
+    </div>
+  );
 
   return (
     <section aria-labelledby="plan-heading" className="flex flex-col gap-4">
       <h2 id="plan-heading" className="m-0 text-section-heading">Your plan</h2>
       {hasPicture ? (
         <>
+          <div>
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Zoom the plan">
             <Button variant="secondary" className="min-h-11 px-3" isDisabled={zoom === 0} onPress={() => setZoom((z) => Math.max(0, z - 1))}>
               <Minus aria-hidden size={18} /> Zoom out
@@ -57,6 +77,8 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
               <Maximize2 aria-hidden size={16} /> Fit
             </Button>
             <span className="text-ink-muted nums" aria-live="polite">{Math.round(ZOOMS[zoom] * 100)}%</span>
+          </div>
+          {caption("below")}
           </div>
           <div
             role="region"
@@ -75,15 +97,18 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
           </div>
         </>
       ) : (
-        <div className="flex flex-col items-start gap-4 border border-dashed border-field p-6">
+        <div>
+        {caption("above")}
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed border-field p-6">
           <p className="m-0 measure">
             {manual
-              ? "There is no plan here because you are entering the measurements yourself. You can still choose your plan file to look at while you type. It stays in this browser and is not sent."
-              : `The plan is not kept after a refresh. Choose the file again to see it here.${fileName ? ` It was ${fileName}.` : ""}`}
+              ? "You're entering the measurements yourself, so there's no plan here. You can choose your plan file to look at while you type. It stays in this browser and isn't sent."
+              : `The plan isn't kept after a refresh. Choose the file again to see it here.${fileName ? ` It was ${fileName}.` : ""}`}
           </p>
           <FileTrigger acceptedFileTypes={["image/png", "image/jpeg", "application/pdf"]} onSelect={(files) => files?.[0] && planFile.set(files[0])}>
             <Button variant="secondary">Choose the plan file</Button>
           </FileTrigger>
+        </div>
         </div>
       )}
     </section>
@@ -147,6 +172,6 @@ function PdfPage({ file, label }: { file: File; label: string }) {
       cancelled = true;
     };
   }, [file]);
-  if (problem) return <p className="m-0 p-4">This PDF could not be shown here. The facts beside it were still read from it.</p>;
+  if (problem) return <p className="m-0 p-4">{"This PDF can't be shown here. The values beside it were still read from it."}</p>;
   return <canvas ref={canvas} role="img" aria-label={label} className="block h-auto w-full" />;
 }

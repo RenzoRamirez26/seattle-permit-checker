@@ -1,26 +1,33 @@
 "use client";
 /**
- * Step 3, "Check what we read from your plan": the plan in 7 columns, the facts in 5 (plan first on a phone).
- * The owner corrects anything wrong, then "Run the check" sends the confirmed facts, the business answers and
- * the place to POST /api/checks. The decision is the API's; this page only collects and sends.
+ * Step 3, "Answers" in the header ("Check what we read from your plan"): the plan in 7 columns, the answers in 5
+ * (plan first on a phone).
+ * In: the reading and the facts from sessionStorage (steps 2 and 3), the step 1 answers, the API's meta.
+ * Out: POST /api/checks with the confirmed facts, the business answers and the place, then the results page.
+ * The answers come in three groups: "Check these first" (readings the API left empty), "Also used in the check"
+ * (everything else) and "About your business" (step 1). The owner corrects anything wrong, then runs the check.
+ * The decision is the API's; this page only collects, shows and sends.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiProblem, call, type Facts } from "@/api/client";
+import { api, ApiProblem, call, type Facts, type Meta } from "@/api/client";
 import { errorWords } from "@/api/errors";
+import { questionsFor } from "@/app/business/BusinessPage";
 import { ErrorSummary, type ProblemItem } from "@/components/flow/ErrorSummary";
 import { ExampleAnswersNotice } from "@/components/flow/ExampleAnswersNotice";
 import { PageShell } from "@/components/flow/PageShell";
-import { FactsEditor } from "@/components/plan/FactGroup";
+import { FactsEditor, type SelectedRow } from "@/components/plan/FactGroup";
 import type { RowProblem } from "@/components/plan/FactRow";
 import { PlanViewer } from "@/components/plan/PlanViewer";
 import { useMeta } from "@/components/layout/Providers";
 import { Button } from "@/components/ui/button";
-import { SOURCE_WORDS } from "@/content/facts";
+import { QUESTIONS } from "@/content/business";
+import { ANSWERS, NOT_SURE, SOURCE_WORDS } from "@/content/facts";
 import { checkRequest } from "@/state/request";
-import { emptyFacts, flow, type Reading } from "@/state/flow";
+import { emptyFacts, flow, sameBusiness, type Answer, type Business, type Reading } from "@/state/flow";
 import { useHydrated } from "@/lib/hydrated";
+import { cn } from "@/lib/utils";
 
 export function CheckPage() {
   const hydrated = useHydrated();
@@ -50,7 +57,9 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
   const { meta } = useMeta();
   const [reading] = useState<Reading | null>(() => initialReading(enterYourself));
   const [facts, setFacts] = useState<Facts | null>(() => (reading ? (flow.facts() ?? reading.facts) : null));
+  const [business, setBusiness] = useState<Business | null>(() => flow.business());
   const [editing, setEditing] = useState<string | null>(null);
+  const [selected, setSelected] = useState<SelectedRow | null>(null);
   const [rowProblems, setRowProblems] = useState<RowProblem[]>([]);
   const [runProblems, setRunProblems] = useState<ProblemItem[]>([]);
   const [running, setRunning] = useState(false);
@@ -75,12 +84,19 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
     setRunProblems([]);
   }, []);
 
+  // "Keep my answers" in the example notice puts the owner's step 1 answers back, then moves focus to its message:
+  // read the answers again when that happens, so "About your business" shows the ones the check will use.
+  const rereadBusiness = () => {
+    const now = flow.business();
+    setBusiness((b) => (b && now && sameBusiness(b, now)) || b === now ? b : now);
+  };
+
   const run = async () => {
     const problems: ProblemItem[] = [];
-    const business = flow.business();
-    if (!business) problems.push({ text: "Answer what kind of business it is first.", href: "/business/" });
-    if (editing) problems.push({ text: "Save or cancel the change you are making first.", href: `#${editing}` });
-    if (problems.length || !facts || !business) {
+    const answers = flow.business();
+    if (!answers) problems.push({ text: ANSWERS.needBusiness, href: "/business/" });
+    if (editing) problems.push({ text: ANSWERS.saveFirst, href: `#${editing}` });
+    if (problems.length || !facts || !answers) {
       setRunProblems(problems);
       requestAnimationFrame(() => summary.current?.focus());
       return;
@@ -88,7 +104,7 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
     setRunning(true);
     setRunProblems([]);
     try {
-      const check = await call(() => api.POST("/api/checks", { body: checkRequest(facts, business) }));
+      const check = await call(() => api.POST("/api/checks", { body: checkRequest(facts, answers) }));
       flow.setCheckId(check.id);
       router.push(`/results/?check=${encodeURIComponent(check.id)}`);
     } catch (e) {
@@ -111,43 +127,86 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
         <NothingRead />
       ) : (
         <>
-        {reading.case_id ? <ExampleAnswersNotice meta={meta} /> : null}
+        {reading.case_id ? (
+          <div onFocus={rereadBusiness}>
+            <ExampleAnswersNotice meta={meta} />
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 gap-x-6 gap-y-12 lg:grid-cols-12">
           <div className="min-w-0 lg:col-span-7">
             <div className="lg:sticky lg:top-6">
-              <PlanViewer caseId={reading.case_id} caseTitle={caseTitle} manual={reading.source === "manual"} fileName={reading.file_name} />
+              <PlanViewer caseId={reading.case_id} caseTitle={caseTitle} manual={reading.source === "manual"} fileName={reading.file_name}
+                selected={selected} />
             </div>
           </div>
           <div className="min-w-0 lg:col-span-5">
-            <div className="flex flex-col gap-4">
-              <p className="m-0 measure">
-                {SOURCE_WORDS[reading.source]} Change anything that is wrong. Anything left as{" "}
-                <span className="font-medium text-blue">Not sure</span> becomes something to check with the city.
-              </p>
-              {facts.uncertainties.length ? (
-                <section aria-labelledby="unsure-heading" className="rounded-2xl bg-tint p-4">
-                  <h2 id="unsure-heading" className="m-0 text-body font-medium">What the reader was unsure about</h2>
-                  <ul className="m-0 mt-2 list-disc pl-5">
-                    {facts.uncertainties.map((u) => <li key={u}>{u}</li>)}
-                  </ul>
-                </section>
-              ) : null}
-            </div>
+            <p className="m-0 measure">
+              {SOURCE_WORDS[reading.source]} {ANSWERS.intro}
+            </p>
             <div className="mt-8">
               <FactsEditor facts={facts} original={reading.source === "manual" ? null : reading.facts} editing={editing}
-                setEditing={setEditing} onChange={change} onProblems={setRowProblems} />
+                setEditing={setEditing} onChange={change} onProblems={setRowProblems} onSelect={setSelected} />
             </div>
-            <div className="mt-12 flex flex-col items-start gap-4 border-t border-hairline pt-8">
-              <p className="m-0 measure">The check uses the values above, including any you changed.</p>
-              <Button variant="primary" onPress={run} pending={running} isDisabled={running}>
-                {running ? "Running the check…" : "Run the check"}
+            <AboutBusiness business={business} meta={meta} />
+            <div className="mt-12 flex flex-col items-start border-t border-hairline pt-8">
+              <p className="m-0 measure">{ANSWERS.runNote}</p>
+              <Button variant="primary" className="mt-4" onPress={run} pending={running} isDisabled={running}>
+                {running ? ANSWERS.running : ANSWERS.run}
               </Button>
+              {/* Said while the API runs the rules. Always in the page (empty when idle) so it is announced. */}
+              <p role="status" className="m-0 not-empty:mt-4">{running ? ANSWERS.runningStatus : null}</p>
             </div>
           </div>
         </div>
         </>
       )}
     </>
+  );
+}
+
+const answerWord = (a: Answer | undefined) => (a === true ? "Yes" : a === false ? "No" : NOT_SURE);
+
+/** The step 1 answers the check will use, as rows, with one way back to change them. */
+export function AboutBusiness({ business, meta }: { business: Business | null; meta: Meta | null }) {
+  const rows: { label: string; value: string; unsure?: boolean }[] = [];
+  if (business) {
+    const type = meta?.business_types.find((t) => t.key === business.business_type)?.label ?? business.business_type;
+    rows.push({ label: ANSWERS.businessType, value: type });
+    const { required, optional } = questionsFor(meta, business.business_type);
+    for (const k of [...required, ...optional]) {
+      const a = business[k];
+      rows.push({ label: QUESTIONS[k].label, value: answerWord(a), unsure: a === null || a === undefined });
+    }
+    if (business.address) rows.push({ label: ANSWERS.address, value: business.address });
+    else if (business.zone) rows.push({ label: ANSWERS.zone, value: business.zone });
+    else rows.push({ label: ANSWERS.noPlace, value: ANSWERS.notGiven });
+  }
+  return (
+    <section aria-labelledby="group-business" className="mt-12">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 id="group-business" className="m-0 text-section-heading">{ANSWERS.business}</h2>
+        {business ? (
+          <Link href="/business/" aria-label={ANSWERS.changeLabel}
+            className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full border border-field bg-white px-5 font-medium text-blue no-underline hover:border-ink">
+            {ANSWERS.change}
+          </Link>
+        ) : null}
+      </div>
+      {business ? (
+        <dl className="m-0" data-testid="business-answers">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-baseline justify-between gap-4 border-t border-hairline py-3">
+              <dt className="min-w-0 text-ink-muted">{r.label}</dt>
+              <dd className={cn("m-0 max-w-[55%] text-right break-words", r.unsure && "font-medium text-blue")}>{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="m-0 border-t border-hairline pt-4">
+          {ANSWERS.noBusiness} <Link href="/business/">{ANSWERS.answerThem}</Link>
+        </p>
+      )}
+    </section>
   );
 }
 

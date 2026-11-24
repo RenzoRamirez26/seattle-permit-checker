@@ -43,11 +43,11 @@ function fieldSchema(f: FieldSpec) {
         }
         const n = parseNumber(text);
         if (n === null) {
-          ctx.addIssue({ code: "custom", message: `Enter the ${lower(f.label)} as a number, or leave it empty if you are not sure.` });
+          ctx.addIssue({ code: "custom", message: `Enter the ${lower(f.label)} as a number, or leave it empty if you're not sure.` });
           return z.NEVER;
         }
         if (f.kind === "integer" && !Number.isInteger(n)) {
-          ctx.addIssue({ code: "custom", message: `Enter the ${lower(f.label)} as a whole number, or leave it empty if you are not sure.` });
+          ctx.addIssue({ code: "custom", message: `Enter the ${lower(f.label)} as a whole number, or leave it empty if you're not sure.` });
           return z.NEVER;
         }
         return n;

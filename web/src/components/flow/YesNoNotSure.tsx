@@ -1,5 +1,9 @@
 "use client";
-/** A Yes / No / Not sure question. "Not sure" is a real answer: it is sent as null and becomes "Check with the city". */
+/**
+ * A Yes / No / Not sure question, as three pill chips in a row (radio-group's horizontal variant).
+ * In: the label, hint, error and the current answer. Out: "yes", "no" or "unsure" through onChange.
+ * "Not sure" is a real answer: it is sent as null and becomes "Check with the city".
+ */
 import { RadioGroup } from "@/components/ui/radio-group";
 
 export type Tri = "yes" | "no" | "unsure" | "";

@@ -120,7 +120,7 @@ describe("errors", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(problems.mock.calls.some((c) => c[0].length === 1)).toBe(true));
     const [problem] = problems.mock.calls.find((c) => c[0].length === 1)![0];
-    expect(problem).toEqual({ id: "fact-doors-0-clear_width_in", text: "Door 1: Enter the clear width as a number, or leave it empty if you are not sure." });
+    expect(problem).toEqual({ id: "fact-doors-0-clear_width_in", text: "Door 1: Enter the clear width as a number, or leave it empty if you're not sure." });
     expect(document.getElementById(problem.id)).toBeTruthy();
     expect(screen.getAllByText(/Enter the clear width as a number/).length).toBeGreaterThan(0);
   });

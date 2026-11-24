@@ -80,7 +80,7 @@ export const GROUPS: GroupSpec[] = [
       { key: "label", label: "Name", kind: "text", nullable: false, isName: true },
       { key: "location", label: "Where on the plan", kind: "text", nullable: true, isWhere: true },
       { key: "clear_width_in", label: "Clear width", kind: "number", unit: IN, nullable: true,
-        hint: "The open space between the door frame and the open door, not the door leaf." },
+        hint: "The gap between the frame and the open door, not the width of the door itself." },
       { key: "is_exit", label: "Is it an exit to the outside?", kind: "yesno", nullable: false },
       { key: "swing", label: "Which way it opens", kind: "choice", nullable: false, choices: [
         { value: "outward", label: "Outward, away from the room" },
@@ -115,14 +115,14 @@ export const GROUPS: GroupSpec[] = [
       { key: "urinals", label: "Urinals", kind: "integer", nullable: true },
       { key: "lavatories", label: "Washbasins", kind: "integer", nullable: true },
       { key: "turning_circle_diameter_in", label: "Wheelchair turning circle", kind: "number", unit: IN, nullable: true,
-        hint: "The diameter of the turning circle drawn in the room." },
+        hint: "Measured across the circle drawn in the room." },
       { key: "door_clear_width_in", label: "Door clear width", kind: "number", unit: IN, nullable: true },
     ],
   },
   {
     id: "kitchen", title: "Kitchen", kind: "object", key: "kitchen", rowTitle: "Kitchen and food preparation",
     fields: [
-      { key: "cooking_appliances", label: "Cooking equipment", kind: "lines", nullable: false, hint: "One item a line." },
+      { key: "cooking_appliances", label: "Cooking equipment", kind: "lines", nullable: false, hint: "One item per line." },
       { key: "grease_producing_cooking", label: "Cooking that makes grease or smoke (fryer, grill, range)", kind: "yesno", nullable: true },
       { key: "type1_hood_shown", label: "Exhaust hood over the cooking line", kind: "yesno", nullable: true },
       { key: "hand_sinks", label: "Handwashing sinks", kind: "integer", nullable: true },
@@ -161,3 +161,40 @@ export const SOURCE_WORDS: Record<string, string> = {
 };
 
 export const NOT_SURE = "Not sure";
+
+/** The Answers page (step 3): its groups, notes and messages. Words only. */
+export const ANSWERS = {
+  intro: "Change anything that's wrong. Anything left as Not sure is listed under Check with the city.",
+  checkFirst: "Check these first",
+  unsureLine: "We're not sure we read this right.",
+  notes: "Noted while reading your plan",
+  alsoUsed: "Also used in the check",
+  /** Manual entry: nothing was read, so there is nothing to check first. */
+  used: "Your measurements",
+  /** A reading with nothing left empty: one group. */
+  usedAll: "Used in the check",
+  allAbove: "Listed above, under Check these first.",
+  noneRead: "None read from your plan.",
+  noneEntered: "None added yet.",
+  changed: "Changed by you. The check uses your values.",
+  where: "Where",
+  notMarked: "not marked on the plan",
+  selected: "Selected",
+  emptyHint: "Leave it empty if you're not sure.",
+  business: "About your business",
+  businessType: "Kind of business",
+  address: "Address",
+  zone: "Zone",
+  noPlace: "Address or zone",
+  notGiven: "Not given",
+  change: "Change",
+  changeLabel: "Change your answers about your business",
+  noBusiness: "You haven't answered the questions about your business yet.",
+  answerThem: "Answer them",
+  runNote: "The check uses these values, including your changes.",
+  run: "Run the check",
+  running: "Running the check…",
+  runningStatus: "Running Seattle's rules on your readings…",
+  needBusiness: "Answer what kind of business it is first.",
+  saveFirst: "Save or cancel your change first.",
+};
