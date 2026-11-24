@@ -11,7 +11,7 @@ const styles: Record<Variant, string> = {
   // The main button: one per page, blue, white text, 48 px tall, left-aligned.
   primary: "min-h-12 px-6 bg-blue text-white border border-blue data-[hovered]:bg-ink data-[hovered]:border-ink data-[pressed]:bg-ink",
   secondary: "min-h-12 px-4 bg-paper text-ink border border-field data-[hovered]:bg-white data-[hovered]:border-ink",
-  quiet: "min-h-11 px-2 -mx-2 bg-transparent text-blue underline underline-offset-[3px] decoration-1 data-[hovered]:decoration-2",
+  quiet: "min-h-11 min-w-11 px-2 -mx-2 bg-transparent text-blue underline underline-offset-[3px] decoration-1 data-[hovered]:decoration-2",
   danger: "min-h-12 px-4 bg-paper text-fix border border-fix data-[hovered]:bg-fix-tint",
 };
 
@@ -27,7 +27,8 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button({ var
     <AriaButton
       ref={ref}
       {...props}
-      isPending={pending}
+      data-pending={pending || undefined}
+      aria-busy={pending || undefined}
       className={cn(
         "inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm text-body font-semibold select-none",
         "transition-[background-color,border-color,text-decoration-thickness] duration-100",
@@ -37,7 +38,9 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button({ var
       )}
     >
       {pending ? <Loader2 aria-hidden className="animate-spin motion-reduce:animate-none" size={18} /> : null}
-      {children}
+      {/* The label itself changes while pending ("Running the check…"); a polite live region announces it.
+          React Aria's isPending is not used: its announcement points at the button and dangles once the page changes. */}
+      <span aria-live={pending !== undefined ? "polite" : undefined}>{children}</span>
     </AriaButton>
   );
 });

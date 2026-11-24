@@ -12,7 +12,7 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | 0. Skeleton | Finished | [stage-0](screenshots/stage-0/) |
 | 1. Check what we read | Finished | [stage-1](screenshots/stage-1/) |
 | 2. Start, business, plan, reading | Finished | [stage-2](screenshots/stage-2/) |
-| 3. Results and downloads | Not started | |
+| 3. Results and downloads | Finished | [stage-3](screenshots/stage-3/) |
 | 4. The assistant | Not started | |
 | 5. The map | Not started | |
 | 6. Voice | Not started | |
@@ -48,6 +48,13 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | D2-5 | An example plan opens through the Reading page (`/plan/reading/?example=<id>`) and sets that example's own answers (its business type, cooking, zone; the rest no). | Same path as an upload, and the example gives the same result as `python -m checker.audit` (11 / 2 / 6). |
 | D2-6 | Step 1 keeps a draft as it is typed (`precheck.business.draft`), so a refresh before Continue keeps the answers, and an unanswered question stays unanswered rather than turning into "Not sure". | Brief section 2: refresh keeps the work. |
 | D2-7 | "Take a photo of the plan" is shown on touch screens only (`pointer: coarse`). | On a laptop `capture` is ignored and the button would just open the file picker under a misleading name. |
+| D3-1 | "Ask about this" on each finding card is added in stage 4, with the assistant it opens. | A link that does nothing until stage 4 would be a dead control in the stage 3 commit. |
+| D3-2 | On phones the summary (counts, downloads, zoning) comes before the findings; on wide screens it is the sticky right-hand column (columns 9 to 12). | The main button, "Download the fix list (PDF)", would otherwise be below thirteen finding cards on a phone. |
+| D3-3 | Record lines are written from `local_review_data` as "Of N … , X (P%) …", with X = share × N rounded, which is the API's own share applied to the API's own count. | The brief's form ("Of 529 similar projects, 462 were sent back at least once"). It is arithmetic for display, not a decision. |
+| D3-4 | The zoning status words ("Likely allowed here", "Check with the city", "Not allowed here", "Could not tell") map the API's four zoning statuses, in `status.ts`. | The API sends codes, not words. |
+| D3-5 | React Aria's `isPending` is not used on buttons. The button shows a spinner and its label changes ("Running the check…"), announced by a polite live region. | axe found React Aria's pending announcement left a `role="img"` pointing at a label that no longer exists once the page changes (`role-img-alt`). |
+| D3-6 | Dates and numbers use the reader's own locale (`Intl` with no locale given). | Vercel: locale-aware dates. The plan's example "24 December 2026" is how a British-English browser shows it; a US browser shows "December 24, 2026". |
+| D3-7 | The delete confirmation's backdrop is Ink at 40% opacity. | A modal needs a scrim; it uses the ink token, not a new colour. |
 | B7 | `tests/test_web_guard.py` also checks the generated types (`openapi.sh --check`) and the fixtures (`make-fixtures.py --check`). | So a backend change that would break the front end fails `python -m pytest` too, not only CI. |
 
 ## Not testable in this environment
@@ -214,3 +221,54 @@ read [375](screenshots/stage-2/plan-read-375.png), [1280](screenshots/stage-2/pl
 failed [375](screenshots/stage-2/plan-failed-375.png), [1280](screenshots/stage-2/plan-failed-1280.png);
 refused before sending [375](screenshots/stage-2/plan-refused-375.png), [1280](screenshots/stage-2/plan-refused-1280.png);
 Reading [375](screenshots/stage-2/reading-375.png), [1280](screenshots/stage-2/reading-1280.png).
+
+---
+
+## Stage 3: Results and downloads (finished)
+
+**Built.** `/results/?check=<id>`: the counts sentence from `summary`; findings grouped Fix, Check with the city,
+then OK collapsed (React Aria Disclosure), each card with its status tag (icon and word on its tint), title,
+`detail`, "How to fix it", "Checked in Seattle's plan review by", and "Show the code reference" with the citation in
+Plex Mono; every card anchored `finding-<index>`. A sticky summary on wide screens: counts, business, occupant
+load, occupancy group, exits shown of required, the two PDF downloads (the main button is "Download the fix list
+(PDF)"), zoning in words (status tag, zone, address, detail, overlays, what to do). Then permits (with "May be
+needed" and the API's sentence when an answer was Not sure), Seattle's records as record lines (or a sentence that
+they are not loaded), notices, the disclaimer and code basis, and "This check is kept until <date>" with "Delete
+this check now…" (an alert dialog: Keep it, which has focus, or Delete the check; then Start says it was deleted).
+`components/results/status.ts` is the one file with the status literals.
+
+**Tested.**
+- `python -m pytest`: 149 passed (no backend change).
+- `npm test`: 30 passed. Each status has its word and icon; an unknown status shows "Check with the city", never OK; groups ordered Fix, Check with the city, OK, keeping each finding's position; counts wording; the page renders the groups in that order with OK collapsed (13 cards shown, 19 after opening); two `EG-3` findings get different anchors; the code reference is hidden until asked; both PDF links point at their API routes; "not loaded" sentence without records; three "May be needed" permits in the Not-sure fixture; the salon and the compliant café render; every record line starts "Of N".
+- `npm run e2e`: 35 passed (6 new). From an example plan through the real API: counts 11 / 2 / 6; group order; OK collapsed; code reference opens; both PDFs are served as `application/pdf` starting `%PDF-`; the summary stays in view while the findings scroll at 1280; the compliant café (0 to fix) and the salon (zone NR3) render; with Seattle's records (the API fixture served by interception) every line says how many permits it is based on; Not-sure answers show three "May be needed" permits and three items to check with the city; delete: the dialog focuses Keep it, Escape closes it and returns focus, Delete returns to Start with a status message, and the old address then says the check is no longer kept. axe at 375 and 1280 on every state (top, code reference and OK open, compliant, salon, records, Not sure, the dialog): zero violations, no `incomplete`.
+
+**Design review, brief section 12** (`/results/`, Start's deleted message).
+
+| Check | Result | How |
+|---|---|---|
+| Keyboard alone, focus visible | Yes | Disclosures and the dialog are React Aria; Escape closes the dialog and focus returns to its button (Playwright). |
+| axe | Yes | 0 violations. The one found on the way (`role-img-alt` from React Aria's pending announcement) is fixed (D3-5). |
+| Labels | Not applicable | No fields on this page. |
+| Contrast | Yes | Status words on their tints are the brief's pairs (5.6 to 1 or more); the zoning tag uses the same pairs. |
+| 44 px targets | Yes | Playwright; the quiet button got a 44 px minimum width after the check found "Fit" at 38 px wide. |
+| 320 px | Yes | Playwright. |
+| Assistant closed, voice off | Yes | The whole flow, Start to PDF, runs with no assistant (it does not exist yet). |
+| Refresh keeps entries | Yes | The results are reached by their URL (`?check=<id>`); a refresh fetches the same check. |
+| Screenshots | Yes | `docs/screenshots/stage-3/`. |
+
+**Vercel `AGENTS.md`.** Met: status never colour only (icon and word, `whitespace-nowrap` so the word stays with
+its icon); destructive action confirmed; `…` on "Delete this check now…" (it opens a follow-up); `Intl` for the
+expiry date and numbers; `tabular-nums` and Plex Mono for the figures; the URL carries the check id; headings and
+anchors have `scroll-margin-top`; `overscroll-behavior: contain` on the sticky summary and the dialog; long
+API text wraps (`break-words`). Not applicable: forms.
+
+**Not tested here.** Opening the PDFs in a phone's browser (they are served `inline`; the tests check the response).
+
+**Screenshots.** Flawed café: top [375](screenshots/stage-3/cafe-flawed-top-375.png), [1280](screenshots/stage-3/cafe-flawed-top-1280.png),
+full page [375](screenshots/stage-3/cafe-flawed-full-375.png), [1280](screenshots/stage-3/cafe-flawed-full-1280.png);
+a card with the code reference open [375](screenshots/stage-3/card-code-reference-375.png), [1280](screenshots/stage-3/card-code-reference-1280.png);
+the summary in view after scrolling [375](screenshots/stage-3/summary-sticky-375.png), [1280](screenshots/stage-3/summary-sticky-1280.png);
+compliant café [375](screenshots/stage-3/cafe-compliant-375.png), [1280](screenshots/stage-3/cafe-compliant-1280.png);
+with Seattle's records [375](screenshots/stage-3/with-records-375.png), [1280](screenshots/stage-3/with-records-1280.png)
+(without them: the top screenshots above, "not loaded on this server");
+delete confirmation [375](screenshots/stage-3/delete-confirm-375.png), [1280](screenshots/stage-3/delete-confirm-1280.png).

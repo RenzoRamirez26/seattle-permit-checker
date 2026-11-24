@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PageHeading } from "@/components/flow/PageHeading";
 import { useMeta } from "@/components/layout/Providers";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,13 @@ import { flow } from "@/state/flow";
 export function StartPage() {
   const { meta } = useMeta();
   const hydrated = useHydrated();
+  const deleted = useSearchParams().get("deleted") === "1";
   return (
     <div className="page-grid pt-12">
       <div className="col-question flex flex-col gap-8">
+        {deleted ? (
+          <p role="status" className="m-0 border-l-4 border-ok bg-ok-tint p-4 font-semibold text-ok">The check was deleted from the server.</p>
+        ) : null}
         <PageHeading className="start-heading">Check your floor plan before you apply</PageHeading>
         <p className="m-0 text-section-heading font-normal measure">
           Find out what a Seattle plan reviewer is likely to send back on a small-business floor plan, and which permits to expect, before you apply.
