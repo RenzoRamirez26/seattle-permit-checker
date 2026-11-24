@@ -225,3 +225,22 @@ test("F5: the plan picture has its width and height before it loads, for an exam
   expect(await upload.evaluate((img: HTMLImageElement) => [img.getAttribute("width"), img.getAttribute("height"), img.naturalWidth, img.naturalHeight]))
     .toEqual(["1076", "1321", 1076, 1321]);
 });
+
+test("Add a room starts with no use chosen and asks what it is used for; left unchosen, the check says the load is unknown", async ({ page }) => {
+  await seed(page, { caseId: "cafe_flawed" });
+  await page.goto("/check/");
+  await page.getByRole("button", { name: "Add a room" }).click();
+  const form = page.getByRole("form", { name: "Change New room" });
+  const used = form.getByRole("radiogroup", { name: "What is this room used for?" });
+  await expect(used).toBeVisible();
+  await expect(used.getByRole("radio", { checked: true })).toHaveCount(0);
+  await form.getByRole("textbox", { name: "Name" }).fill("Back room");
+  await form.getByRole("textbox", { name: "Floor area" }).fill("400");
+  await form.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Back room" })).toBeVisible();
+  const stored = await page.evaluate(() => JSON.parse(sessionStorage.getItem("precheck.facts")!).spaces.at(-1));
+  expect(stored.use).toBeNull();
+  await page.getByRole("button", { name: "Run the check" }).click();
+  await expect(page.getByTestId("counts")).toBeVisible();
+  await expect(page.getByText(/The use of Back room isn't known/).first()).toBeAttached();
+});

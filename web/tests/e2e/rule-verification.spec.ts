@@ -87,7 +87,10 @@ test("Start: the last step says some values are still being checked while the AP
   await page.goto("/");
   const strip = page.getByRole("list", { name: "How it works, in short" });
   await expect(strip.getByRole("listitem").last()).toHaveText(/Rules based on Seattle's code decide \(some values still being checked\)$/);
-  await expect(page.getByRole("region", { name: "How it works" })).toContainText("Some of their values are still being checked against the code.");
+  const how = page.getByRole("region", { name: "How it works" });
+  await expect(how).toContainText("Our team coded these rules from Seattle's building codes and other city requirements.");
+  const { rules: n, rules_unverified: u } = meta.rulebook;            // the count comes from /api/meta
+  await expect(how).toContainText(u === n ? `None of the ${n} rules is checked against the code text yet.` : `${u} of the ${n} rules`);
 });
 
 test("Start: with no unverified rules the last step is just Rules based on Seattle's code decide", async ({ page }) => {
@@ -98,4 +101,5 @@ test("Start: with no unverified rules the last step is just Rules based on Seatt
   const strip = page.getByRole("list", { name: "How it works, in short" });
   await expect(strip.getByRole("listitem").last()).toHaveText(/Rules based on Seattle's code decide$/);
   await expect(page.getByRole("region", { name: "How it works" })).not.toContainText("still being checked");
+  await expect(page.getByRole("region", { name: "How it works" })).toContainText(`All ${meta.rulebook.rules} rules are checked against the code text.`);
 });

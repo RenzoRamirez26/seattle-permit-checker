@@ -6,7 +6,7 @@
 import type { Permit } from "@/api/client";
 import { StatusTag } from "./StatusTag";
 import { CHECK_WITH_CITY } from "./status";
-import { UNVERIFIED_PERMIT } from "@/content/verification";
+import { UNVERIFIED_ENTRY, UNVERIFIED_PERMIT } from "@/content/verification";
 
 export function PermitList({ permits }: { permits: Permit[] }) {
   if (!permits.length) return <p className="m-0">No permits were listed for this check.</p>;
@@ -19,6 +19,7 @@ export function PermitList({ permits }: { permits: Permit[] }) {
             <span className="font-medium break-words">{p.name}</span>
             <span className="text-ink-muted break-words">{p.agency}</span>
             {p.rule_verified === false ? <span className="text-ink-muted break-words">{UNVERIFIED_PERMIT}</span> : null}
+            {p.entry_verified === false ? <span className="text-ink-muted break-words">{UNVERIFIED_ENTRY}</span> : null}
             {maybe ? (
               <span className="flex flex-col items-start gap-1">
                 <StatusTag status={CHECK_WITH_CITY} word="May be needed" />

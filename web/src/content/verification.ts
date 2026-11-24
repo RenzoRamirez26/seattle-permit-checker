@@ -4,17 +4,29 @@
  * claims more: a finding without rule_verified true, or a meta not yet loaded, gets the careful wording.
  */
 import type { Finding, Meta } from "@/api/client";
+import { formatNumber } from "@/lib/format";
 
 /** Under a finding whose rule value is still being checked, after its code section. */
 export const UNVERIFIED_FINDING = "This rule's value is still being checked against the code.";
 /** Under a permit the API listed because of a value still being checked (Permit.rule_verified false). */
 export const UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code.";
+/** Under a permit whose own entry is still being checked (Permit.entry_verified false), e.g. the salon licence. */
+export const UNVERIFIED_ENTRY = "This permit entry is still being checked against the agency's own rules.";
 /** One line in the In short band when any finding uses such a rule. */
 export const SOME_UNVERIFIED = "Some rule values are still being checked against the code.";
 /** The last step of Start's one-line strip, and the sentence that ends its full "How it works" step. */
 export const DECIDE = "Rules based on Seattle's code decide";
 export const DECIDE_UNVERIFIED = "Rules based on Seattle's code decide (some values still being checked)";
 export const DECIDE_TEXT_UNVERIFIED = "Some of their values are still being checked against the code.";
+/** Start's step 4: who wrote the rules, and how many are checked against the code text, from /api/meta's counts. */
+export const DECIDE_TEXT = "Our team coded these rules from Seattle's building codes and other city requirements. They list what to fix, what to check with the city and the permits to expect.";
+export function rulesCheckedWords(meta: Meta | null | undefined): string {
+  if (!meta) return DECIDE_TEXT_UNVERIFIED;
+  const { rules: n, rules_unverified: u } = meta.rulebook;
+  if (u === n) return `None of the ${formatNumber(n)} rules is checked against the code text yet.`;
+  if (u) return `${formatNumber(u)} of the ${formatNumber(n)} rules aren't checked against the code text yet.`;
+  return `All ${formatNumber(n)} rules are checked against the code text.`;
+}
 
 export const ruleUnverified = (f: Pick<Finding, "rule_verified">) => f.rule_verified !== true;
 export const usesUnverifiedRule = (findings: Pick<Finding, "rule_verified">[]) => findings.some(ruleUnverified);

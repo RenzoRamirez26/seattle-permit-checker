@@ -203,7 +203,7 @@ function RowForm({ rowId, fields, item, title, onCancel, onSave, onRemove, onPro
               : f.choices ?? [];
             return (
               <div id={fieldId(f.key)}>
-                <RadioGroup label={f.label} hint={f.hint} error={error} choices={choices} value={field.value}
+                <RadioGroup label={f.question ?? f.label} hint={f.hint} error={error} choices={choices} value={field.value}
                   onChange={field.onChange} orientation={f.kind === "yesno" ? "horizontal" : "vertical"} name={`${rowId}-${f.key}`} />
               </div>
             );

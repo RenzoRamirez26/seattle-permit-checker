@@ -13,19 +13,18 @@ import { PageHeading } from "@/components/flow/PageHeading";
 import { startOver } from "@/components/flow/startOver";
 import { useHydrated } from "@/lib/hydrated";
 import { useMeta } from "@/components/layout/Providers";
-import { DECIDE, DECIDE_TEXT_UNVERIFIED, DECIDE_UNVERIFIED, rulebookUnverified } from "@/content/verification";
+import { DECIDE, DECIDE_TEXT, DECIDE_UNVERIFIED, rulebookUnverified, rulesCheckedWords } from "@/content/verification";
 
 const EXAMPLE_PLAN = "cafe_flawed";
 
-const DECIDE_TEXT = "Rules we coded from Seattle's building codes list what to fix, what to check with the city and the permits to expect.";
 
 /** The four steps. The last one says some values are still being checked while /api/meta counts any unverified rule. */
-function howSteps(unverified: boolean) {
+function howSteps(unverified: boolean, checked: string) {
   return [
     { title: "You upload your plan", strip: "You upload your plan", text: "A PDF or a photo of the floor plan. The file is deleted as soon as it is read." },
     { title: "The model reads it", strip: "The model reads it", text: "It notes the rooms, doors, exits and fixtures it can see. It decides nothing." },
     { title: "You confirm", strip: "You confirm", text: "You check each reading against your plan and correct anything that is wrong." },
-    { title: DECIDE, strip: unverified ? DECIDE_UNVERIFIED : DECIDE, text: unverified ? `${DECIDE_TEXT} ${DECIDE_TEXT_UNVERIFIED}` : DECIDE_TEXT },
+    { title: DECIDE, strip: unverified ? DECIDE_UNVERIFIED : DECIDE, text: `${DECIDE_TEXT} ${checked}` },
   ];
 }
 
@@ -34,7 +33,7 @@ export function StartPage() {
   const generation = useSyncExternalStore(startOver.subscribe, startOver.get, () => 0);   // Start over empties the form
   const deleted = useSearchParams().get("deleted") === "1";
   const { meta } = useMeta();
-  const HOW = howSteps(rulebookUnverified(meta));
+  const HOW = howSteps(rulebookUnverified(meta), rulesCheckedWords(meta));
   return (
     <div className="flex flex-col">
       <section aria-labelledby="page-heading" className="bg-paper py-12 lg:py-16">
