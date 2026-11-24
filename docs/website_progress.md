@@ -296,7 +296,7 @@ API text wraps (`break-words`). Not applicable: forms.
 **Screenshots.** Flawed café: top [375](screenshots/stage-3/cafe-flawed-top-375.png), [1280](screenshots/stage-3/cafe-flawed-top-1280.png),
 full page [375](screenshots/stage-3/cafe-flawed-full-375.png), [1280](screenshots/stage-3/cafe-flawed-full-1280.png);
 a card with the code reference open [375](screenshots/stage-3/card-code-reference-375.png), [1280](screenshots/stage-3/card-code-reference-1280.png);
-the summary in view after scrolling [375](screenshots/stage-3/summary-sticky-375.png), [1280](screenshots/stage-3/summary-sticky-1280.png);
+the summary in view after scrolling (removed with the sticky summary column on `layout-permitos`);
 compliant café [375](screenshots/stage-3/cafe-compliant-375.png), [1280](screenshots/stage-3/cafe-compliant-1280.png);
 with Seattle's records [375](screenshots/stage-3/with-records-375.png), [1280](screenshots/stage-3/with-records-1280.png)
 (without them: the top screenshots above, "not loaded on this server");

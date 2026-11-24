@@ -1,5 +1,5 @@
 """
-Seattle Permit Pre-Check: the demo app.
+PermitOS: the demo app.
 
 This file is the entrypoint: page config, the header and the navigation. The pages live in
 app/pages_app/ (not app/pages/, so Streamlit's legacy page auto-discovery stays off); shared
@@ -29,9 +29,9 @@ except ImportError:
     pass
 from app import app_common as ac  # noqa: E402
 
-st.set_page_config(page_title="Seattle Permit Pre-Check (demo)", page_icon="📐", layout="wide")
+st.set_page_config(page_title="PermitOS (demo)", page_icon="📐", layout="wide")
 
-st.title("Seattle Permit Pre-Check")
+st.title("PermitOS")
 st.caption("A student prototype. It is a pre-submission check, not a code determination, and it is "
            "not affiliated with the City of Seattle.")
 

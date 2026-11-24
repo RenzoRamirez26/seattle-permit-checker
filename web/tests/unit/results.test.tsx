@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Check, Finding } from "@/api/client";
 import { groups, look, STATUS_ORDER } from "@/components/results/status";
 import { recordLines } from "@/components/results/RecordLines";
 import { countsSentence } from "@/components/results/CountsSentence";
+import { revealFinding } from "@/state/resultsTabs";
 import { fixture } from "./fixtures";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
@@ -38,16 +39,69 @@ describe("status words", () => {
 });
 
 describe("the results page", () => {
-  it("renders Fix, then Check with the city, then OK collapsed, with every finding anchored by its position", () => {
-    const check = flawed();
-    render(<Results check={check} />);
-    const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    expect(headings.indexOf("Fix before you apply (11)")).toBeLessThan(headings.indexOf("Check with the city (2)"));
-    expect(headings.indexOf("Check with the city (2)")).toBeLessThan(headings.findIndex((h) => h?.startsWith("OK")));
-    expect(screen.getByRole("button", { name: "OK (6)" }).getAttribute("aria-expanded")).toBe("false");
+  const tab = (name: string | RegExp) => screen.getByRole("tab", { name });
+
+  it("always shows Fix before you apply in full, then one tab row: Check with the city and OK, with their counts", () => {
+    render(<Results check={flawed()} />);
+    const fix = screen.getByRole("region", { name: "Fix before you apply (11)" });
+    expect(within(fix).getAllByRole("article")).toHaveLength(11);
+    const lists = screen.getAllByRole("tablist");
+    expect(lists.map((l) => l.getAttribute("aria-label"))).toEqual(["Summary", "Check with the city / OK"]);
+    expect(within(lists[0]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["In short", "Zoning", "Downloads"]);
+    expect(within(lists[1]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Check with the city (2)", "OK (6)"]);
+    expect(tab("In short").getAttribute("aria-selected")).toBe("true");
+    expect(tab("Check with the city (2)").getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel", { name: "Check with the city (2)" })).toBeTruthy();
     expect(shownCards()).toHaveLength(13);
-    fireEvent.click(screen.getByRole("button", { name: "OK (6)" }));
-    expect(shownCards()).toHaveLength(19);
+    fireEvent.click(tab("OK (6)"));
+    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    expect(shownCards()).toHaveLength(11 + 6);                          // Fix stays in full
+    expect(screen.queryByTestId("counts")).toBeTruthy();
+    fireEvent.click(tab("Downloads"));
+    expect(screen.queryByTestId("counts")).toBeNull();              // only the selected panel is shown
+  });
+
+  it("says when there is nothing to fix, and selects OK when there is nothing to check with the city", () => {
+    render(<Results check={fixture<Check>("check_cafe_compliant")} />);
+    const fix = screen.getByRole("region", { name: "Fix before you apply (0)" });
+    expect(within(fix).getByText("Nothing to fix before you apply.")).toBeTruthy();
+    expect(tab("Check with the city (0)").getAttribute("aria-selected")).toBe("false");
+    expect(tab(/^OK \(/).getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(tab("Check with the city (0)"));
+    expect(screen.getByText("Nothing to check with the city.")).toBeTruthy();
+  });
+
+  it("lists the five sections in order in the On this page landmark", () => {
+    render(<Results check={flawed()} />);
+    const navs = screen.getAllByRole("navigation", { name: "On this page" });
+    expect(navs).toHaveLength(2);                                     // the compact bar (phones) and the rail (wide)
+    const rail = navs.find((n) => within(n).queryAllByRole("link").length)!;
+    const items = within(rail).getAllByRole("link").map((a) => a.textContent);
+    expect(items).toEqual(["Your pre-check results", "Fix before you apply (11)", "Check with the city / OK",
+      "Permits and approvals to expect", "What Seattle’s records show about businesses like yours"]);
+    expect(within(rail).getAllByRole("link")[0].getAttribute("aria-current")).toBe("location");
+    expect(within(rail).getByText("0 of 5 sections seen")).toBeTruthy();
+  });
+
+  it("keeps the selected tabs for this check across a refresh", () => {
+    const check = flawed();
+    const first = render(<Results check={check} />);
+    fireEvent.click(tab("Zoning"));
+    fireEvent.click(tab("OK (6)"));
+    first.unmount();
+    render(<Results check={check} />);
+    expect(tab("Zoning").getAttribute("aria-selected")).toBe("true");
+    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("opens a finding's tab before scrolling to it when a link asks for it", async () => {
+    const check = flawed();
+    const okIndex = check.result.findings.findIndex((f) => f.status === "pass");
+    render(<Results check={check} />);
+    expect(document.getElementById(`finding-${okIndex}`)).toBeNull();
+    await act(async () => revealFinding(okIndex));
+    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    await waitFor(() => expect(document.activeElement?.id).toBe(`finding-${okIndex}`));   // after the old panel has gone
   });
 
   it("gives two findings with the same rule id different anchors", () => {
@@ -72,6 +126,7 @@ describe("the results page", () => {
 
   it("links the two PDFs to their API routes", () => {
     render(<Results check={flawed()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Downloads" }));
     expect(screen.getByRole("link", { name: "Download the fix list (PDF)" }).getAttribute("href")).toBe("http://api.test/api/checks/fixture-cafe_flawed/report.pdf");
     expect(screen.getByRole("link", { name: "Download the permit preparation sheet (PDF)" }).getAttribute("href")).toBe("http://api.test/api/checks/fixture-cafe_flawed/preparation-sheet.pdf");
   });

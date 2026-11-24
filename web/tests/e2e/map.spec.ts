@@ -76,7 +76,8 @@ test("results: the zoning card shows the pin, the outline and the zone's name as
   await page.route(`**/api/checks/${check.id}`, (route) => route.fulfill({ json: check, headers: CORS }));
   await serveZoning(page, z);
   await page.goto(`/results/?check=${check.id}`);
-  const card = page.locator("section[aria-labelledby=zoning]");
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  const card = page.getByRole("tabpanel", { name: "Zoning" });
   await expect(card).toContainText("Zone: NC2-55 (M)");
   await expect(card).toContainText("Address: 123 Example St, Seattle, WA");
   const map = card.getByRole("img", { name: "Map of 123 Example St, Seattle, WA with the outline of zone NC2-55 (M)" });
@@ -100,7 +101,8 @@ test("results: with no outline the map has the pin only, and with no point there
   await page.route(`**/api/checks/${check.id}`, (route) => route.fulfill({ json: check, headers: CORS }));
   await serveZoning(page, { ...z, outline: null });
   await page.goto(`/results/?check=${check.id}`);
-  const card = page.locator("section[aria-labelledby=zoning]");
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  const card = page.getByRole("tabpanel", { name: "Zoning" });
   await expect(card.getByRole("img")).toHaveAttribute("data-outline", "no");
   await expect(card.locator(".map-zone-label")).toHaveCount(0);
   await expect(card).toContainText("Zone: NC2-55 (M)");
@@ -118,7 +120,8 @@ test("a zone entered by hand gives no map and no zoning request", async ({ page 
   page.on("request", (r) => { if (r.url().includes("/api/zoning")) asked = true; });
   await page.goto("/plan/reading/?example=cafe_flawed");
   await page.getByRole("button", { name: "Run the check" }).click();
-  await expect(page.locator("section[aria-labelledby=zoning]")).toContainText("Zone: NC2-55 (M)");
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  await expect(page.getByRole("tabpanel", { name: "Zoning" })).toContainText("Zone: NC2-55 (M)");
   await expect(page.locator(".place-map")).toHaveCount(0);
   expect(asked).toBe(false);
 });

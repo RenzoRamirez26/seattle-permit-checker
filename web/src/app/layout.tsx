@@ -11,12 +11,12 @@ import { Assistant } from "@/components/assistant/Assistant";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: { default: "Seattle Permit Pre-Check", template: "%s | Seattle Permit Pre-Check" },
+  title: { default: "PermitOS", template: "%s | PermitOS" },
   description: "Check a small-business floor plan against Seattle's building code before you apply. A prototype, not a City of Seattle service.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf8f3",
+  themeColor: "#faf7f2",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

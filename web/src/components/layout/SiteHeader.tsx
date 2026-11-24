@@ -7,7 +7,7 @@ export function SiteHeader() {
       <div className="page-grid py-4">
         <p className="col-span-full m-0">
           <Link href="/" className="inline-flex min-h-11 items-center font-semibold text-ink no-underline hover:underline" translate="no">
-            Seattle Permit Pre-Check
+            PermitOS
           </Link>
         </p>
       </div>

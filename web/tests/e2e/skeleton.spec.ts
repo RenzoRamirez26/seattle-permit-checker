@@ -17,7 +17,7 @@ for (const [path, heading] of ROUTES) {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
     await expect(page).toHaveTitle(new RegExp(heading.replace(/[?]/g, "\\?")));
     const footer = page.getByRole("contentinfo");
-    await expect(footer).toContainText("A prototype by the Seattle Permit Pre-Check team. Not a City of Seattle service.");
+    await expect(footer).toContainText("A prototype by the PermitOS team. Not a City of Seattle service.");
     await expect(footer).not.toContainText("TODO");
     for (const width of WIDTHS) {
       await page.setViewportSize({ width, height: 900 });
@@ -70,6 +70,6 @@ test("F4: an address with no page gets its own title, its h1 and a 404", async (
   const res = await page.goto("/no-such-page/");
   expect(res?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("There is no page at this address");
-  await expect(page).toHaveTitle("There is no page at this address | Seattle Permit Pre-Check");
+  await expect(page).toHaveTitle("There is no page at this address | PermitOS");
   await expect(page.getByRole("link", { name: "Go to the start of the pre-check" })).toBeVisible();
 });

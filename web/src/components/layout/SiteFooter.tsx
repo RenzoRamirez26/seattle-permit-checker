@@ -16,7 +16,7 @@ export function SiteFooter() {
         <dl className="title-block col-span-full m-0 grid text-small text-ink-muted">
           <div>
             <dt className="font-semibold text-ink">Made by</dt>
-            <dd>A prototype by the Seattle Permit Pre-Check team. Not a City of Seattle service.</dd>
+            <dd>A prototype by the PermitOS team. Not a City of Seattle service.</dd>
           </div>
           <div>
             <dt className="font-semibold text-ink">Rulebook</dt>

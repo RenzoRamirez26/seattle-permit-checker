@@ -15,7 +15,7 @@ export function PageHeading({ children, className }: { children: React.ReactNode
     ref.current?.focus({ preventScroll: false });
   }, []);
   return (
-    <h1 ref={ref} tabIndex={-1} className={cn("text-page-heading m-0 outline-none", className)}>
+    <h1 ref={ref} id="page-heading" tabIndex={-1} className={cn("text-page-heading m-0 outline-none", className)}>
       {children}
     </h1>
   );

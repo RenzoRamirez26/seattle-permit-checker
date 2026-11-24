@@ -17,7 +17,7 @@ type Outline = Record<string, unknown> | null | undefined;
 const TILES = "/tiles/seattle.pmtiles";
 // MapLibre's production build, copied into public/ by scripts/copy-demo.mjs and loaded from our own site, not bundled (F6).
 const MAPLIBRE = "/maplibre-gl.mjs";
-const PAPER = "#faf8f3", INK = "#1b1f24", BLUE = "#1f4e8c", HAIRLINE = "#d9d4c8", FIELD = "#7c8691";
+const PAPER = "#faf7f2", INK = "#1d2430", BLUE = "#1f4e8c", HAIRLINE = "#e4ded3", FIELD = "#8a8f96";   // DESIGN.md colours
 
 /** Paper and ink: the Protomaps layers restyled to DESIGN.md, no labels (no glyphs are hosted). */
 function tileStyle(): object {
