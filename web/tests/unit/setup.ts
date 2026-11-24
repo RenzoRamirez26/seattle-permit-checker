@@ -5,3 +5,6 @@ afterEach(() => {
   cleanup();
   sessionStorage.clear();
 });
+
+// jsdom has no layout: scrolling is a no-op here.
+Element.prototype.scrollIntoView ??= function scrollIntoView() {};

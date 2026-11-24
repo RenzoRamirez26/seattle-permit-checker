@@ -28,6 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button({ var
       ref={ref}
       {...props}
       data-pending={pending || undefined}
+      data-main-action={variant === "primary" || undefined}
       aria-busy={pending || undefined}
       className={cn(
         "inline-flex cursor-pointer items-center justify-center gap-2 rounded-sm text-body font-semibold select-none",
@@ -40,7 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button({ var
       {pending ? <Loader2 aria-hidden className="animate-spin motion-reduce:animate-none" size={18} /> : null}
       {/* The label itself changes while pending ("Running the check…"); a polite live region announces it.
           React Aria's isPending is not used: its announcement points at the button and dangles once the page changes. */}
-      <span aria-live={pending !== undefined ? "polite" : undefined}>{children}</span>
+      <span className="inline-flex items-center gap-2" aria-live={pending !== undefined ? "polite" : undefined}>{children}</span>
     </AriaButton>
   );
 });

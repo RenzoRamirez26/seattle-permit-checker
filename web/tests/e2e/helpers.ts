@@ -34,6 +34,7 @@ export async function expectTouchTargets(page: Page) {
       const style = getComputedStyle(el);
       if (!r.width || !r.height || style.visibility === "hidden") return [];
       if (el.closest(".skip-link")) return [];
+      if (r.width <= 1 && r.height <= 1) return []; // visually hidden, for screen readers only (React Aria's "Dismiss")
       if ((el as HTMLInputElement).type === "radio" || (el as HTMLInputElement).type === "file") return []; // the whole card or label is the target
       const inline = el.tagName === "A" && style.display === "inline" && el.closest("p, li, dd");
       if (inline) return []; // a link inside a sentence (WCAG 2.5.8 inline exception)

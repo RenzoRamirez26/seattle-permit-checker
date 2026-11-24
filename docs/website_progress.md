@@ -13,7 +13,7 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | 1. Check what we read | Finished | [stage-1](screenshots/stage-1/) |
 | 2. Start, business, plan, reading | Finished | [stage-2](screenshots/stage-2/) |
 | 3. Results and downloads | Finished | [stage-3](screenshots/stage-3/) |
-| 4. The assistant | Not started | |
+| 4. The assistant | Finished | [stage-4](screenshots/stage-4/) |
 | 5. The map | Not started | |
 | 6. Voice | Not started | |
 
@@ -55,6 +55,13 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | D3-5 | React Aria's `isPending` is not used on buttons. The button shows a spinner and its label changes ("Running the check…"), announced by a polite live region. | axe found React Aria's pending announcement left a `role="img"` pointing at a label that no longer exists once the page changes (`role-img-alt`). |
 | D3-6 | Dates and numbers use the reader's own locale (`Intl` with no locale given). | Vercel: locale-aware dates. The plan's example "24 December 2026" is how a British-English browser shows it; a US browser shows "December 24, 2026". |
 | D3-7 | The delete confirmation's backdrop is Ink at 40% opacity. | A modal needs a scrim; it uses the ink token, not a new colour. |
+| D4-1 | On a wide screen the side panel is non-modal and the page makes room for it (the body gets right padding the width of columns 9 to 12), so it covers no field and no main button on any page, including step 3 whose facts sit in columns 8 to 12. Below 1024 px it is a modal sheet from the bottom. | Brief section 8: the panel never covers the fields or the main button. |
+| D4-2 | Closed, the Ask button moves up above the page's main button whenever that button would pass under it (main buttons carry `data-main-action`). | A fixed button at the bottom right would otherwise sit on top of a full-width main button on a phone while scrolling. Tested at six widths and every scroll position. |
+| D4-3 | Before a result, a typed question is matched to a help topic by its words; if none fits, the panel says it can only answer how the pre-check works and lists the questions it can answer. No request is made. | Plan: before a result, fixed help text only. |
+| D4-4 | After a result exists on this tab (`precheck.check`), the assistant asks the API on every page, not only on the results page; answer links open `/results/?check=<id>#finding-<n>` from other pages. | The check id is known; the API answers from that result only. |
+| D4-5 | "Ask about this" puts "Tell me more about “<title>”." in the question box and focuses it; nothing is sent until Send. | Brief: the owner stays in control; the same as a spoken question in stage 6. |
+| D4-6 | The conversation is kept in memory only; a refresh clears it. "Clear the conversation" is a button in the panel's footer rather than a menu. | A one-item menu adds a step for nothing. |
+| D4-7 | The API client looks up `fetch` when a request is made, not when it is created. | Lets unit tests stand in for `fetch`; no change in the browser. |
 | B7 | `tests/test_web_guard.py` also checks the generated types (`openapi.sh --check`) and the fixtures (`make-fixtures.py --check`). | So a backend change that would break the front end fails `python -m pytest` too, not only CI. |
 
 ## Not testable in this environment
@@ -272,3 +279,50 @@ compliant café [375](screenshots/stage-3/cafe-compliant-375.png), [1280](screen
 with Seattle's records [375](screenshots/stage-3/with-records-375.png), [1280](screenshots/stage-3/with-records-1280.png)
 (without them: the top screenshots above, "not loaded on this server");
 delete confirmation [375](screenshots/stage-3/delete-confirm-375.png), [1280](screenshots/stage-3/delete-confirm-1280.png).
+
+---
+
+## Stage 4: The assistant (finished)
+
+**Built.** The round Ask button (64 px, the word "Ask" under an icon) fixed at the bottom right; the side panel
+on wide screens (columns 9 to 12, non-modal, the page reflows beside it) and the bottom sheet on phones (React
+Aria Modal, focus kept inside). It slides in over 180 ms with `transform` only, and appears without sliding with
+reduced motion. The fixed line on what it can and cannot do; three or four ready-made questions per step from
+`src/content/help.ts` (answered from that fixed text before a result, with no request), four result questions
+after; `POST /api/checks/{id}/ask` with the recent history once a check exists; answers shown as text
+(`whitespace-pre-wrap`), each with links to every finding its cited rules point at ("Not enough exits (Fix)"),
+scrolling there and focusing the card (the sheet closes first on phones); "Written from your result by a
+template" or "by the model"; "Clear the conversation"; Ctrl or ⌘ and Enter sends; "Ask about this" on every
+finding card. `/help` shows the same help text as a page (D8).
+
+**Tested.**
+- `python -m pytest`: 149 passed (no backend change).
+- `npm test`: 34 passed (4 new). Closed until the Ask button is pressed, with focus moving in; before a result the help text answers and no request is made; a planted answer `<img src=x onerror=…>` is shown as characters, creates no image and runs nothing; a cited rule (`EG-3`) with two findings links to both; the request goes to `/api/checks/<id>/ask` with the question and history; "Ask about this" fills the box and sends nothing.
+- `npm run e2e`: 44 passed (9 new). It never opens by itself on any page, including results; keyboard: focus moves in on open and Escape closes and returns focus to Ask, for the panel and the sheet; closed, the Ask button never overlaps a main button at 320, 375, 640, 768, 1024 and 1280 px, scrolled through every 120 px of Start, step 1, step 2 and step 3; open at 1280 the panel is right of the facts and the Run button, and the check still runs with it open; step 1 suggestions answered from help with no request; on results the template answer links to its findings and the link scrolls and focuses the card (the sheet closes on a phone); "Ask about this" fills the box, Ctrl+Enter sends, Clear empties the conversation; the whole flow finishes with the assistant closed. axe with the panel open on step 1 and on results, at 375 and 1280: zero violations after one fix (`role="log"` had been put on the `<ol>`, which orphaned its list items).
+
+**Design review, brief section 12** (the assistant on every page, `/help`).
+
+| Check | Result | How |
+|---|---|---|
+| Keyboard alone, focus visible | Yes | Playwright: open with Enter, focus moves in, Escape closes, focus returns to Ask. |
+| axe | Yes | 0 violations, panel open, both widths. |
+| Labels | Yes | "Your question" is a visible label on the textarea; Close has an accessible name. |
+| Contrast | Yes | `DESIGN.md` pairs; the sheet's backdrop is Ink at 40% (D3-7). |
+| 44 px targets | Yes | Playwright, panel open at 375 (React Aria's visually hidden 1 px "Dismiss" buttons for screen readers are excluded from the check). |
+| 320 px | Yes | Playwright (stage 0 checks plus the cover test at 320). |
+| Assistant closed, voice off | Yes | The flow finishes with it closed (test); voice does not exist yet. |
+| Refresh keeps entries | Yes | Unchanged; the conversation itself is not kept, by design (D4-6). |
+| Screenshots | Yes | `docs/screenshots/stage-4/`. |
+
+**Vercel `AGENTS.md`.** Met: focus moved, kept (sheet) and returned per the dialog pattern; fixed element never
+covers focus or the main button (D4-2); in a textarea Ctrl/⌘+Enter submits; `overscroll-behavior: contain` on the
+sheet, the panel's message list and the backdrop; motion on `transform` only, honouring reduced motion, no
+`transition: all`; safe-area insets on the Ask button and the sheet; `aria-live="polite"` on the conversation;
+no `innerHTML` anywhere (guard). Paste is allowed; the question box has `maxLength` from `/api/meta`.
+
+**Not tested here.** Answers written by the model (no key here: every answer in the tests is the API's template
+answer, which goes through the same route and the same grounding check).
+
+**Screenshots.** Panel on step 1 [375](screenshots/stage-4/panel-step-1-375.png), [1280](screenshots/stage-4/panel-step-1-1280.png);
+panel on results with an answer and its links [375](screenshots/stage-4/panel-results-375.png), [1280](screenshots/stage-4/panel-results-1280.png);
+the sheet on a phone [375](screenshots/stage-4/sheet-results-375.png) ([1280](screenshots/stage-4/sheet-results-1280.png) shows the side panel).

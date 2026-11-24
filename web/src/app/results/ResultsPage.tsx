@@ -9,8 +9,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Dialog, Disclosure, DisclosurePanel, Heading, Modal, ModalOverlay, Button as AriaButton } from "react-aria-components";
-import { ChevronDown, Download, Trash2 } from "lucide-react";
-import { api, ApiProblem, call, reportUrl, sheetUrl, type Check } from "@/api/client";
+import { ChevronDown, Download, MessageCircleQuestion, Trash2 } from "lucide-react";
+import { assistant } from "@/state/assistant";
+import { api, ApiProblem, call, forgetCheck, loadCheck, reportUrl, sheetUrl, type Check } from "@/api/client";
 import { errorWords } from "@/api/errors";
 import { PageShell } from "@/components/flow/PageShell";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,8 @@ export function ResultsPage() {
   useEffect(() => {
     if (!id) return;
     let live = true;
-    call(() => api.GET("/api/checks/{check_id}", { params: { path: { check_id: id } } })).then(
+    flow.setCheckId(id);
+    loadCheck(id).then(
       (c) => live && setCheck(c),
       (e) => live && setProblem(e instanceof ApiProblem ? e.code : "network"),
     );
@@ -77,7 +79,7 @@ export function Results({ check }: { check: Check }) {
               <h2 id={`group-${g.status}`} className="m-0 flex items-center gap-2 text-section-heading">
                 {look(g.status).group} <span className="font-normal text-ink-muted nums">({g.items.length})</span>
               </h2>
-              {g.items.map(({ finding, index }) => <FindingCard key={index} finding={finding} index={index} />)}
+              {g.items.map(({ finding, index }) => <FindingCard key={index} finding={finding} index={index} actions={<AskAbout title={finding.title} />} />)}
             </section>
           ) : null,
         )}
@@ -97,7 +99,7 @@ export function Results({ check }: { check: Check }) {
                 </Heading>
                 <DisclosurePanel>
                   <div className="flex flex-col gap-4 pb-6">
-                    {ok.items.map(({ finding, index }) => <FindingCard key={index} finding={finding} index={index} />)}
+                    {ok.items.map(({ finding, index }) => <FindingCard key={index} finding={finding} index={index} actions={<AskAbout title={finding.title} />} />)}
                   </div>
                 </DisclosurePanel>
               </>
@@ -156,11 +158,11 @@ function Summary({ check }: { check: Check }) {
 
       <section aria-labelledby="downloads" className="flex flex-col items-start gap-4">
         <h2 id="downloads" className="m-0 text-section-heading">Downloads</h2>
-        <a href={reportUrl(check.id)} target="_blank" rel="noopener" className="inline-flex min-h-12 items-center gap-2 rounded-sm border border-blue bg-blue px-6 font-semibold text-white no-underline hover:border-ink hover:bg-ink">
-          <Download aria-hidden size={18} /> Download the fix list (PDF)
+        <a href={reportUrl(check.id)} target="_blank" rel="noopener" data-main-action className="inline-flex min-h-12 w-full items-center gap-2 rounded-sm border border-blue bg-blue px-4 py-2 font-semibold text-white no-underline hover:border-ink hover:bg-ink">
+          <Download aria-hidden size={18} className="shrink-0" /> Download the fix list (PDF)
         </a>
-        <a href={sheetUrl(check.id)} target="_blank" rel="noopener" className="inline-flex min-h-12 items-center gap-2 rounded-sm border border-field px-4 font-semibold text-ink no-underline hover:border-ink hover:bg-white">
-          <Download aria-hidden size={18} /> Download the permit preparation sheet (PDF)
+        <a href={sheetUrl(check.id)} target="_blank" rel="noopener" className="inline-flex min-h-12 w-full items-center gap-2 rounded-sm border border-field px-4 py-2 font-semibold text-ink no-underline hover:border-ink hover:bg-white">
+          <Download aria-hidden size={18} className="shrink-0" /> Download the permit preparation sheet (PDF)
         </a>
       </section>
 
@@ -185,6 +187,15 @@ function Summary({ check }: { check: Check }) {
   );
 }
 
+/** "Ask about this": opens the assistant with a question about this finding in the box. Nothing is sent until Send. */
+function AskAbout({ title }: { title: string }) {
+  return (
+    <Button variant="quiet" onPress={() => assistant.askAbout(`Tell me more about “${title}”.`)} aria-label={`Ask about this: ${title}`}>
+      <MessageCircleQuestion aria-hidden size={18} /> Ask about this
+    </Button>
+  );
+}
+
 function overlayWords(overlays: unknown): string[] {
   if (!overlays || typeof overlays !== "object") return [];
   return Object.entries(overlays as Record<string, unknown>).filter(([, v]) => v).map(([k, v]) => (typeof v === "string" ? v : k.replace(/_/g, " ")));
@@ -194,7 +205,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div className="flex items-baseline justify-between gap-4 border-t border-hairline py-2">
       <dt className="text-ink-muted">{label}</dt>
-      <dd className="m-0 text-right">{children}</dd>
+      <dd className="m-0 whitespace-nowrap text-right">{children}</dd>
     </div>
   );
 }
@@ -212,6 +223,7 @@ function KeptUntil({ check }: { check: Check }) {
     try {
       await call(() => api.DELETE("/api/checks/{check_id}", { params: { path: { check_id: check.id } } }));
       flow.setCheckId(null);
+      forgetCheck(check.id);
       router.push("/?deleted=1");
     } catch (e) {
       setProblem(errorWords(e instanceof ApiProblem ? e.code : "network"));

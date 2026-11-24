@@ -21,7 +21,8 @@ export type Answer = Schemas["Answer"];
 /** The API's address. Set NEXT_PUBLIC_API_BASE at build time; on your own computer it is uvicorn's default. */
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000").replace(/\/+$/, "");
 
-export const api = createClient<paths>({ baseUrl: API_BASE });
+// fetch is looked up when a request is made (not when the client is created), so tests can stand in for it.
+export const api = createClient<paths>({ baseUrl: API_BASE, fetch: (request) => globalThis.fetch(request) });
 
 /** An error the owner can be told about: the API's code (or "network" when the API did not answer). */
 export class ApiProblem extends Error {
@@ -53,3 +54,16 @@ export async function call<T>(request: () => Promise<{ data?: T; error?: unknown
 
 export const reportUrl = (id: string) => `${API_BASE}/api/checks/${encodeURIComponent(id)}/report.pdf`;
 export const sheetUrl = (id: string) => `${API_BASE}/api/checks/${encodeURIComponent(id)}/preparation-sheet.pdf`;
+
+const checks = new Map<string, Promise<Check>>();
+/** One GET /api/checks/{id} per check per page load, shared by the results page and the assistant. */
+export function loadCheck(id: string): Promise<Check> {
+  let p = checks.get(id);
+  if (!p) {
+    p = call(() => api.GET("/api/checks/{check_id}", { params: { path: { check_id: id } } }));
+    p.catch(() => checks.delete(id));
+    checks.set(id, p);
+  }
+  return p;
+}
+export const forgetCheck = (id: string) => checks.delete(id);

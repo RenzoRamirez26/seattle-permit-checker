@@ -7,6 +7,8 @@ import "@/styles/tokens.css";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { Providers } from "@/components/layout/Providers";
+import { Assistant } from "@/components/assistant/Assistant";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: { default: "Seattle Permit Pre-Check", template: "%s | Seattle Permit Pre-Check" },
@@ -31,6 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <SiteFooter />
+          <Suspense>
+            <Assistant />
+          </Suspense>
         </Providers>
       </body>
     </html>

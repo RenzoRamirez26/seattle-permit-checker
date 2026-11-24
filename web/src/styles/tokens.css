@@ -181,3 +181,27 @@
   /* Start page h1 only: IBM Plex Serif 400 (D2). Same sizes as every h1. */
   .start-heading { font-family: var(--font-serif); font-weight: 400; }
 }
+
+/* The assistant: the only thing that moves (brief section 11). Transform only, off with reduced motion. */
+:root { --panel-w: min(424px, 34vw); }
+.side-panel {
+  width: var(--panel-w);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 180ms ease-out, visibility 0s linear 180ms;
+}
+.side-panel[data-open] {
+  transform: none;
+  visibility: visible;
+  transition: transform 180ms ease-out, visibility 0s;
+}
+@media (min-width: 64rem) {
+  body[data-assistant="open"] { padding-right: var(--panel-w); }
+}
+.sheet[data-entering] { animation: sheet-in 180ms ease-out; }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .side-panel, .side-panel[data-open] { transition: none; }
+  .sheet[data-entering] { animation: none; }
+}
+.ask-button { margin-bottom: env(safe-area-inset-bottom); margin-right: env(safe-area-inset-right); }
