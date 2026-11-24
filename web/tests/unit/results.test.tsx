@@ -17,18 +17,18 @@ const shownCards = () => Array.from(document.querySelectorAll("article[id^=findi
 
 describe("status words", () => {
   it("shows each status as its word with an icon, and never shows review as OK", () => {
-    expect(look("fail").word).toBe("Fix");
+    expect(look("fail").word).toBe("Fix before you apply");
     expect(look("review").word).toBe("Check with the city");
-    expect(look("pass").word).toBe("OK");
-    for (const s of STATUS_ORDER) expect(look(s).Icon).toBeTruthy();
-    expect(look("something-new").word).toBe("Check with the city");   // an unknown status is never OK
+    expect(look("pass").word).toBe("No issues found");
+    expect(STATUS_ORDER.map((s) => look(s).mark)).toEqual(["fix", "city", "none"]);   // a different shape for each
+    expect(look("something-new").word).toBe("Check with the city");   // an unknown status is never "No issues found"
   });
 
   it("orders the groups Fix, Check with the city, OK and keeps each finding's position", () => {
     const f = flawed().result.findings;
     const shuffled = [f.find((x) => x.status === "pass")!, f.find((x) => x.status === "review")!, f.find((x) => x.status === "fail")!] as Finding[];
     const g = groups(shuffled);
-    expect(g.map((x) => look(x.status).word)).toEqual(["Fix", "Check with the city", "OK"]);
+    expect(g.map((x) => look(x.status).word)).toEqual(["Fix before you apply", "Check with the city", "No issues found"]);
     expect(g.map((x) => x.items.map((i) => i.index))).toEqual([[2], [1], [0]]);
   });
 
@@ -46,15 +46,15 @@ describe("the results page", () => {
     const fix = screen.getByRole("region", { name: "Fix before you apply (11)" });
     expect(within(fix).getAllByRole("article")).toHaveLength(11);
     const lists = screen.getAllByRole("tablist");
-    expect(lists.map((l) => l.getAttribute("aria-label"))).toEqual(["Summary", "Check with the city / OK"]);
+    expect(lists.map((l) => l.getAttribute("aria-label"))).toEqual(["Summary", "Check with the city / No issues found"]);
     expect(within(lists[0]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["In short", "Zoning", "Downloads"]);
-    expect(within(lists[1]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Check with the city (2)", "OK (6)"]);
+    expect(within(lists[1]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Check with the city (2)", "No issues found (6)"]);
     expect(tab("In short").getAttribute("aria-selected")).toBe("true");
     expect(tab("Check with the city (2)").getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("tabpanel", { name: "Check with the city (2)" })).toBeTruthy();
     expect(shownCards()).toHaveLength(13);
-    fireEvent.click(tab("OK (6)"));
-    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(tab("No issues found (6)"));
+    expect(tab("No issues found (6)").getAttribute("aria-selected")).toBe("true");
     expect(shownCards()).toHaveLength(11 + 6);                          // Fix stays in full
     expect(screen.queryByTestId("counts")).toBeTruthy();
     fireEvent.click(tab("Downloads"));
@@ -66,7 +66,7 @@ describe("the results page", () => {
     const fix = screen.getByRole("region", { name: "Fix before you apply (0)" });
     expect(within(fix).getByText("Nothing to fix before you apply.")).toBeTruthy();
     expect(tab("Check with the city (0)").getAttribute("aria-selected")).toBe("false");
-    expect(tab(/^OK \(/).getAttribute("aria-selected")).toBe("true");
+    expect(tab(/^No issues found \(/).getAttribute("aria-selected")).toBe("true");
     fireEvent.click(tab("Check with the city (0)"));
     expect(screen.getByText("Nothing to check with the city.")).toBeTruthy();
   });
@@ -77,7 +77,7 @@ describe("the results page", () => {
     expect(navs).toHaveLength(2);                                     // the compact bar (phones) and the rail (wide)
     const rail = navs.find((n) => within(n).queryAllByRole("link").length)!;
     const items = within(rail).getAllByRole("link").map((a) => a.textContent);
-    expect(items).toEqual(["Your pre-check results", "Fix before you apply (11)", "Check with the city / OK",
+    expect(items).toEqual(["Your pre-check results", "Fix before you apply (11)", "Check with the city / No issues found",
       "Permits and approvals to expect", "What Seattle’s records show about businesses like yours"]);
     expect(within(rail).getAllByRole("link")[0].getAttribute("aria-current")).toBe("location");
     expect(within(rail).getByText("0 of 5 sections seen")).toBeTruthy();
@@ -87,11 +87,11 @@ describe("the results page", () => {
     const check = flawed();
     const first = render(<Results check={check} />);
     fireEvent.click(tab("Zoning"));
-    fireEvent.click(tab("OK (6)"));
+    fireEvent.click(tab("No issues found (6)"));
     first.unmount();
     render(<Results check={check} />);
     expect(tab("Zoning").getAttribute("aria-selected")).toBe("true");
-    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    expect(tab("No issues found (6)").getAttribute("aria-selected")).toBe("true");
   });
 
   it("opens a finding's tab before scrolling to it when a link asks for it", async () => {
@@ -100,7 +100,7 @@ describe("the results page", () => {
     render(<Results check={check} />);
     expect(document.getElementById(`finding-${okIndex}`)).toBeNull();
     await act(async () => revealFinding(okIndex));
-    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    expect(tab("No issues found (6)").getAttribute("aria-selected")).toBe("true");
     await waitFor(() => expect(document.activeElement?.id).toBe(`finding-${okIndex}`));   // after the old panel has gone
   });
 

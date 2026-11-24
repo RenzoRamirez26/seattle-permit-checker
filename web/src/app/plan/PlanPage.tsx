@@ -120,20 +120,20 @@ function PlanBody() {
             if (item && item.kind === "file") choose(await item.getFile());
           }}
           className={cn(
-            "flex flex-col items-start gap-4 rounded-sm border-2 border-dashed p-6",
+            "flex flex-col items-start gap-4 rounded-2xl border-2 border-dashed p-6",
             dropping ? "border-blue bg-white" : fileError ? "border-fix" : "border-field",
             "data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue",
           )}
         >
-          {fileError ? <p className="m-0 font-semibold text-fix">{fileError}</p> : null}
+          {fileError ? <p className="m-0 font-medium text-fix">{fileError}</p> : null}
           {file ? (
             <Text slot="label" className="m-0 flex flex-col">
-              <span className="font-semibold">Chosen: <span className="break-all">{file.name}</span></span>
+              <span className="font-medium">Chosen: <span className="break-all">{file.name}</span></span>
               <span className="text-ink-muted nums">{sizeWords(file.size)}. It is sent only when you press Read my plan.</span>
             </Text>
           ) : state === "read" && reading ? (
             <Text slot="label" className="m-0 flex flex-col gap-2">
-              <span className="font-semibold">
+              <span className="font-medium">
                 Already read: {reading.file_name ?? meta?.demo_cases.find((c) => c.id === reading.case_id)?.title ?? "your plan"}.
               </span>
               <Link href="/check/" className="self-start">Check what we read</Link>
@@ -193,7 +193,7 @@ function OtherWays({ meta }: { meta: Meta | null }) {
 /** A server with no model key cannot read uploads: say so before the owner tries, and list the examples here on step 2. */
 function NoModelKey({ meta }: { meta: Meta }) {
   return (
-    <section aria-labelledby="no-model-key" className="flex flex-col gap-2 border-l-2 border-city bg-city-tint p-4">
+    <section aria-labelledby="no-model-key" className="flex flex-col gap-2 rounded-2xl bg-tint p-6">
       <p id="no-model-key" className="m-0">This server cannot read uploaded plans yet. You can still try an example plan, or enter the measurements yourself:</p>
       <WithoutReading meta={meta} />
     </section>

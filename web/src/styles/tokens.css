@@ -3,21 +3,24 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colour: paper and white, ink, one blue with its tab tint, three status pairs. Nothing else. */
-  --color-paper: #faf7f2;        /* warm paper: the page */
-  --color-white: #ffffff;        /* cards and panels */
-  --color-ink: #1d2430;          /* 14.6 : 1 on paper, 15.6 on white */
-  --color-ink-muted: #56606c;    /* 6.0 : 1 on paper, 6.4 on white, 5.5 on the tab tint */
-  --color-blue: #1f4e8c;         /* 7.8 : 1 on paper, 7.2 on the tab tint; white on it 8.3 : 1 */
-  --color-tab-tint: #e8eff8;     /* the selected tab, with blue text and a 3 px blue bottom border */
-  --color-fix: #b3261e;          /* 6.1 : 1 on paper, 5.6 on its tint */
-  --color-fix-tint: #fbeae7;
-  --color-city: #8a5a14;         /* 5.5 : 1 on paper, 5.3 on its tint */
-  --color-city-tint: #fbf1e2;
-  --color-ok: #256b45;           /* 6.0 : 1 on paper, 5.6 on its tint */
-  --color-ok-tint: #e7f3ec;
-  --color-field: #8a8f96;        /* 3.05 : 1 on paper, 3.3 on white: field and card borders */
+  /* Colour: one family. Warm paper and white, ink, one trust blue and its tint; red only marks something to fix.
+     Ratios are WCAG 2 contrast on each background the colour is used on (DESIGN.md, Colour; tested). */
+  --color-paper: #faf7f2;        /* the page */
+  --color-white: #ffffff;        /* cards, panels, the white zones */
+  --color-ink: #1d2430;          /* 14.6 : 1 on paper, 15.6 on white, 13.5 on tint */
+  --color-ink-muted: #56606c;    /* 6.0 : 1 on paper, 6.4 on white, 5.5 on tint */
+  --color-blue: #1f4e8c;         /* 7.8 : 1 on paper, 8.3 on white, 7.2 on tint; white on it 8.3 : 1 */
+  --color-tint: #e8eff8;         /* the blue tint: the selected tab, the summary zone, "Not sure" when selected */
+  --color-fix: #b3261e;          /* marks only, never a background: 6.1 : 1 on paper, 6.5 on white, 5.6 on tint */
   --color-hairline: #e4ded3;     /* dividers only */
+  --color-field: #8a8f96;        /* field and card borders: 3.05 : 1 on paper, 3.3 on white */
+  /* The dark records zone: ink with white text (15.6 : 1) and a muted line (#c9d3e0, 10.3 : 1). */
+  --color-band: #1d2430;
+  --color-band-text: #ffffff;
+  --color-band-muted: #c9d3e0;
+  /* Text on the blue hero: white (8.3 : 1) and a muted line (#c9d8ee, 5.8 : 1). */
+  --color-hero-text: #ffffff;
+  --color-hero-muted: #c9d8ee;
 
   /* shadcn's variable names, mapped onto the tokens only (DESIGN.md, Colour) */
   --color-background: var(--color-paper);
@@ -34,26 +37,25 @@
   --color-accent: var(--color-paper);
   --color-accent-foreground: var(--color-ink);
 
-  /* Type: Plex Sans for text, Plex Mono for code sections, permit numbers and measurements */
+  /* Type: Plex Sans for text, Plex Mono for code sections and measurements, Plex Serif for the Start headline only.
+     Three sizes, no more (tested): 48 page title (Light), 24 section heading (Medium), 17 everything else. */
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --font-serif: "IBM Plex Serif", Georgia, serif;   /* Start page h1 only (D2) */
+  --font-serif: "IBM Plex Serif", Georgia, serif;
 
-  --text-small: 0.875rem;        /* 14 / 20 */
-  --text-small--line-height: 1.25rem;
-  --text-body: 1.125rem;         /* 18 / 24 */
+  --text-title: 3rem;            /* 48 / 56 */
+  --text-title--line-height: 3.5rem;
+  --text-heading: 1.5rem;        /* 24 / 32 */
+  --text-heading--line-height: 2rem;
+  --text-body: 1.0625rem;        /* 17 / 24 */
   --text-body--line-height: 1.5rem;
-  --text-section: 1.5rem;        /* 24 / 32 */
-  --text-section--line-height: 2rem;
-  --text-page: 2rem;             /* 32 / 40 phones */
-  --text-page--line-height: 2.5rem;
-  --text-page-wide: 2.5rem;      /* 40 / 48 from 1024 px */
-  --text-page-wide--line-height: 3rem;
 
   /* 8 px unit; Tailwind's 4 px step gives the allowed gaps 1, 2, 4, 6, 8, 12, 16, 24 (4 to 96 px) */
   --spacing: 0.25rem;
-  --radius-sm: 2px;              /* [added, D11] */
-  --radius: 2px;
+  /* Shape: round means you can press it (pills); grouping containers 12 to 16 px; information is plain. */
+  --radius-pill: 999px;
+  --radius-group: 16px;
+  --radius-group-sm: 12px;
 
   --breakpoint-sm: 40rem;        /* 640 px: 8 columns */
   --breakpoint-lg: 64rem;        /* 1024 px: 12 columns */
@@ -135,18 +137,15 @@
   @media (min-width: 64rem) { .col-question { grid-column: 1 / span 7; } }
 
   .text-page-heading {
-    font-size: var(--text-page);
-    line-height: var(--text-page--line-height);
-    font-weight: 600;
+    font-size: var(--text-title);
+    line-height: var(--text-title--line-height);
+    font-weight: 300;
     text-wrap: balance;
   }
-  @media (min-width: 64rem) {
-    .text-page-heading { font-size: var(--text-page-wide); line-height: var(--text-page-wide--line-height); }
-  }
   .text-section-heading {
-    font-size: var(--text-section);
-    line-height: var(--text-section--line-height);
-    font-weight: 600;
+    font-size: var(--text-heading);
+    line-height: var(--text-heading--line-height);
+    font-weight: 500;
     text-wrap: balance;
   }
   .measure { max-width: 80ch; }

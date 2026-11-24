@@ -3,16 +3,17 @@
  * to its word, icon and colours, and orders the groups Fix, Check with the city, OK. It decides nothing:
  * `status` is always the API's. A status this file does not know is shown as "Check with the city", never OK.
  */
-import { CircleCheck, CircleHelp, CircleX, type LucideIcon } from "lucide-react";
 import type { Finding, Schemas } from "@/api/client";
+import type { Mark } from "./StatusIcon";
 
 export type Status = Finding["status"];
-type Look = { word: string; group: string; empty: string; Icon: LucideIcon; text: string; tint: string; border: string };
+/** word: the status name (CONTENT.md rule 11); mark: its shape-coded icon; text: the colour of its count. */
+type Look = { word: string; group: string; empty: string; mark: Mark; text: string };
 
 const LOOKS: Record<Status, Look> = {
-  fail: { word: "Fix", group: "Fix before you apply", empty: "Nothing to fix before you apply.", Icon: CircleX, text: "text-fix", tint: "bg-fix-tint", border: "border-fix" },
-  review: { word: "Check with the city", group: "Check with the city", empty: "Nothing to check with the city.", Icon: CircleHelp, text: "text-city", tint: "bg-city-tint", border: "border-city" },
-  pass: { word: "OK", group: "OK", empty: "No item was found to be fine.", Icon: CircleCheck, text: "text-ok", tint: "bg-ok-tint", border: "border-ok" },
+  fail: { word: "Fix before you apply", group: "Fix before you apply", empty: "Nothing to fix before you apply.", mark: "fix", text: "text-fix" },
+  review: { word: "Check with the city", group: "Check with the city", empty: "Nothing to check with the city.", mark: "city", text: "text-blue" },
+  pass: { word: "No issues found", group: "No issues found", empty: "No checks came back without an issue.", mark: "none", text: "text-ink-muted" },
 };
 
 /** Fix first, then Check with the city, then OK. */

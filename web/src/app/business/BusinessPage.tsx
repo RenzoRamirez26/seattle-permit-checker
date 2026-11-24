@@ -164,7 +164,7 @@ export function BusinessForm() {
           {({ isExpanded }) => (
             <>
               <Heading level={2} className="m-0">
-                <AriaButton slot="trigger" className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 py-2 text-left text-section-heading font-semibold">
+                <AriaButton slot="trigger" className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 py-2 text-left text-section-heading font-medium">
                   A few more questions (optional)
                   <ChevronDown aria-hidden size={24} className={cn("shrink-0", isExpanded && "rotate-180")} />
                 </AriaButton>

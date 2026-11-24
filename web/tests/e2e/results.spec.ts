@@ -28,7 +28,7 @@ test("the flawed café: counts, Fix always shown, the two tab rows, code referen
   const fix = page.getByRole("region", { name: "Fix before you apply (11)" });
   await expect(fix.getByRole("heading", { level: 2 })).toHaveText("Fix before you apply (11)");
   await expect(fix.locator("article")).toHaveCount(11);
-  await expect(page.getByRole("tablist", { name: "Check with the city / OK" }).getByRole("tab")).toHaveText(["Check with the city (2)", "OK (6)"]);
+  await expect(page.getByRole("tablist", { name: "Check with the city / No issues found" }).getByRole("tab")).toHaveText(["Check with the city (2)", "No issues found (6)"]);
   await expect(page.getByRole("tab", { name: "Check with the city (2)" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(13);
   await expect(page.getByText("Seattle’s review records are not loaded on this server", { exact: false })).toBeVisible();
@@ -46,7 +46,7 @@ test("the flawed café: counts, Fix always shown, the two tab rows, code referen
   await axeBoth(page, "results with code reference open");
   await card.scrollIntoViewIfNeeded();
   await shoot(page, "stage-3", "card-code-reference", { fullPage: false });
-  await page.getByRole("tab", { name: "OK (6)" }).click();
+  await page.getByRole("tab", { name: "No issues found (6)" }).click();
   await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(11 + 6);
   await expect(fix.locator("article")).toHaveCount(11);                         // the Fix section never hides
   await axeBoth(page, "results with OK selected");
@@ -70,13 +70,13 @@ test("the tabs work by keyboard, each panel is labelled by its tab, and the sele
   await expect(page.getByRole("tab", { name: "Zoning" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tabpanel", { name: "Zoning" })).toContainText("Zone: NC2-55 (M)");
   const cityTab = page.getByRole("tab", { name: "Check with the city (2)" });
-  const okTab = page.getByRole("tab", { name: "OK (6)" });
+  const okTab = page.getByRole("tab", { name: "No issues found (6)" });
   await cityTab.focus();
   await expect(page.getByRole("tabpanel", { name: "Check with the city (2)" }).locator("article")).toHaveCount(2);
   await page.keyboard.press("ArrowRight");
   await expect(okTab).toBeFocused();
   await expect(okTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel", { name: "OK (6)" }).locator("article")).toHaveCount(6);
+  await expect(page.getByRole("tabpanel", { name: "No issues found (6)" }).locator("article")).toHaveCount(6);
   await page.keyboard.press("Home");
   await expect(cityTab).toBeFocused();
   await expect(cityTab).toHaveAttribute("aria-selected", "true");
@@ -93,7 +93,7 @@ test("the tabs work by keyboard, each panel is labelled by its tab, and the sele
   await expect(okTab).toHaveAttribute("aria-selected", "true");
   await page.reload();
   await expect(page.getByRole("tab", { name: "Zoning" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tab", { name: "OK (6)" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "No issues found (6)" })).toHaveAttribute("aria-selected", "true");
   await axeBoth(page, "tabs after a refresh");
 });
 
@@ -104,7 +104,7 @@ test("a link to a finding in another tab opens that tab first, then scrolls to t
   const cityIndex = check.result.findings.findIndex((f: { status: string }) => f.status === "review");
   await page.goto("/help/");
   await page.goto(`/results/?check=${id}#finding-${okIndex}`);                    // a page load at the finding
-  await expect(page.getByRole("tab", { name: "OK (6)" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "No issues found (6)" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(`#finding-${okIndex}`)).toBeFocused();
   await expect(page.locator(`#finding-${okIndex}`)).toBeInViewport();
   await page.evaluate((i) => { window.location.hash = `finding-${i}`; }, cityIndex);   // the same page, a new finding
@@ -123,8 +123,8 @@ test("a link to a finding in another tab opens that tab first, then scrolls to t
   const dialog = page.getByRole("dialog", { name: "Ask about the pre-check" });
   await dialog.getByRole("textbox", { name: "Your question" }).fill("Which items passed?");
   await dialog.getByRole("button", { name: "Send" }).click();
-  await dialog.getByRole("link", { name: `${check.result.findings[okIndex].title} (OK)` }).click();
-  await expect(page.getByRole("tab", { name: "OK (6)" })).toHaveAttribute("aria-selected", "true");
+  await dialog.getByRole("link", { name: `${check.result.findings[okIndex].title} (No issues found)` }).click();
+  await expect(page.getByRole("tab", { name: "No issues found (6)" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(`#finding-${okIndex}`)).toBeFocused();
   await expect(page.locator(`#finding-${okIndex}`)).toBeInViewport();
 });
@@ -198,8 +198,8 @@ test("screenshots: PermitOS results tabs and palette", async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, 0));
   await shoot(page, "permitos", "results-zoning", { fullPage: false });
   await page.getByRole("tab", { name: "Downloads" }).click();
-  await page.getByRole("tab", { name: "OK (6)" }).click();
-  await page.getByRole("region", { name: "Check with the city / OK" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.getByRole("tab", { name: "No issues found (6)" }).click();
+  await page.getByRole("region", { name: "Check with the city / No issues found" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
   await shoot(page, "permitos", "results-tabs-ok", { fullPage: false });
   await page.getByRole("region", { name: "Permits and approvals to expect" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
   await page.waitForTimeout(200);
@@ -247,7 +247,7 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   expect(await railStates(page)).toEqual([
     ["Your pre-check results", "seen", null, true, true],
     ["Fix before you apply (11)", "seen", null, true, true],
-    ["Check with the city / OK", "seen", null, true, true],
+    ["Check with the city / No issues found", "seen", null, true, true],
     ["Permits and approvals to expect", "current", "location", false, false],
     ["What Seattle’s records show about businesses like yours", "next", null, false, false],
   ]);
@@ -264,8 +264,8 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   await expect(rail.locator('a[aria-current="location"]')).toHaveText("Fix before you apply (11)");
   await expect(rail.getByTestId("sections-seen")).toHaveText("1 of 5 sections seen");
 
-  await rail.getByRole("link", { name: "Check with the city / OK" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Check with the city / OK" })).toBeFocused();
+  await rail.getByRole("link", { name: "Check with the city / No issues found" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Check with the city / No issues found" })).toBeFocused();
   await rail.getByRole("link", { name: "Your pre-check results" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
   await expect(rail.getByTestId("sections-seen")).toHaveText("0 of 5 sections seen");

@@ -142,7 +142,7 @@ function AskButton({ ref, hidden }: { ref: React.Ref<HTMLButtonElement>; hidden:
       className="ask-button fixed right-4 bottom-4 z-40 flex size-16 cursor-pointer flex-col items-center justify-center rounded-full border border-blue bg-blue text-white hover:border-ink hover:bg-ink"
     >
       <MessageCircleQuestion aria-hidden size={22} />
-      <span className="text-small font-semibold">Ask</span>
+      <span className="font-medium">Ask</span>
     </button>
   );
 }
@@ -321,7 +321,7 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-        <p className="m-0 text-small text-ink-muted">{CAN_AND_CANNOT}</p>
+        <p className="m-0 text-ink-muted">{CAN_AND_CANNOT}</p>
 
         <div role="log" aria-live="polite" aria-label="Conversation">
         <ol ref={list} className="m-0 mt-4 flex list-none flex-col gap-4 p-0">
@@ -336,7 +336,7 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
 
         {!s.messages.length ? (
           <div className="mt-4 flex flex-col items-start gap-1">
-            <p className="m-0 text-small font-semibold">You could ask</p>
+            <p className="m-0 font-medium">You could ask</p>
             {suggestions.map((q) => (
               <Button key={q} variant="quiet" className="text-left" onPress={() => answerSuggestion(q)}>{q}</Button>
             ))}
@@ -346,7 +346,7 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
 
       <form className="flex flex-col gap-2 border-t border-hairline px-4 py-3"
         onSubmit={(e) => { e.preventDefault(); void send(text, { spoken: spokenNext }); setSpokenNext(false); }}>
-        <label htmlFor="assistant-question" className="font-semibold">Your question</label>
+        <label htmlFor="assistant-question" className="font-medium">Your question</label>
         <textarea
           id="assistant-question"
           ref={box}
@@ -363,19 +363,19 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
             }
           }}
           aria-describedby="assistant-hint"
-          className="block w-full resize-y rounded-sm border border-field bg-white px-3 py-2 text-body"
+          className="block w-full resize-y rounded-2xl border border-field bg-white px-4 py-3 text-body"
         />
         {mic.state === "recording" ? (
-          <p className="m-0 font-semibold nums" role="status">Recording {mic.seconds} s of {maxSeconds}. Press Stop when you have finished.</p>
+          <p className="m-0 font-medium nums" role="status">Recording {mic.seconds} s of {maxSeconds}. Press Stop when you have finished.</p>
         ) : mic.state === "converting" ? (
           <p className="m-0 text-ink-muted" role="status">Writing down what you said…</p>
         ) : mic.state === "problem" ? (
-          <p className="m-0 font-semibold text-fix" role="alert">{errorWords(mic.code)}</p>
+          <p className="m-0 font-medium text-fix" role="alert">{errorWords(mic.code)}</p>
         ) : spokenNext ? (
-          <p className="m-0 text-small text-ink-muted" role="status">These are the words heard. Correct them if needed, then press Send.</p>
+          <p className="m-0 text-ink-muted" role="status">These are the words heard. Correct them if needed, then press Send.</p>
         ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span id="assistant-hint" className="text-small text-ink-muted">Ctrl or ⌘ and Enter also sends.</span>
+          <span id="assistant-hint" className="text-ink-muted">Ctrl or ⌘ and Enter also sends.</span>
           <div className="flex items-center gap-2">
             {showMic ? (
               // One button that changes from Speak to Stop, so keyboard focus stays on it while recording.
@@ -402,8 +402,8 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
               }
             }} />
           <span>
-            <span className="font-semibold">Voice</span>
-            <span className="block text-small text-ink-muted">
+            <span className="font-medium">Voice</span>
+            <span className="block text-ink-muted">
               {meta?.features.speech_to_text ? "Speak questions and hear answers read aloud." : "Hear answers read aloud. Speaking questions is not available on this server."}
             </span>
           </span>
@@ -425,14 +425,14 @@ function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestio
 }) {
   if (m.role === "user") {
     return (
-      <li className="self-end max-w-[90%] rounded-sm border border-hairline bg-white px-3 py-2">
+      <li className="self-end max-w-[90%] rounded-2xl border border-hairline bg-white px-4 py-2">
         <span className="sr-only">You asked: </span>
         <span className="whitespace-pre-wrap break-words">{m.text}</span>
       </li>
     );
   }
   if (m.role === "problem") {
-    return <li className="font-semibold text-fix" role="alert">{m.text}</li>;
+    return <li className="font-medium text-fix" role="alert">{m.text}</li>;
   }
   const findings = check?.result.findings ?? [];
   const links = m.cited.flatMap((rule) => findings.map((f, i) => ({ f, i })).filter(({ f }) => f.rule_id === rule));
@@ -447,7 +447,7 @@ function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestio
       ) : null}
       {links.length ? (
         <div className="flex flex-col gap-1">
-          <span className="text-small font-semibold">From your result</span>
+          <span className="font-medium">From your result</span>
           <ul className="m-0 flex list-none flex-col p-0">
             {links.map(({ f, i }) => (
               <li key={i}>
@@ -473,7 +473,7 @@ function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestio
           ? <Button variant="quiet" className="self-start" onPress={voice.stop}><Square aria-hidden size={14} /> Stop reading</Button>
           : <Button variant="quiet" className="self-start" onPress={voice.read}><Volume2 aria-hidden size={16} /> Read aloud</Button>
       ) : null}
-      <span className="text-small text-ink-muted">
+      <span className="text-ink-muted">
         {m.by === "help" ? "From the pre-check's help text." : m.by === "template" ? "Written from your result by a template." : "Written from your result by the model."}
       </span>
     </li>

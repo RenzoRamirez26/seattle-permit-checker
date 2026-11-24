@@ -42,7 +42,7 @@ export function RecordLines({ data }: { data: ReviewData | null | undefined }) {
       <ul className="m-0 flex list-disc flex-col gap-2 pl-6 nums">
         {lines.map((l) => <li key={l} className="measure">{l}</li>)}
       </ul>
-      <p className="m-0 text-small text-ink-muted">Tenant build-outs (additions and alterations) only. Source: {data?.source ?? "City of Seattle open data"}.</p>
+      <p className="m-0 text-ink-muted">Tenant build-outs (additions and alterations) only. Source: {data?.source ?? "City of Seattle open data"}.</p>
     </div>
   );
 }

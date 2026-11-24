@@ -141,7 +141,7 @@ test("results: an answer from the API links to its findings and scrolls the page
   const log = panel(page).getByRole("log", { name: "Conversation" });
   await expect(log).toContainText("I found 11 problems and 2 items to confirm.");
   await expect(log).toContainText("Written from your result by a template.");
-  const link = log.getByRole("link", { name: "No Type I hood over cooking equipment (Fix)" });
+  const link = log.getByRole("link", { name: "No Type I hood over cooking equipment (Fix before you apply)" });
   await expect(link).toBeVisible();
   await axeBoth(page, "panel on results");
   await page.setViewportSize({ width: 1280, height: 900 });

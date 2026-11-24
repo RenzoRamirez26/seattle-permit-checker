@@ -13,20 +13,20 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-hairline">
       <div className="page-grid py-8">
-        <dl className="title-block col-span-full m-0 grid text-small text-ink-muted">
+        <dl className="title-block col-span-full m-0 grid text-ink-muted">
           <div>
-            <dt className="font-semibold text-ink">Made by</dt>
+            <dt className="font-medium text-ink">Made by</dt>
             <dd>A prototype by the PermitOS team. Not a City of Seattle service.</dd>
           </div>
           <div>
-            <dt className="font-semibold text-ink">Rulebook</dt>
+            <dt className="font-medium text-ink">Rulebook</dt>
             <dd>
               {edition ? <>Edition of <time dateTime={edition}>{formatDate(edition)}</time>. </> : null}
               {meta ? meta.rulebook.code_basis.split(";")[0] + "." : "Seattle building codes."}
             </dd>
           </div>
           <div>
-            <dt className="font-semibold text-ink">Help</dt>
+            <dt className="font-medium text-ink">Help</dt>
             <dd>
               <Link href="/help/">How the pre-check works</Link>
             </dd>

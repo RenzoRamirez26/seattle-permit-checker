@@ -66,9 +66,9 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
     <li id={rowId} className="border-t border-hairline py-4" aria-labelledby={`${rowId}-title`}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <div className="min-w-0">
-          <h3 id={`${rowId}-title`} className="m-0 text-body font-semibold break-words">{title}</h3>
+          <h3 id={`${rowId}-title`} className="m-0 text-body font-medium break-words">{title}</h3>
           {whereField ? (
-            <p className="m-0 text-small text-ink-muted">
+            <p className="m-0 text-ink-muted">
               {where ? <>Where: {where}</> : <>Where on the plan: {NOT_SURE.toLowerCase()}</>}
             </p>
           ) : null}
@@ -82,7 +82,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
       </div>
 
       {changed && !editing ? (
-        <p className="m-0 mt-2 text-small font-semibold text-blue">Changed by you. The check will use these values, not the ones read from the plan.</p>
+        <p className="m-0 mt-2 font-medium text-blue">Changed by you. The check will use these values, not the ones read from the plan.</p>
       ) : null}
 
       {editing ? (
@@ -95,7 +95,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
             return (
               <div key={f.key} className="flex items-baseline justify-between gap-4 py-1">
                 <dt className="min-w-0 text-ink-muted">{f.label}</dt>
-                <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-city font-semibold")}>{d.text}</dd>
+                <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-blue font-medium")}>{d.text}</dd>
               </div>
             );
           })}
@@ -155,7 +155,7 @@ function RowForm({ rowId, fields, item, title, onCancel, onSave, onRemove, onPro
   );
 
   return (
-    <form id={formId} noValidate className="mt-4 flex flex-col gap-6 border-l-2 border-blue pl-4"
+    <form id={formId} noValidate className="mt-4 flex flex-col gap-6 rounded-2xl border border-hairline bg-white p-4"
       aria-label={`Change ${title}`} onSubmit={(e) => { e.preventDefault(); void submit(); }}>
       {fields.map((f) => (
         <Controller key={f.key} name={f.key} control={control} render={({ field, fieldState }) => {

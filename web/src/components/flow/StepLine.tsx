@@ -3,7 +3,7 @@ const STEPS = ["Your business", "Your floor plan", "Check what we read", "Result
 
 export function StepLine({ step }: { step: 1 | 2 | 3 | 4 }) {
   return (
-    <p className="m-0 text-small text-ink-muted nums">
+    <p className="m-0 text-ink-muted nums">
       Step {step} of {STEPS.length}: {STEPS[step - 1]}
     </p>
   );

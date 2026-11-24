@@ -56,7 +56,7 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
             <Button variant="quiet" isDisabled={zoom === 0} onPress={() => setZoom(0)}>
               <Maximize2 aria-hidden size={16} /> Fit
             </Button>
-            <span className="text-small text-ink-muted nums" aria-live="polite">{Math.round(ZOOMS[zoom] * 100)}%</span>
+            <span className="text-ink-muted nums" aria-live="polite">{Math.round(ZOOMS[zoom] * 100)}%</span>
           </div>
           <div
             role="region"

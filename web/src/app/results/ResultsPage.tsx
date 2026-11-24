@@ -67,7 +67,7 @@ export function ResultsPage() {
 }
 
 const SUMMARY_TABS = ["short", "zoning", "downloads"] as const;
-const TABS_LABEL = "Check with the city / OK";
+const TABS_LABEL = "Check with the city / No issues found";
 
 export function Results({ check }: { check: Check }) {
   const r = check.result;
@@ -188,8 +188,8 @@ export function Results({ check }: { check: Check }) {
         </section>
       ) : null}
 
-      <section aria-labelledby="basis" className="flex flex-col gap-2 border-t border-hairline pt-8 text-small text-ink-muted">
-        <h2 id="basis" className="m-0 text-body font-semibold text-ink">About this result</h2>
+      <section aria-labelledby="basis" className="flex flex-col gap-2 border-t border-hairline pt-8 text-ink-muted">
+        <h2 id="basis" className="m-0 text-body font-medium text-ink">About this result</h2>
         <p className="m-0 measure">{r.disclaimer}</p>
         <p className="m-0 measure">Rules from: {r.code_basis}</p>
       </section>
@@ -228,10 +228,10 @@ function InShort({ check }: { check: Check }) {
 function Downloads({ check }: { check: Check }) {
   return (
     <div className="flex flex-col items-start gap-4">
-      <a href={reportUrl(check.id)} target="_blank" rel="noopener" data-main-action className="inline-flex min-h-12 w-full items-center gap-2 rounded-sm border border-blue bg-blue px-4 py-2 font-semibold text-white no-underline hover:border-ink hover:bg-ink sm:w-auto">
+      <a href={reportUrl(check.id)} target="_blank" rel="noopener" data-main-action className="inline-flex min-h-12 w-full items-center gap-2 rounded-full border border-blue bg-blue px-4 py-2 font-medium text-white no-underline hover:border-ink hover:bg-ink sm:w-auto">
         <Download aria-hidden size={18} className="shrink-0" /> Download the fix list (PDF)
       </a>
-      <a href={sheetUrl(check.id)} target="_blank" rel="noopener" className="inline-flex min-h-12 w-full items-center gap-2 rounded-sm border border-field bg-white px-4 py-2 font-semibold text-ink no-underline hover:border-ink sm:w-auto">
+      <a href={sheetUrl(check.id)} target="_blank" rel="noopener" className="inline-flex min-h-12 w-full items-center gap-2 rounded-full border border-field bg-white px-4 py-2 font-medium text-ink no-underline hover:border-ink sm:w-auto">
         <Download aria-hidden size={18} className="shrink-0" /> Download the permit preparation sheet (PDF)
       </a>
     </div>
@@ -245,14 +245,14 @@ function ZoningPanel({ check }: { check: Check }) {
   return (
     <div className="flex flex-col items-start gap-2" data-testid="zoning">
       <StatusTag status={zw.status} word={zw.word} />
-      <p className="m-0"><span className="text-ink-muted">Zone: </span><span className="font-mono font-semibold" translate="no">{z.district ?? "Not found"}</span></p>
+      <p className="m-0"><span className="text-ink-muted">Zone: </span><span className="font-mono font-medium" translate="no">{z.district ?? "Not found"}</span></p>
       {typeof z.address === "string" && z.address.trim() ? <p className="m-0 break-words"><span className="text-ink-muted">Address: </span>{z.address}</p> : null}
       <p className="m-0 break-words">{z.detail}</p>
       {typeof z.address === "string" && z.address.trim() ? <ZoningMap address={z.address} businessType={check.result.summary.business_type} zone={z.district} /> : null}
       {overlayWords(z.overlays).length ? (
         <p className="m-0 break-words"><span className="text-ink-muted">Overlays: </span>{overlayWords(z.overlays).join(", ")}</p>
       ) : null}
-      {typeof z.fix === "string" && z.fix ? <p className="m-0 break-words"><span className="font-semibold">What to do: </span>{z.fix}</p> : null}
+      {typeof z.fix === "string" && z.fix ? <p className="m-0 break-words"><span className="font-medium">What to do: </span>{z.fix}</p> : null}
     </div>
   );
 }
@@ -318,18 +318,18 @@ function KeptUntil({ check }: { check: Check }) {
 
   return (
     <section aria-labelledby="kept" className="flex flex-col items-start gap-2 border-t border-hairline pt-8">
-      <h2 id="kept" className="m-0 text-body font-semibold">Your check is kept for you</h2>
+      <h2 id="kept" className="m-0 text-body font-medium">Your check is kept for you</h2>
       <p className="m-0 measure">
         This check is kept until <time dateTime={check.expires_at}>{formatDate(check.expires_at)}</time>, so this page&rsquo;s address keeps working.
         Anyone with the address can open it. Your plan file itself was not kept.
       </p>
       <Button variant="danger" onPress={() => setOpen(true)}><Trash2 aria-hidden size={18} /> Delete this check now…</Button>
       <ModalOverlay isOpen={open} onOpenChange={setOpen} isDismissable className="fixed inset-0 z-50 grid place-items-center overscroll-contain bg-ink/40 p-4">
-        <Modal className="w-full max-w-lg rounded-sm border border-ink bg-paper p-6">
+        <Modal className="w-full max-w-lg rounded-2xl border border-hairline bg-white p-6">
           <Dialog role="alertdialog" className="flex flex-col gap-4 outline-none">
             <Heading slot="title" className="m-0 text-section-heading">Delete this check?</Heading>
             <p className="m-0">The results, the facts read from your plan and your answers are deleted from the server now. This cannot be undone.</p>
-            {problem ? <p role="alert" className="m-0 font-semibold text-fix">{problem}</p> : null}
+            {problem ? <p role="alert" className="m-0 font-medium text-fix">{problem}</p> : null}
             <div className="flex flex-wrap gap-4">
               <Button variant="danger" onPress={remove} pending={deleting} isDisabled={deleting} className="border-2">
                 {deleting ? "Deleting…" : "Delete the check"}

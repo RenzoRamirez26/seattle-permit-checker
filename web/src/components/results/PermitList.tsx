@@ -11,12 +11,12 @@ export function PermitList({ permits }: { permits: Permit[] }) {
         const maybe = (p as Permit & { may_be_needed?: string | null }).may_be_needed;
         return (
           <li key={p.id} className="flex flex-col gap-1 border-t border-hairline py-4">
-            <span className="font-semibold break-words">{p.name}</span>
+            <span className="font-medium break-words">{p.name}</span>
             <span className="text-ink-muted break-words">{p.agency}</span>
             {maybe ? (
               <span className="flex flex-col items-start gap-1">
                 <StatusTag status={CHECK_WITH_CITY} word="May be needed" />
-                <span className="text-small break-words">{maybe}</span>
+                <span className="break-words">{maybe}</span>
               </span>
             ) : null}
           </li>

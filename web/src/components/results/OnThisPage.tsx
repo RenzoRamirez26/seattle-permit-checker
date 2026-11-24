@@ -69,8 +69,8 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
   return (
     <div className="flex flex-col gap-2">
       <p className="m-0 flex flex-col">
-        <span className="font-semibold">On this page</span>
-        <span className="text-small text-ink-muted nums" data-testid="sections-seen">{current} of {sections.length} sections seen</span>
+        <span className="font-medium">On this page</span>
+        <span className="text-ink-muted nums" data-testid="sections-seen">{current} of {sections.length} sections seen</span>
       </p>
       <ol className="m-0 flex list-none flex-col p-0">
         {sections.map((s, i) => {
@@ -86,8 +86,8 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
                   onJump(i);
                 }}
                 className={cn(
-                  "flex min-h-11 items-start gap-2 border-l-[3px] py-2 pr-2 pl-3 text-small no-underline hover:underline",
-                  state === "current" ? "border-blue bg-tab-tint font-semibold text-blue" : "border-transparent text-ink",
+                  "flex min-h-11 items-start gap-2 rounded-full py-2 pr-3 pl-3 no-underline hover:underline",
+                  state === "current" ? "bg-tint font-medium text-blue" : "text-ink",
                 )}
               >
                 <span className="mt-0.5 flex w-4 shrink-0 justify-center">
@@ -127,12 +127,12 @@ export function OnThisPageBar({ sections, current }: { sections: PageSection[]; 
       <DialogTrigger isOpen={open} onOpenChange={setOpen}>
         <AriaButton
           aria-label={`On this page: ${words}`}
-          className="fixed bottom-4 left-4 right-24 z-30 flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-sm border border-field bg-white px-4 py-2 text-left text-small font-semibold text-ink data-[hovered]:border-ink data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue"
+          className="fixed bottom-4 left-4 right-24 z-30 flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-full border border-field bg-white px-4 py-2 text-left font-medium text-ink data-[hovered]:border-ink data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue"
         >
           <span className="nums">{words}</span>
           <ChevronUp aria-hidden size={18} className="shrink-0" />
         </AriaButton>
-        <Popover placement="top start" offset={8} className="w-[min(320px,calc(100vw-32px))] rounded-sm border border-field bg-white p-4">
+        <Popover placement="top start" offset={8} className="w-[min(320px,calc(100vw-32px))] rounded-2xl border border-hairline bg-white p-4">
           <Dialog aria-label="On this page" className="outline-none">
             <SectionList sections={sections} current={current} onJump={(i) => {
               setOpen(false);

@@ -122,11 +122,11 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
             <div className="flex flex-col gap-4">
               <p className="m-0 measure">
                 {SOURCE_WORDS[reading.source]} Change anything that is wrong. Anything left as{" "}
-                <span className="font-semibold text-city">Not sure</span> becomes something to check with the city.
+                <span className="font-medium text-blue">Not sure</span> becomes something to check with the city.
               </p>
               {facts.uncertainties.length ? (
-                <section aria-labelledby="unsure-heading" className="border-l-2 border-city bg-city-tint p-4">
-                  <h2 id="unsure-heading" className="m-0 text-body font-semibold">What the reader was unsure about</h2>
+                <section aria-labelledby="unsure-heading" className="rounded-2xl bg-tint p-4">
+                  <h2 id="unsure-heading" className="m-0 text-body font-medium">What the reader was unsure about</h2>
                   <ul className="m-0 mt-2 list-disc pl-5">
                     {facts.uncertainties.map((u) => <li key={u}>{u}</li>)}
                   </ul>

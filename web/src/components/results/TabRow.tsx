@@ -7,6 +7,7 @@
 import { Tab, TabList, TabPanel, Tabs, type Key } from "react-aria-components";
 import { cn } from "@/lib/utils";
 import { look } from "./status";
+import { StatusIcon } from "./StatusIcon";
 
 export type TabItem = { id: string; label: React.ReactNode; status?: string; panel: React.ReactNode };
 
@@ -29,15 +30,15 @@ export function TabRow({ label, items, selected, onSelect, className }: {
               data-tab={t.id}
               className={({ isSelected }) =>
                 cn(
-                  "-mb-px flex min-h-12 cursor-pointer items-center gap-2 border-b-[3px] px-4 py-2 font-semibold outline-none",
+                  "-mb-px flex min-h-12 cursor-pointer items-center gap-2 border-b-[3px] px-4 py-2 font-medium outline-none",
                   "data-[focus-visible]:outline-3 data-[focus-visible]:-outline-offset-3 data-[focus-visible]:outline-blue",
                   isSelected
-                    ? l ? cn(l.tint, l.text, l.border) : "border-blue bg-tab-tint text-blue"
+                    ? "border-blue bg-tint text-blue"
                     : "border-transparent text-ink data-[hovered]:bg-white",
                 )
               }
             >
-              {l ? <l.Icon aria-hidden size={18} strokeWidth={2.25} className="shrink-0" /> : null}
+              {l ? <StatusIcon mark={l.mark} /> : null}
               <span className="nums">{t.label}</span>
             </Tab>
           );

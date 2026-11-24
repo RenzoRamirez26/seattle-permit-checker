@@ -93,7 +93,7 @@ function Reading() {
   return (
     <div className="flex flex-col items-start gap-6">
       <p className="m-0" role="status">
-        Reading {what === "the example plan" ? what : <span className="break-all font-semibold">{what}</span>}. The next page shows what was read, for you to check.
+        Reading {what === "the example plan" ? what : <span className="break-all font-medium">{what}</span>}. The next page shows what was read, for you to check.
       </p>
       <Link href="/plan/" className="inline-flex min-h-11 items-center" onClick={() => controller.current?.abort()}>
         Cancel

@@ -21,7 +21,7 @@ export function StartPage() {
     <div className="page-grid pt-12">
       <div className="col-question flex flex-col gap-8">
         {deleted ? (
-          <p role="status" className="m-0 border-l-4 border-ok bg-ok-tint p-4 font-semibold text-ok">The check was deleted from the server.</p>
+          <p role="status" className="m-0 rounded-2xl bg-tint p-4 font-medium text-ink">The check was deleted from the server.</p>
         ) : null}
         <PageHeading className="start-heading">Check your floor plan before you apply</PageHeading>
         <p className="m-0 text-section-heading font-normal measure">
@@ -47,7 +47,7 @@ export function StartPage() {
           </ol>
         </section>
 
-        <p className="m-0 border-l-2 border-hairline pl-4 measure">
+        <p className="m-0 measure">
           This is a prototype, not a City of Seattle service. It does not approve anything: the city&rsquo;s plan reviewers decide.
           It checks the things it knows about and says where it cannot tell.
         </p>
@@ -72,7 +72,7 @@ export function StartPage() {
             <p className="m-0" aria-live="polite">Loading the examples…</p>
           )}
           {meta && !meta.features.model_api_key ? (
-            <p className="m-0 text-small text-ink-muted">On this server only the example plans can be read. You can also enter your own measurements by hand.</p>
+            <p className="m-0 text-ink-muted">On this server only the example plans can be read. You can also enter your own measurements by hand.</p>
           ) : null}
         </section>
       </div>

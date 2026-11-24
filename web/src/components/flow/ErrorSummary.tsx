@@ -11,7 +11,7 @@ export const ErrorSummary = forwardRef<HTMLDivElement, { title?: string; items: 
 ) {
   if (!items.length) return null;
   return (
-    <div ref={ref} tabIndex={-1} role="alert" aria-labelledby="error-summary-title" className="mb-8 border-2 border-fix bg-fix-tint p-4 outline-offset-4">
+    <div ref={ref} tabIndex={-1} role="alert" aria-labelledby="error-summary-title" className="mb-8 rounded-2xl border-2 border-fix bg-white p-4 outline-offset-4">
       <h2 id="error-summary-title" className="m-0 flex items-center gap-2 text-section-heading text-fix">
         <AlertCircle aria-hidden size={24} strokeWidth={2} />
         {title}
@@ -20,11 +20,11 @@ export const ErrorSummary = forwardRef<HTMLDivElement, { title?: string; items: 
         {items.map((item, i) => (
           <li key={item.id ?? i}>
             {item.href ? (
-              <a href={item.href} className="font-semibold text-fix" onClick={(e) => focusTarget(e, item.href!)}>
+              <a href={item.href} className="font-medium text-fix" onClick={(e) => focusTarget(e, item.href!)}>
                 {item.text}
               </a>
             ) : (
-              <span className="font-semibold text-fix">{item.text}</span>
+              <span className="font-medium text-fix">{item.text}</span>
             )}
             {item.action ? <span className="ml-2">{item.action}</span> : null}
           </li>
