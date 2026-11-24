@@ -8,7 +8,7 @@ Before starting, check that `main` contains `docs/website_plan.md` and `DESIGN.m
 
 Build the website on the branch `website-v1`. If the branch already exists, check it out and continue from `docs/website_progress.md`. Otherwise create it from `main`.
 
-Follow `docs/website_plan.md` stage by stage. `DESIGN.md`, `docs/design_brief.md` and `docs/deployment_kit.md` are the reference. Obey `CLAUDE.md`. Use the `frontend-design` skill for visual work and Impeccable for the checks.
+Follow `docs/website_plan.md` stage by stage. `DESIGN.md`, `docs/design_brief.md` and `docs/deployment_kit.md` are the reference. Obey `CLAUDE.md`. Use the `frontend-design` skill for visual work. For the checks, use a design review of each page against section 12 of `docs/design_brief.md` and the Vercel Web Interface Guidelines, plus an axe accessibility scan.
 
 ## Rules
 
@@ -21,7 +21,7 @@ Follow `docs/website_plan.md` stage by stage. `DESIGN.md`, `docs/design_brief.md
 ## After every stage
 
 1. Run `python -m pytest` and the front-end tests. Fix failures. Do not weaken or delete a test to make it pass.
-2. Run the guard check, the accessibility check, and Impeccable's audit and critique. Fix what they find.
+2. Run the guard check, then a design review of each page against section 12 of `docs/design_brief.md` and the Vercel Web Interface Guidelines, plus an axe accessibility scan. Fix what they find.
 3. Save screenshots at 375 px and 1280 px wide under `docs/screenshots/<stage>/`.
 4. Update `docs/website_progress.md`: each stage marked finished, partly finished or not started; what was tested; what could not be tested here; any decision you made that the plan did not cover.
 5. Commit and push.
