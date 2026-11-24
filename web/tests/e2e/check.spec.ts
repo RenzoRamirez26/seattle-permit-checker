@@ -41,6 +41,34 @@ for (const caseId of ["cafe_flawed", "cafe_compliant", "salon_flawed"]) {
   });
 }
 
+for (const caseId of ["cafe_flawed", "cafe_compliant", "salon_flawed"]) test(`D1: in the ${caseId} reading a one-word value never breaks mid-word, even beside a long label, at 375 and 1280 px`, async ({ page }) => {
+  await seed(page, { caseId, business: caseId.startsWith("salon") ? SALON_BUSINESS : undefined });
+  await page.goto("/check/");
+  await expect(page.getByRole("button", { name: "Run the check" })).toBeVisible();
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: 900 });
+    // Each value with no space in it must sit on one line: its text has a single line box.
+    const broken = await page.evaluate(() => Array.from(document.querySelectorAll("li[id] dl dd")).flatMap((dd) => {
+      const text = (dd.textContent ?? "").trim();
+      if (!text || /\s/.test(text)) return [];
+      const range = document.createRange();
+      range.selectNodeContents(dd);
+      const lines = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
+      return lines.size > 1 ? [`${dd.previousElementSibling?.textContent}: ${text} (${lines.size} lines)`] : [];
+    }));
+    expect(broken, `values broken mid-word at ${width} px`).toEqual([]);
+    if (caseId.startsWith("cafe")) {
+      // The long kitchen label wraps instead, and the value beside it stays whole.
+      const row = page.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Cooking that makes grease or smoke/ }) }).first();
+      await expect(row.locator("dd")).toHaveText("Yes");
+      const dd = await row.locator("dd").boundingBox();
+      expect(dd!.height, `kitchen value at ${width} px`).toBeLessThan(30);   // one 24 px line
+    }
+    if (process.env.SHOTS && width === 375) await page.screenshot({ path: `test-results/d1-${caseId}-375.png`, fullPage: true });
+  }
+  await expectNoSidewaysScroll(page);
+});
+
 test("the flawed café, unchanged, gives the same counts as python -m checker.audit", async ({ page }) => {
   const cli = auditCli();
   expect(cli).toMatchObject({ fails: 11, reviews: 2, passes: 6 });

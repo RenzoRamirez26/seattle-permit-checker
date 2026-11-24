@@ -95,7 +95,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
             return (
               <div key={f.key} className="flex items-baseline justify-between gap-4 py-1">
                 <dt className="min-w-0 text-ink-muted">{f.label}</dt>
-                <dd className={cn("m-0 min-w-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-city font-semibold")}>{d.text}</dd>
+                <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-city font-semibold")}>{d.text}</dd>
               </div>
             );
           })}
