@@ -10,8 +10,14 @@ const out = join(web, "public", "demo");
 mkdirSync(out, { recursive: true });
 const cases = JSON.parse(readFileSync(join(demo, "cases.json"), "utf8"));
 for (const c of cases) copyFileSync(join(demo, c.plan), join(out, c.plan));
-// Which picture belongs to which example plan: ids and file names only (no answers, no planted problems).
-writeFileSync(join(out, "plans.json"), JSON.stringify(Object.fromEntries(cases.map((c) => [c.id, c.plan]))) + "\n");
+// Which picture belongs to which example plan: ids, file names and pixel sizes only (no answers, no planted problems).
+// The size lets step 3 give the <img> its width and height, so the page does not move when the picture arrives.
+function pngSize(path) {
+  const b = readFileSync(path);
+  if (b.toString("latin1", 1, 4) !== "PNG") throw new Error(`${path} is not a PNG`);
+  return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+}
+writeFileSync(join(out, "plans.json"), JSON.stringify(Object.fromEntries(cases.map((c) => [c.id, { file: c.plan, ...pngSize(join(demo, c.plan)) }]))) + "\n");
 const worker = join(web, "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs");
 if (existsSync(worker)) copyFileSync(worker, join(web, "public", "pdf.worker.min.mjs"));
 // MapLibre draws GeoJSON (the zone outline) in a web worker, served from our own site.

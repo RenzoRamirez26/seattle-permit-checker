@@ -204,3 +204,22 @@ test("screenshots: stage 1", async ({ page }) => {
   await axeBoth(page, "row in Change state");
   await shoot(page, "stage-1", "row-change", { fullPage: false });
 });
+
+test("F5: the plan picture has its width and height before it loads, for an example and for an uploaded file", async ({ page }) => {
+  await seed(page, { caseId: "cafe_flawed" });
+  await page.goto("/check/");
+  const example = page.getByRole("img", { name: /^Example floor plan:/ });
+  await expect(example).toBeVisible();
+  const sizes = await example.evaluate((img: HTMLImageElement) => [img.getAttribute("width"), img.getAttribute("height"), img.naturalWidth, img.naturalHeight]);
+  expect(sizes).toEqual([String(sizes[2]), String(sizes[3]), sizes[2], sizes[3]]);
+  expect(sizes[2]).toBeGreaterThan(100);
+
+  await page.goto("/check/?enter=yourself");
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Choose the plan file" }).click();
+  await (await chooser).setFiles(join(root, "demo", "salon_flawed_plan.png"));
+  const upload = page.getByRole("img", { name: "Your floor plan: salon_flawed_plan.png" });
+  await expect(upload).toBeVisible();
+  expect(await upload.evaluate((img: HTMLImageElement) => [img.getAttribute("width"), img.getAttribute("height"), img.naturalWidth, img.naturalHeight]))
+    .toEqual(["1076", "1321", 1076, 1321]);
+});

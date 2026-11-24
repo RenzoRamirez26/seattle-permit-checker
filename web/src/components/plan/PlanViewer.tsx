@@ -20,7 +20,7 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
   fileName?: string | null;
 }) {
   const file = useSyncExternalStore(planFile.subscribe, planFile.get, () => null);
-  const [demoSrc, setDemoSrc] = useState<string | null>(null);
+  const [demo, setDemo] = useState<{ src: string; size: Size } | null>(null);
   const [zoom, setZoom] = useState(0);
 
   useEffect(() => {
@@ -28,7 +28,10 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
     let live = true;
     fetch("/demo/plans.json")
       .then((r) => r.json())
-      .then((plans: Record<string, string>) => live && plans[caseId] && setDemoSrc(`/demo/${plans[caseId]}`))
+      .then((plans: Record<string, { file: string } & Size>) => {
+        const p = plans[caseId];
+        if (live && p) setDemo({ src: `/demo/${p.file}`, size: { width: p.width, height: p.height } });
+      })
       .catch(() => undefined);
     return () => {
       live = false;
@@ -36,7 +39,7 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
   }, [caseId]);
 
   const label = caseId ? `Example floor plan: ${caseTitle ?? "example"}` : `Your floor plan${file ? `: ${file.name}` : ""}`;
-  const hasPicture = !!(file || demoSrc);
+  const hasPicture = !!(file || demo);
 
   return (
     <section aria-labelledby="plan-heading" className="flex flex-col gap-4">
@@ -66,7 +69,7 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
               {file?.type === "application/pdf" ? (
                 <PdfPage file={file} label={label} />
               ) : (
-                <PlanImage src={file ? undefined : demoSrc} file={file} alt={label} />
+                <PlanImage src={file ? undefined : demo?.src} size={file ? undefined : demo?.size} file={file} alt={label} />
               )}
             </div>
           </div>
@@ -87,15 +90,36 @@ export function PlanViewer({ caseId, caseTitle, manual, fileName }: {
   );
 }
 
-function PlanImage({ src, file, alt }: { src?: string | null; file: File | null; alt: string }) {
+type Size = { width: number; height: number };
+
+/**
+ * The plan picture, always with its width and height so the layout does not shift when it arrives (F5).
+ * An example plan's size comes with plans.json; an uploaded picture is decoded first to learn its size.
+ */
+function PlanImage({ src, size, file, alt }: { src?: string | null; size?: Size; file: File | null; alt: string }) {
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => {
     if (url) URL.revokeObjectURL(url);
   }, [url]);
   const shown = file ? url : src;
-  if (!shown) return <div className="aspect-[4/3] w-full" aria-hidden />;
+  const [measured, setMeasured] = useState<{ src: string; size: Size | null } | null>(null);
+  useEffect(() => {
+    if (!shown || size) return;
+    let live = true;
+    const probe = new Image();
+    probe.src = shown;
+    probe.decode().then(
+      () => live && setMeasured({ src: shown, size: { width: probe.naturalWidth, height: probe.naturalHeight } }),
+      () => live && setMeasured({ src: shown, size: null }),   // cannot be decoded: show the <img> anyway, so its alt text is read
+    );
+    return () => {
+      live = false;
+    };
+  }, [shown, size]);
+  const known = size ?? (measured && measured.src === shown ? measured.size : undefined);
+  if (!shown || known === undefined) return <div className="aspect-[4/3] w-full" aria-hidden />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={shown} alt={alt} className="block h-auto w-full" />;
+  return <img src={shown} alt={alt} width={known?.width} height={known?.height} className="block h-auto w-full" />;
 }
 
 function PdfPage({ file, label }: { file: File; label: string }) {
