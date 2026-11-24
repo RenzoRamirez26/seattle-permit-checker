@@ -246,3 +246,32 @@
 @media (forced-colors: active) {
   .choice-pill[data-selected] { border: 3px solid Highlight; }
 }
+
+/* --- start/plan/header (design v3) --- */
+/* The Checking state's bar: a tint track with a blue segment that slides while the plan is read. The API sends no
+   progress, so the bar has no value. With reduced motion the segment stands still in the middle (DESIGN.md, Motion). */
+.checking-bar {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 28rem;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-tint);
+}
+.checking-bar > span {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-blue);
+  animation: checking-slide 1.6s ease-in-out infinite;
+}
+@keyframes checking-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .checking-bar > span { animation: none; left: 30%; }
+}

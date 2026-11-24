@@ -1,92 +1,109 @@
 "use client";
 /**
- * Start: what the pre-check does, what you need, that it is not a city service, and the example plans.
- * Text only (Q5: no drawing until its rights statement is confirmed). The serif heading is Start's alone (D2).
+ * Start (step 1): who the pre-check is for and what happens, an invented example plan as a drawing, the step 1 form
+ * (BusinessForm) on a white card in the blue band, and "How it works" in four steps. The serif headline is Start's
+ * alone (D2). In: /api/meta (through BusinessForm), /demo/plans.json for the drawing's file and size, "?deleted=1"
+ * after a check was deleted.  Out: the step 1 answers, saved by BusinessForm, then /plan/.
  */
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
+import { BusinessForm } from "@/app/business/BusinessPage";
 import { PageHeading } from "@/components/flow/PageHeading";
-import { useMeta } from "@/components/layout/Providers";
-import { Button } from "@/components/ui/button";
-import { LinkButton } from "@/components/ui/link-button";
+import { startOver } from "@/components/flow/startOver";
 import { useHydrated } from "@/lib/hydrated";
-import { flow } from "@/state/flow";
+
+const EXAMPLE_PLAN = "cafe_flawed";
+
+const HOW = [
+  { title: "You upload your plan", text: "A PDF or a photo of the floor plan. The file is deleted as soon as it is read." },
+  { title: "The model reads it", text: "It notes the rooms, doors, exits and fixtures it can see. It decides nothing." },
+  { title: "You confirm", text: "You check each reading against your plan and correct anything that is wrong." },
+  { title: "Seattle's rules decide", text: "Rules coded from Seattle's building code list what to fix, what to check with the city and the permits to expect." },
+];
 
 export function StartPage() {
-  const { meta } = useMeta();
   const hydrated = useHydrated();
+  const generation = useSyncExternalStore(startOver.subscribe, startOver.get, () => 0);   // Start over empties the form
   const deleted = useSearchParams().get("deleted") === "1";
   return (
-    <div className="page-grid pt-12">
-      <div className="col-question flex flex-col gap-8">
-        {deleted ? (
-          <p role="status" className="m-0 rounded-2xl bg-tint p-4 font-medium text-ink">The check was deleted from the server.</p>
-        ) : null}
-        <PageHeading className="start-heading">Check your floor plan before you apply</PageHeading>
-        <p className="m-0 text-section-heading font-normal measure">
-          Find out what a Seattle plan reviewer is likely to send back on a small-business floor plan, and which permits to expect, before you apply.
-        </p>
-
-        <section aria-labelledby="need" className="flex flex-col gap-2">
-          <h2 id="need" className="m-0 text-section-heading">What you need</h2>
-          <ul className="m-0 flex list-disc flex-col gap-1 pl-6">
-            <li>Your floor plan, as a PDF or a photo</li>
-            <li>The street address in Seattle, if you have it</li>
-            <li>What the business will do: the kind of business, and whether there will be cooking</li>
-          </ul>
-        </section>
-
-        <section aria-labelledby="how" className="flex flex-col gap-2">
-          <h2 id="how" className="m-0 text-section-heading">How it works</h2>
-          <ol className="m-0 flex list-decimal flex-col gap-1 pl-6">
-            <li>Say what kind of business it is.</li>
-            <li>Upload the floor plan. It is read and then deleted.</li>
-            <li>Check what was read from it, and correct anything wrong.</li>
-            <li>See what to fix, what to check with the city, and which permits to expect.</li>
-          </ol>
-        </section>
-
-        <p className="m-0 measure">
-          This is a prototype, not a City of Seattle service. It does not approve anything: the city&rsquo;s plan reviewers decide.
-          It checks the things it knows about and says where it cannot tell.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-6">
-          <LinkButton href="/business/">Start</LinkButton>
-          {hydrated ? <StartAgain /> : null}
+    <div className="flex flex-col">
+      <section aria-labelledby="page-heading" className="bg-paper py-12 lg:py-16">
+        <div className="page-grid gap-y-8">
+          <div className="col-span-full flex min-w-0 flex-col gap-6 lg:col-span-7 lg:self-center">
+            {deleted ? (
+              <p role="status" className="m-0 rounded-2xl bg-tint p-4 font-medium text-ink">The check was deleted from the server.</p>
+            ) : null}
+            <PageHeading className="start-heading">Check your space before you sign the lease.</PageHeading>
+            <p className="m-0 measure">
+              For anyone opening a small business in Seattle: upload the floor plan, confirm what we read, and see what to fix
+              and which permits to expect. A pre-check, not a city approval.
+            </p>
+          </div>
+          <div className="col-span-full min-w-0 sm:col-span-6 sm:col-start-2 lg:col-span-5 lg:col-start-8">
+            <ExamplePlan />
+          </div>
         </div>
+      </section>
 
-        <section aria-labelledby="examples" className="flex flex-col gap-2 border-t border-hairline pt-8">
-          <h2 id="examples" className="m-0 text-section-heading">Try an example plan</h2>
-          <p className="m-0 text-ink-muted">Invented plans, to see how the pre-check works without your own.</p>
-          {meta ? (
-            <ul className="m-0 flex list-none flex-col p-0">
-              {meta.demo_cases.map((c) => (
-                <li key={c.id}>
-                  <Link href={`/plan/reading/?example=${encodeURIComponent(c.id)}`} className="inline-flex min-h-11 items-center">{c.title}</Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="m-0" aria-live="polite">Loading the examples…</p>
-          )}
-          {meta && !meta.features.model_api_key ? (
-            <p className="m-0 text-ink-muted">On this server only the example plans can be read. You can also enter your own measurements by hand.</p>
-          ) : null}
-        </section>
-      </div>
+      <section aria-labelledby="start-form" className="bg-blue py-12 text-hero-text lg:py-16">
+        <div className="page-grid gap-y-6">
+          <div className="col-span-full flex min-w-0 flex-col gap-2 lg:col-span-8 lg:col-start-3">
+            <h2 id="start-form" className="m-0 text-section-heading">What kind of business is it?</h2>
+            <p className="m-0 text-hero-muted">A few answers about the business. Then you upload the plan.</p>
+          </div>
+          <div className="col-span-full min-w-0 rounded-2xl bg-white p-6 text-ink sm:p-8 lg:col-span-8 lg:col-start-3">
+            {hydrated ? <BusinessForm key={generation} /> : <p className="m-0" aria-live="polite">Loading the questions…</p>}
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="how" className="bg-tint py-12 lg:py-16">
+        <div className="page-grid gap-y-8">
+          <h2 id="how" className="col-span-full m-0 text-section-heading">How it works</h2>
+          <ol className="col-span-full m-0 grid list-none grid-cols-1 gap-8 p-0 sm:grid-cols-2 lg:grid-cols-4">
+            {HOW.map((s, i) => (
+              <li key={s.title} className="flex flex-col gap-2">
+                <span aria-hidden className="text-title font-light text-blue nums">{i + 1}</span>
+                <h3 className="m-0 font-medium"><span className="sr-only">Step {i + 1}: </span>{s.title}</h3>
+                <p className="m-0">{s.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
     </div>
   );
 }
 
-/** "Start again" when this tab holds earlier answers: clears them and the plan file. */
-function StartAgain() {
-  const [has, setHas] = useState(() => !!(flow.business() || flow.reading()));
-  if (!has) return null;
+type PlanPicture = { src: string; width: number; height: number };
+
+/** The invented example plan, as a drawing. Its file and pixel size come from /demo/plans.json (scripts/copy-demo.mjs). */
+function ExamplePlan() {
+  const [plan, setPlan] = useState<PlanPicture | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch("/demo/plans.json")
+      .then((r) => r.json())
+      .then((plans: Record<string, { file: string; width: number; height: number }>) => {
+        const p = plans[EXAMPLE_PLAN];
+        if (live && p) setPlan({ src: `/demo/${p.file}`, width: p.width, height: p.height });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!plan) return <div aria-hidden className="aspect-[1308/1494] w-full rounded-2xl bg-white" />;
   return (
-    <Button variant="quiet" onPress={() => { flow.clear(); setHas(false); }}>
-      Start again (clears your answers)
-    </Button>
+    <figure className="m-0 overflow-hidden rounded-2xl border border-hairline bg-white">
+      {/* eslint-disable-next-line @next/next/no-img-element -- a static export: next/image would not optimise it anyway */}
+      <img
+        src={plan.src}
+        width={plan.width}
+        height={plan.height}
+        alt="An example floor plan of a café, invented for this demo"
+        className="block h-auto w-full"
+      />
+    </figure>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 /**
- * "Reading your plan": sends the plan to POST /api/plans/read and opens step 3 with what came back.
- * The API reads a plan in one request with no progress events, so no stage is named (D4): the page says
- * what it is reading and offers Cancel, which stops the request and returns to step 2.
+ * "Reading your plan" (the Checking state): sends the plan to POST /api/plans/read and opens step 3 with what came back.
+ * The API reads a plan in one request with no progress events, so the page shows the steps of the whole check with
+ * "Read the plan" as the current one, an indeterminate bar (no value), what it is reading, and Cancel, which stops
+ * the request and returns to step 2.
  * "?example=<id>" reads an example plan instead and sets the example's business answers; if they replace the
  * owner's own answers, step 3 says so and offers to keep the owner's.
  */
@@ -10,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiProblem, call, type Meta, type PlanReading } from "@/api/client";
+import { CheckingBar, CheckingSteps } from "@/components/flow/CheckingSteps";
 import { PageShell } from "@/components/flow/PageShell";
 import { loadMeta } from "@/components/layout/Providers";
 import { useHydrated } from "@/lib/hydrated";
@@ -91,10 +93,14 @@ function Reading() {
   }
 
   return (
-    <div className="flex flex-col items-start gap-6">
-      <p className="m-0" role="status">
-        Reading {what === "the example plan" ? what : <span className="break-all font-medium">{what}</span>}. The next page shows what was read, for you to check.
-      </p>
+    <div className="flex flex-col items-start gap-8">
+      <CheckingSteps current={1} />
+      <div className="flex w-full flex-col gap-4">
+        <CheckingBar label="Reading your plan" />
+        <p className="m-0" role="status">
+          Reading {what === "the example plan" ? what : <span className="break-all font-medium">{what}</span>}. The next page shows what was read, for you to check.
+        </p>
+      </div>
       <Link href="/plan/" className="inline-flex min-h-11 items-center" onClick={() => controller.current?.abort()}>
         Cancel
       </Link>

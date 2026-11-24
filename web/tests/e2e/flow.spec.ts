@@ -17,24 +17,36 @@ async function chooseFile(page: Page, files: Parameters<import("@playwright/test
   await (await chooser).setFiles(files);
 }
 
-test("Start: text, the example plans from the API, and the Start button", async ({ page }) => {
+test("Start: the headline, the example drawing, the step 1 form on the blue band, and How it works", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Check your floor plan before you apply");
-  await expect(page.getByText(/not a City of Seattle service/).first()).toBeVisible();
-  for (const c of fixture("meta").demo_cases) await expect(page.getByRole("link", { name: c.title })).toBeVisible();
-  await expect(page.getByRole("img")).toHaveCount(0);                     // text only until Q5
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Check your space before you sign the lease.");
+  await expect(page.getByText(/A pre-check, not a city approval\./)).toBeVisible();
+  const img = page.getByRole("img", { name: "An example floor plan of a café, invented for this demo" });
+  await expect(img).toBeVisible();
+  await expect(img).toHaveAttribute("width", /^\d+$/);
+  await expect(img).toHaveAttribute("height", /^\d+$/);
+  const form = page.getByRole("region", { name: "What kind of business is it?" });
+  await expect(form.getByRole("radio")).toHaveCount(6);
+  await expect(form.getByRole("button", { name: "Continue" })).toBeVisible();
+  const how = page.getByRole("region", { name: "How it works" });
+  await expect(how.getByRole("heading", { level: 3 })).toHaveText([
+    "Step 1: You upload your plan", "Step 2: The model reads it", "Step 3: You confirm", "Step 4: Seattle's rules decide",
+  ]);
+  for (const c of fixture("meta").demo_cases) await expect(page.getByRole("link", { name: c.title })).toHaveCount(0);   // examples live on step 2
+  await expect(page.getByRole("heading", { name: "What you need" })).toHaveCount(0);
   await axeBoth(page, "start");
   await expectNoSidewaysScroll(page);
   await expectTouchTargets(page);
-  await shoot(page, "stage-2", "start");
-  await page.getByRole("link", { name: "Start" }).click();
-  await expect(page).toHaveURL(/\/business\/$/);
+  await shoot(page, "design-v3", "start");
+  await form.getByText("Retail shop").click();
+  await form.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/plan\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeFocused();    // focus moves to the new page's question
 });
 
-test("an example plan goes from Start to step 3 and gives the same result as the command line", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Café with planted problems" }).click();
+test("an example plan goes from step 2's example rows to step 3 and gives the same result as the command line", async ({ page }) => {
+  await page.goto("/plan/");
+  await page.getByRole("region", { name: "Try an example plan" }).getByRole("link", { name: "Café with planted problems", exact: true }).click();
   await expect(page).toHaveURL(/\/check\/$/);
   await expect(page.getByText("The saved reading for this example plan. No model was used.")).toBeVisible();
   await page.getByRole("button", { name: "Run the check" }).click();
@@ -102,7 +114,7 @@ test("step 1: errors next to the field and in the summary; Back and refresh keep
 test("step 2: empty, chosen, refused before sending, and read states", async ({ page }) => {
   await page.goto("/plan/");
   await expect(page.locator("[data-state]")).toHaveAttribute("data-state", "empty");
-  await expect(page.getByText(/This server cannot read uploaded plans yet/)).toBeVisible();
+  await expect(page.getByText(/This server can't read uploaded plans yet/)).toBeVisible();
   await axeBoth(page, "step 2 empty");
   await expectNoSidewaysScroll(page);
   await expectTouchTargets(page);
@@ -122,6 +134,11 @@ test("step 2: empty, chosen, refused before sending, and read states", async ({ 
   await chooseFile(page, PLAN);
   await expect(page.locator("[data-state]")).toHaveAttribute("data-state", "chosen");
   await expect(page.getByText("Chosen: flawed_plan.png")).toBeVisible();
+  const preview = page.getByRole("region", { name: "Chosen: flawed_plan.png" });
+  await expect(preview.getByRole("img", { name: "Preview of flawed_plan.png" })).toHaveAttribute("width", /^\d+$/);
+  await expect(preview.getByRole("status")).toHaveText("Ready to read. It is sent only when you press Read my plan.");
+  await expect(preview.getByText(/%/)).toHaveCount(0);                        // no made-up upload progress
+  expect(sentToApi).toBe(false);
   await axeBoth(page, "step 2 chosen");
   await shoot(page, "stage-2", "plan-chosen");
 
@@ -140,7 +157,7 @@ test("with no key, the upload path shows the no_model_key message and offers the
   await page.getByRole("button", { name: "Read my plan", exact: true }).click();
   await expect(page).toHaveURL(/\/plan\/\?problem=no_model_key$/);           // the real API answered 503
   await expect(page.locator("[data-state]")).toHaveAttribute("data-state", "failed");
-  await expect(page.getByRole("alert").filter({ hasText: "There is a problem" })).toContainText("This server cannot read uploaded plans yet. Try an example plan, or enter the measurements yourself.");
+  await expect(page.getByRole("alert").filter({ hasText: "There is a problem" })).toContainText("This server can't read uploaded plans yet. Try an example plan, or enter the measurements yourself.");
   await expect(page.getByRole("link", { name: "Enter the measurements yourself" }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Try the example plan: Café with planted problems" })).toBeVisible();
   await axeBoth(page, "step 2 failed");
@@ -154,7 +171,7 @@ test("with no key, step 2 lists the example plans itself instead of sending the 
   const meta = fixture("meta");
   expect(meta.features.model_api_key).toBe(false);                     // the e2e API runs with no key
   await page.goto("/plan/");
-  const notice = page.getByRole("region", { name: /^This server cannot read uploaded plans yet\./ });
+  const notice = page.getByRole("region", { name: /^This server can't read uploaded plans yet\./ });
   await expect(notice).toBeVisible();
   await expect(notice.getByRole("link")).toHaveText([
     "Enter the measurements yourself",
@@ -163,7 +180,7 @@ test("with no key, step 2 lists the example plans itself instead of sending the 
   for (const c of meta.demo_cases as { id: string; title: string }[]) {
     await expect(notice.getByRole("link", { name: `Try the example plan: ${c.title}` })).toHaveAttribute("href", `/plan/reading/?example=${c.id}`);
   }
-  await expect(page.locator('main a[href="/"]')).toHaveCount(0);       // no link back to Start for the examples
+  await expect(page.locator('main a[href="/"]').filter({ hasNotText: "Back" })).toHaveCount(0);   // no link back to Start for the examples (Back goes to step 1)
   await axeBoth(page, "step 2 no key");
   await expectNoSidewaysScroll(page);
   await expectTouchTargets(page);
@@ -179,7 +196,7 @@ test("with a key, step 2 shows no no-key notice", async ({ page }) => {
   await page.route("**/api/meta", (route) => route.fulfill({ json: meta, headers: { "access-control-allow-origin": "*" } }));
   await page.goto("/plan/");
   await expect(page.locator("[data-state]")).toHaveAttribute("data-state", "empty");
-  await expect(page.getByText(/This server cannot read uploaded plans yet/)).toHaveCount(0);
+  await expect(page.getByText(/This server can't read uploaded plans yet/)).toHaveCount(0);
   await expect(page.getByRole("link", { name: /^Try the example plan:/ })).toHaveCount(0);
 });
 
@@ -225,12 +242,13 @@ test("refresh on the Reading page says the file is gone and links back", async (
   await expect(page.getByRole("link", { name: "Choose your floor plan" })).toBeVisible();
 });
 
-test("Start again clears the answers", async ({ page }) => {
+test("Start over in the header clears the answers and empties Start's form", async ({ page }) => {
   await page.goto("/plan/reading/?example=cafe_flawed");
   await expect(page).toHaveURL(/\/check\/$/);
   await page.goto("/");
-  await page.getByRole("button", { name: "Start again (clears your answers)" }).click();
-  await expect(page.getByRole("button", { name: /Start again/ })).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: "Café or restaurant" })).toBeChecked();   // the example's answers
+  await page.getByRole("banner").getByRole("link", { name: "Start over", exact: true }).click();
+  await expect(page.getByRole("radio", { name: "Café or restaurant" })).not.toBeChecked();
   await page.goto("/check/");
   await expect(page.getByText("No plan has been read in this browser tab yet.")).toBeVisible();
 });

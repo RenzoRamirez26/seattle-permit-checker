@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations, expectNoSidewaysScroll, expectTouchTargets, shoot, WIDTHS } from "./helpers";
 
 const ROUTES: [string, string][] = [
-  ["/", "Check your floor plan before you apply"],
+  ["/", "Check your space before you sign the lease."],
   ["/business/", "What kind of business is it?"],
   ["/plan/", "Upload your floor plan"],
   ["/plan/reading/", "Reading your plan"],
@@ -15,9 +15,10 @@ for (const [path, heading] of ROUTES) {
   test(`${path} has its h1, title, footer, and passes axe`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
-    await expect(page).toHaveTitle(new RegExp(heading.replace(/[?]/g, "\\?")));
+    await expect(page).toHaveTitle(new RegExp(heading.replace(/\.$/, "").replace(/[?]/g, "\\?")));
     const footer = page.getByRole("contentinfo");
-    await expect(footer).toContainText("A prototype by the PermitOS team. Not a City of Seattle service.");
+    await expect(footer).toContainText("PermitOS · Not a City of Seattle service");
+    await expect(page.getByRole("banner").getByRole("link", { name: "PermitOS", exact: true })).toHaveAttribute("href", "/");
     await expect(footer).not.toContainText("TODO");
     for (const width of WIDTHS) {
       await page.setViewportSize({ width, height: 900 });
