@@ -1,11 +1,32 @@
-/** One sentence of counts from the API's summary: "11 things to fix before you apply, 2 to check with the city, 6 fine". */
+/**
+ * The summary in words, from the API's counts (CONTENT.md: the action first, numbers, no verdict):
+ * "You have 11 things to fix before you apply and 2 to check with the city." and, when there are any,
+ * "We found no issues in the other 6 checks."
+ */
 import type { Result } from "@/api/client";
+import { formatNumber } from "@/lib/format";
 
-export function countsSentence(s: Pick<Result["summary"], "fails" | "reviews" | "passes">): string {
-  const fix = `${s.fails} ${s.fails === 1 ? "thing" : "things"} to fix before you apply`;
-  return `${fix}, ${s.reviews} to check with the city, ${s.passes} fine`;
+type Counts = Pick<Result["summary"], "fails" | "reviews" | "passes">;
+const things = (n: number) => `${formatNumber(n)} ${n === 1 ? "thing" : "things"}`;
+
+export function countsSentence(s: Counts): string {
+  if (s.fails && s.reviews) return `You have ${things(s.fails)} to fix before you apply and ${formatNumber(s.reviews)} to check with the city.`;
+  if (s.fails) return `You have ${things(s.fails)} to fix before you apply.`;
+  if (s.reviews) return `Nothing to fix before you apply. You have ${things(s.reviews)} to check with the city.`;
+  return "Nothing to fix before you apply, and nothing to check with the city.";
 }
 
-export function CountsSentence({ summary }: { summary: Pick<Result["summary"], "fails" | "reviews" | "passes"> }) {
-  return <p className="m-0 text-section-heading font-normal nums" data-testid="counts">{countsSentence(summary)}.</p>;
+export function othersSentence(s: Counts): string | null {
+  if (!s.passes) return null;
+  return `We found no issues in the other ${formatNumber(s.passes)} ${s.passes === 1 ? "check" : "checks"}.`;
+}
+
+export function CountsSentence({ summary }: { summary: Counts }) {
+  const others = othersSentence(summary);
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="m-0 text-section-heading font-normal nums" data-testid="counts">{countsSentence(summary)}</p>
+      {others ? <p className="m-0 nums" data-testid="others">{others}</p> : null}
+    </div>
+  );
 }

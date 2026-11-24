@@ -176,7 +176,7 @@ test("the whole flow finishes with the assistant closed", async ({ page }) => {
   await toResults(page);
   await expect(panel(page)).toBeHidden();
   await page.getByRole("tab", { name: "Downloads" }).click();
-  await expect(page.getByRole("link", { name: "Download the fix list (PDF)" })).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: "Downloads" }).getByRole("link", { name: "Download the fix list (PDF)" })).toBeVisible();
 });
 
 test("screenshots: stage 4 panel at both widths, and the sheet", async ({ page }) => {

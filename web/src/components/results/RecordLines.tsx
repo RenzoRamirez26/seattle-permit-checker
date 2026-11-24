@@ -32,17 +32,29 @@ export function recordLines(d: ReviewData | null | undefined): string[] {
   return lines;
 }
 
-export function RecordLines({ data }: { data: ReviewData | null | undefined }) {
-  const lines = recordLines(data);
-  if (!lines.length) {
-    return <p className="m-0 measure">Seattle&rsquo;s review records are not loaded on this server, so there are no figures here on how similar projects went through review.</p>;
+/** The records in two groups (how reviews went; what reviewers asked about) and the review-time figure, or null. */
+export function recordGroups(d: ReviewData | null | undefined): {
+  reviewTime: { days: number; words: string } | null;
+  groups: { title: string; lines: string[] }[];
+} | null {
+  const s = d?.summary;
+  if (!s || !s.permits) return null;
+  const label = d?.category_label ? `${d.category_label} build-outs` : "similar build-outs";
+  const of = `Of ${formatNumber(s.permits)} ${label}`;
+  const went: string[] = [];
+  if (s.share_two_or_more_rounds != null) {
+    went.push(`${of}, ${formatNumber(Math.round(s.share_two_or_more_rounds * s.permits))} (${pct(s.share_two_or_more_rounds)}) were sent back for corrections at least once.`);
   }
-  return (
-    <div className="flex flex-col gap-2">
-      <ul className="m-0 flex list-disc flex-col gap-2 pl-6 nums">
-        {lines.map((l) => <li key={l} className="measure">{l}</li>)}
-      </ul>
-      <p className="m-0 text-ink-muted">Tenant build-outs (additions and alterations) only. Source: {data?.source ?? "City of Seattle open data"}.</p>
-    </div>
-  );
+  if (s.median_days_with_applicant != null) went.push(`${of}, half spent ${formatNumber(s.median_days_with_applicant)} days or more waiting on the applicant's corrections.`);
+  for (const r of d?.corrections_by_review_type ?? []) {
+    went.push(`Of ${projects(r.permits)} reviewed by ${r.review_type}, ${formatNumber(Math.round(r.share_corrections * r.permits))} (${pct(r.share_corrections)}) were sent back in the first round.`);
+  }
+  const asked = (d?.top_comment_subjects ?? []).map((t) =>
+    `Of ${formatNumber(s.permits)} ${label}, ${formatNumber(t.permits)} had reviewer comments about ${t.subject} (${formatNumber(t.comments)} ${t.comments === 1 ? "comment" : "comments"}).`);
+  return {
+    reviewTime: s.median_days_in_review != null
+      ? { days: s.median_days_in_review, words: `Half of ${formatNumber(s.permits)} ${label} spent this long or more in plan review.` }
+      : null,
+    groups: [{ title: "How reviews went", lines: went }, { title: "What reviewers asked about", lines: asked }].filter((g) => g.lines.length),
+  };
 }

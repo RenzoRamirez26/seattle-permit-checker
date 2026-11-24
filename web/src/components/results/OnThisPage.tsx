@@ -2,10 +2,10 @@
 /**
  * "On this page": where the owner is on the results page and what is left below it.
  * In: the page's sections in order (the element that marks each one, its label, a short label, and what takes focus).
- * Out: a nav landmark that marks the current section (active tint, aria-current="location"), the sections already
- * scrolled past (a check icon and "seen" for screen readers), and the ones still to come (plain), with "2 of 5 sections
- * seen" at the top. Choosing a section jumps there and moves focus to its heading.
- * At 1024 px and wider it is a sticky rail 220 px wide, right of the results column; below that, a compact bar at the bottom left, clear of
+ * Out: a nav landmark that marks the current section (tint, blue Medium text, aria-current="location"), the sections
+ * already scrolled past (a grey check and "seen" for screen readers), and the ones still to come (a hollow dot), with
+ * "2 of 5 sections seen" at the top. Choosing a section jumps there and moves focus to its heading.
+ * At 1024 px and wider it is a sticky white panel (radius 16), 220 px wide, right of the results column; below that, a compact bar at the bottom left, clear of
  * the Ask button, that opens the same list in a popover. The position comes from IntersectionObserver. Nothing moves.
  */
 import { useEffect, useState } from "react";
@@ -90,8 +90,10 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
                   state === "current" ? "bg-tint font-medium text-blue" : "text-ink",
                 )}
               >
-                <span className="mt-0.5 flex w-4 shrink-0 justify-center">
-                  {state === "seen" ? <Check aria-hidden size={16} strokeWidth={2.25} className="text-ink-muted" /> : null}
+                <span className="mt-1 flex w-4 shrink-0 justify-center">
+                  {state === "seen" ? <Check aria-hidden size={16} strokeWidth={2} className="text-ink-muted" />
+                    : state === "next" ? <span aria-hidden className="mt-1 block size-2.5 rounded-full border border-field" />
+                      : null}
                 </span>
                 <span className="min-w-0 break-words">
                   {s.label}
@@ -110,7 +112,7 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
 export function OnThisPageRail({ sections, current }: { sections: PageSection[]; current: number }) {
   return (
     <nav aria-label="On this page" className="results-rail hidden lg:block">
-      <div className="sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto overscroll-contain">
+      <div className="pointer-events-auto sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto overscroll-contain rounded-2xl border border-hairline bg-white p-4">
         <SectionList sections={sections} current={current} onJump={(i) => jumpTo(sections[i])} />
       </div>
     </nav>

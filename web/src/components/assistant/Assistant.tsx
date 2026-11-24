@@ -191,6 +191,8 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
   const recording = useRef<Recording | null>(null);
   const maxSeconds = meta?.limits.max_audio_seconds ?? 30;
   const showMic = !!meta?.features.speech_to_text && voiceOn && canRecord();
+  // The server can write down speech, but this browser cannot record: say so, and keep typing as the way in.
+  const micUnavailable = !!meta?.features.speech_to_text && voiceOn && !canRecord();
 
   // A question put in the box by "Ask about this" (or cleared): show it, and put the cursor there.
   if (seenDraft !== s.draftVersion) {
@@ -373,6 +375,8 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
           <p className="m-0 font-medium text-fix" role="alert">{errorWords(mic.code)}</p>
         ) : spokenNext ? (
           <p className="m-0 text-ink-muted" role="status">These are the words heard. Correct them if needed, then press Send.</p>
+        ) : micUnavailable ? (
+          <p id="mic-unavailable" className="m-0 text-ink-muted">Voice isn&rsquo;t available in this browser. Type your question instead.</p>
         ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span id="assistant-hint" className="text-ink-muted">Ctrl or ⌘ and Enter also sends.</span>
@@ -383,6 +387,8 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
                 onPress={() => void (mic.state === "recording" ? stopMic() : startMic())}>
                 {mic.state === "recording" ? <><Square aria-hidden size={16} /> Stop</> : <><Mic aria-hidden size={18} /> Speak</>}
               </Button>
+            ) : micUnavailable ? (
+              <Button variant="secondary" isDisabled aria-describedby="mic-unavailable"><Mic aria-hidden size={18} /> Speak</Button>
             ) : null}
             {s.messages.length ? <Button variant="quiet" onPress={() => assistant.clear()}>Clear the conversation</Button> : null}
             <Button type="submit" variant="secondary" className="border-blue text-blue" isDisabled={s.pending || mic.state === "recording"}>Send</Button>

@@ -9,10 +9,13 @@ async function axeBoth(page: Page, label: string) {
   }
 }
 
-/** An example plan from Start to the results, through the real API with no key. */
+const EXAMPLES: Record<string, string> = {
+  "Café with planted problems": "cafe_flawed", "Café that passes": "cafe_compliant", "Hair salon with planted problems": "salon_flawed",
+};
+
+/** An example plan to the results, through the real API with no key. */
 async function runExample(page: Page, title: string) {
-  await page.goto("/");
-  await page.getByRole("link", { name: title }).click();
+  await page.goto(`/plan/reading/?example=${EXAMPLES[title]}`);
   await expect(page).toHaveURL(/\/check\/$/);
   await page.getByRole("button", { name: "Run the check" }).click();
   await expect(page).toHaveURL(/\/results\/\?check=/);
@@ -22,16 +25,22 @@ async function runExample(page: Page, title: string) {
 
 test("the flawed café: counts, Fix always shown, the two tab rows, code reference, permits, and a PDF", async ({ page, request }) => {
   const id = await runExample(page, "Café with planted problems");
-  await expect(page.getByTestId("counts")).toHaveText("11 things to fix before you apply, 2 to check with the city, 6 fine.");
+  await expect(page.getByTestId("counts")).toHaveText("You have 11 things to fix before you apply and 2 to check with the city.");
+  await expect(page.getByTestId("others")).toHaveText("We found no issues in the other 6 checks.");
   await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("text-align", "center");
+  await expect(page.getByText("A pre-check from the checks we ran, not a city approval.")).toBeVisible();
+  await expect(page.getByTestId("facts-line")).toContainText("Café or restaurant · 2,400 sq ft · Zone NC2-55 (M)");
+  const tiles = page.getByRole("list", { name: "Counts" }).getByRole("listitem");
+  await expect(tiles).toHaveText(["11to fix before you apply", "2to check with the city", "6checks with no issues found"]);
   await expect(page.getByRole("tablist", { name: "Summary" }).getByRole("tab")).toHaveText(["In short", "Zoning", "Downloads"]);
   const fix = page.getByRole("region", { name: "Fix before you apply (11)" });
   await expect(fix.getByRole("heading", { level: 2 })).toHaveText("Fix before you apply (11)");
-  await expect(fix.locator("article")).toHaveCount(11);
+  await expect(fix.getByText("These would stop a permit review.")).toBeVisible();
+  await expect(fix.locator("article")).toHaveCount(5);                          // many findings: the first five, then Show all
   await expect(page.getByRole("tablist", { name: "Check with the city / No issues found" }).getByRole("tab")).toHaveText(["Check with the city (2)", "No issues found (6)"]);
   await expect(page.getByRole("tab", { name: "Check with the city (2)" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(13);
-  await expect(page.getByText("Seattle’s review records are not loaded on this server", { exact: false })).toBeVisible();
+  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(5 + 2);
+  await expect(page.getByText("Seattle’s review records aren’t loaded on this server", { exact: false })).toBeVisible();
   await expect(page.getByText(/This check is kept until .*20\d\d/)).toBeVisible();
   await axeBoth(page, "results top");
   await expectNoSidewaysScroll(page);
@@ -41,18 +50,15 @@ test("the flawed café: counts, Fix always shown, the two tab rows, code referen
   await shoot(page, "stage-3", "cafe-flawed-full");
 
   const card = page.locator("#finding-0");
-  await card.getByRole("button", { name: "Show the code reference" }).click();
+  await expect(card.locator("[data-mark=fix]")).toBeVisible();                  // the row: icon, title, observation, code section
   await expect(card.locator(".font-mono")).toBeVisible();
-  await axeBoth(page, "results with code reference open");
-  await card.scrollIntoViewIfNeeded();
-  await shoot(page, "stage-3", "card-code-reference", { fullPage: false });
+  await expect(card.getByRole("button", { name: /^Ask about this: / })).toHaveText("Ask about this →");
   await page.getByRole("tab", { name: "No issues found (6)" }).click();
-  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(11 + 6);
-  await expect(fix.locator("article")).toHaveCount(11);                         // the Fix section never hides
-  await axeBoth(page, "results with OK selected");
+  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(5 + 5);
+  await axeBoth(page, "results with No issues found selected");
 
   await page.getByRole("tab", { name: "Downloads" }).click();
-  const download = page.getByRole("link", { name: "Download the fix list (PDF)" });
+  const download = page.getByRole("tabpanel", { name: "Downloads" }).getByRole("link", { name: "Download the fix list (PDF)" });
   await expect(download).toHaveAttribute("href", `${API}/api/checks/${id}/report.pdf`);
   const pdf = await request.get(`${API}/api/checks/${id}/report.pdf`);
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
@@ -76,7 +82,7 @@ test("the tabs work by keyboard, each panel is labelled by its tab, and the sele
   await page.keyboard.press("ArrowRight");
   await expect(okTab).toBeFocused();
   await expect(okTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel", { name: "No issues found (6)" }).locator("article")).toHaveCount(6);
+  await expect(page.getByRole("tabpanel", { name: "No issues found (6)" }).locator("article")).toHaveCount(5);
   await page.keyboard.press("Home");
   await expect(cityTab).toBeFocused();
   await expect(cityTab).toHaveAttribute("aria-selected", "true");
@@ -84,11 +90,15 @@ test("the tabs work by keyboard, each panel is labelled by its tab, and the sele
   await expect(okTab).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("ArrowLeft");
   await expect(cityTab).toHaveAttribute("aria-selected", "true");
-  // the selected tab has the tint: the summary tab blue on the tab tint, the findings tab its status tint
+  // the selected tab: the hero's pill blue on the tint; the underline tab the tint and a 3 px blue underline
   await expect(page.getByRole("tab", { name: "Zoning" })).toHaveCSS("background-color", "rgb(232, 239, 248)");
   await expect(page.getByRole("tab", { name: "Zoning" })).toHaveCSS("color", "rgb(31, 78, 140)");
-  await expect(page.getByRole("tab", { name: "Zoning" })).toHaveCSS("border-bottom-width", "3px");
-  await expect(cityTab).toHaveCSS("background-color", "rgb(251, 241, 226)");
+  expect(parseFloat(await page.getByRole("tab", { name: "Zoning" }).evaluate((el) => getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThan(20);
+  await expect(cityTab).toHaveCSS("background-color", "rgb(232, 239, 248)");
+  await expect(cityTab).toHaveCSS("border-bottom-width", "3px");
+  await expect(cityTab).toHaveCSS("border-bottom-color", "rgb(31, 78, 140)");
+  await expect(cityTab.locator("[data-mark=city]")).toHaveCount(1);
+  await expect(okTab.locator("[data-mark=none]")).toHaveCount(1);
   await page.keyboard.press("ArrowRight");                                       // OK, then a refresh keeps it
   await expect(okTab).toHaveAttribute("aria-selected", "true");
   await page.reload();
@@ -131,7 +141,7 @@ test("a link to a finding in another tab opens that tab first, then scrolls to t
 
 test("the compliant café and the salon render", async ({ page }) => {
   await runExample(page, "Café that passes");
-  await expect(page.getByTestId("counts")).toContainText("0 things to fix before you apply");
+  await expect(page.getByTestId("counts")).toHaveText("Nothing to fix before you apply, and nothing to check with the city.");
   await axeBoth(page, "compliant café");
   await shoot(page, "stage-3", "cafe-compliant");
   await runExample(page, "Hair salon with planted problems");
@@ -185,32 +195,77 @@ test("Delete this check now: confirm, then back to Start; the address no longer 
   await expect(page.getByText("This check is no longer kept. It was deleted or it expired. Start a new check.")).toBeVisible();
 });
 
-test("screenshots: PermitOS results tabs and palette", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.getByRole("link", { name: "PermitOS" })).toBeVisible();
-  await expect(page).toHaveTitle("Check your floor plan before you apply | PermitOS");
-  await shoot(page, "permitos", "start", { fullPage: false });
+test("screenshots: design v3 results", async ({ page }) => {
   await runExample(page, "Café with planted problems");
   await page.evaluate(() => window.scrollTo(0, 0));
-  await shoot(page, "permitos", "results-top", { fullPage: false });
-  await shoot(page, "permitos", "results-full");
+  await shoot(page, "design-v3", "results-top", { fullPage: false });
+  await shoot(page, "design-v3", "results-full");
   await page.getByRole("tab", { name: "Zoning" }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await shoot(page, "permitos", "results-zoning", { fullPage: false });
-  await page.getByRole("tab", { name: "Downloads" }).click();
+  await shoot(page, "design-v3", "results-zoning", { fullPage: false });
   await page.getByRole("tab", { name: "No issues found (6)" }).click();
   await page.getByRole("region", { name: "Check with the city / No issues found" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
-  await shoot(page, "permitos", "results-tabs-ok", { fullPage: false });
+  await shoot(page, "design-v3", "results-tabs-no-issues", { fullPage: false });
   await page.getByRole("region", { name: "Permits and approvals to expect" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
   await page.waitForTimeout(200);
-  await shoot(page, "permitos", "results-rail-permits", { fullPage: false });
+  await shoot(page, "design-v3", "results-permits-rail", { fullPage: false });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.getByRole("button", { name: /^On this page:/ }).click();
   await page.waitForTimeout(150);
-  if (process.env.SHOTS) await page.screenshot({ path: "../docs/screenshots/permitos/results-popover-375.png" });
+  if (process.env.SHOTS) await page.screenshot({ path: "../docs/screenshots/design-v3/results-popover-375.png" });
   await page.keyboard.press("Escape");
-  await page.goto("/check/");
-  await shoot(page, "permitos", "check", { fullPage: false });
+});
+
+test("state: nothing to fix shows one line with the No issues found mark", async ({ page }) => {
+  await runExample(page, "Café that passes");
+  const fix = page.getByRole("region", { name: "Fix before you apply (0)" });
+  await expect(fix.getByText("Nothing to fix before you apply.")).toBeVisible();
+  await expect(fix.locator("[data-mark=none]")).toHaveCount(1);
+  await expect(fix.locator("article")).toHaveCount(0);
+  await expect(fix.getByText("These would stop a permit review.")).toHaveCount(0);
+  await axeBoth(page, "nothing to fix");
+  await fix.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await shoot(page, "design-v3", "state-nothing-to-fix", { fullPage: false });
+});
+
+test("state: many findings show five, then Show all N, which moves focus to the sixth", async ({ page }) => {
+  await runExample(page, "Café with planted problems");
+  const fix = page.getByRole("region", { name: "Fix before you apply (11)" });
+  await expect(fix.locator("article")).toHaveCount(5);
+  const more = fix.getByRole("button", { name: "Show all 11" });
+  await more.scrollIntoViewIfNeeded();
+  await shoot(page, "design-v3", "state-many-findings", { fullPage: false });
+  await more.focus();
+  await page.keyboard.press("Enter");
+  await expect(fix.locator("article")).toHaveCount(11);
+  await expect(fix.locator("article").nth(5)).toBeFocused();
+  await expect(fix.getByRole("button", { name: "Show all 11" })).toHaveCount(0);
+  await axeBoth(page, "many findings, all shown");
+});
+
+test("state: no zoning result offers the address, Try again and the city's map", async ({ page }) => {
+  const check = fixture("check_cafe_flawed");
+  check.id = "fixture-no-zoning";
+  check.result.zoning = { ...check.result.zoning, address: "1 Nowhere St, Seattle, WA", district: null, zone: null, status: "unknown", detail: "Address not found.", source: "address" };
+  await page.route(`**/api/checks/${check.id}`, (route) => route.fulfill({ json: check, headers: { "access-control-allow-origin": "*" } }));
+  const zoning = fixture("zoning_address");
+  await page.route("**/api/zoning", (route) => {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST" } });
+    return route.fulfill({ json: zoning, headers: { "access-control-allow-origin": "*" } });
+  });
+  await page.goto(`/results/?check=${check.id}`);
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  const panel = page.getByRole("tabpanel", { name: "Zoning" });
+  await expect(panel.getByText("We couldn’t find zoning for this address")).toBeVisible();
+  await expect(panel.getByRole("textbox", { name: "Street address in Seattle" })).toHaveValue("1 Nowhere St, Seattle, WA");
+  await expect(panel.getByRole("link", { name: "Find the zone on Seattle’s property map" })).toHaveAttribute("href", /seattlecitygis\.maps\.arcgis\.com/);
+  await axeBoth(page, "no zoning");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shoot(page, "design-v3", "state-no-zoning", { fullPage: false });
+  await panel.getByRole("textbox", { name: "Street address in Seattle" }).fill("123 Example St, Seattle, WA");
+  await panel.getByRole("button", { name: "Try again" }).click();
+  await expect(panel).toContainText(`Zone: ${zoning.zoning.district}`);
+  await expect(panel).toContainText("This is not in your result yet. Run the check again to include it.");
 });
 
 /** The rail's items, with their state: current, seen or next. */
@@ -230,7 +285,7 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   for (const width of [1024, 1280, 1600]) {
     // The rail sits right of the results column, and the heading is centred over that column.
     await page.setViewportSize({ width, height: 900 });
-    const column = (await page.locator("#section-results").boundingBox())!;
+    const column = (await page.locator("#section-results .results-column").boundingBox())!;
     const railBox = (await rail.boundingBox())!;
     const heading = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
     expect(railBox.x, `rail right of the column at ${width}`).toBeGreaterThanOrEqual(column.x + column.width + 47);
@@ -254,7 +309,9 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   const current = rail.locator('a[aria-current="location"]');
   await expect(current).toHaveCSS("background-color", "rgb(232, 239, 248)");
   await expect(current).toHaveCSS("color", "rgb(31, 78, 140)");
-  await expect(current).toHaveCSS("border-left-width", "3px");
+  await expect(current).toHaveCSS("border-left-width", "0px");                  // no side bar
+  await expect(current).toHaveCSS("font-weight", "500");
+  await expect(rail.locator('a[data-state="next"] span[aria-hidden].rounded-full')).toHaveCount(1);   // a hollow dot
   const sticky = rail.locator("div").first();                                             // the sticky box inside the rail
   expect((await sticky.boundingBox())!.y).toBeGreaterThanOrEqual(0);
   await expect(sticky).toBeInViewport();
@@ -270,7 +327,7 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
   await expect(rail.getByTestId("sections-seen")).toHaveText("0 of 5 sections seen");
 
-  await page.mouse.wheel(0, 100000);                                                      // the end of the page
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));   // the end of the page
   await expect(rail.locator('a[aria-current="location"]')).toHaveText("What Seattle’s records show about businesses like yours");
   await expect(rail.getByTestId("sections-seen")).toHaveText("4 of 5 sections seen");
   await expectNoAxeViolations(page, "rail at 1280");
@@ -282,6 +339,7 @@ test("On this page at 375 px: a compact bar clear of the Ask button that opens t
   await expect(page.getByRole("navigation", { name: "On this page" }).locator("ol:visible")).toHaveCount(0);   // no rail
   const bar = page.getByRole("button", { name: /^On this page:/ });
   await expect(bar).toHaveText("Section 1 of 5 · Next: Fix before you apply");
+  expect((await bar.boundingBox())!.y).toBeGreaterThanOrEqual(812 - 96);            // inside the 96 px scroll padding
   const barBox = (await bar.boundingBox())!;
   const ask = (await page.getByRole("button", { name: "Ask", exact: true }).boundingBox())!;
   expect(barBox.x + barBox.width).toBeLessThanOrEqual(ask.x - 8);                        // clear of the Ask button

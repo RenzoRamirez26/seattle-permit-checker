@@ -48,12 +48,15 @@ export function groups(findings: Finding[]): { status: Status; items: Numbered[]
   }));
 }
 
+/** The zoning screen's status when it could not tell (no zone found for the address). */
+export const UNKNOWN_ZONING: Schemas["ZoningScreen"]["status"] = "unknown";
+
 /** The zoning screen's status (checker/zoning.py) in words. */
 export const ZONING_WORDS: Record<Schemas["ZoningScreen"]["status"], { word: string; status: Status }> = {
   likely_permitted: { word: "Likely allowed here", status: "pass" },
   needs_review: { word: "Check with the city", status: "review" },
   not_permitted: { word: "Not allowed here", status: "fail" },
-  unknown: { word: "Could not tell", status: "review" },
+  unknown: { word: "Couldn’t tell", status: "review" },
 };
 
 /** The status a "May be needed" permit is shown with: the city decides. */
