@@ -20,7 +20,7 @@ export function SiteFooter() {
             <span translate="no">PermitOS</span> · Not a City of Seattle service
           </p>
           <p className="m-0 text-ink-muted">
-            Rules from the {meta ? meta.rulebook.code_basis.split(";")[0].replace(/^the\s+/i, "") : "Seattle building codes"}
+            Rules based on {meta ? `the ${meta.rulebook.code_basis.replace(/^the\s+/i, "").replace(/\.$/, "")}` : "Seattle's codes and the other sources each result lists"}
             {edition ? <>, edition of <time dateTime={edition}>{formatDate(edition)}</time></> : null}.{" "}
             <Link href="/help/" className="inline-flex min-h-11 items-center">How the pre-check works</Link>
           </p>

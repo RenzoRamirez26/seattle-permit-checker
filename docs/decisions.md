@@ -6,6 +6,23 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · What the fourth independent scoring found, fixed
+
+- **Urinals:** a count left as Not sure (the field present and empty) is unknown, not 0. Left out of the reading
+  entirely, it still means none drawn. The Streamlit editor now keeps the urinals column, so it no longer drops the
+  value.
+- **Sprinkler permit:** listed as "May be needed" whenever the occupant load or floor area is unknown and a sprinkler
+  rule could apply, even when the plan shows sprinklers.
+- **Sign question:** answered Not sure, it now lists the sign permit as "May be needed". The API keeps an explicit
+  null; an answer left out still uses the default (yes).
+- **Salon licence:** the rulebook marks it `"verified": false` (it is under `_meta.verify`), and every page says it
+  is listed because of a value still being checked.
+- **Rule sources:** `_meta.code_basis`, the footer (now the whole code basis) and Help name the King County food code
+  and the federal accessibility standards too.
+- **Fire extinguishers:** the No issues found row now says the 75 ft travel distance is not measured.
+- **Test:** the unknown-input grid test also fails when an unknown gives a Fix that some known value would undo.
+- **Who:** found by evaluation; fixed by the team within the owner's scope.
+
 ## 2026-11-24 · Check with the city rows state the requirement; no rule counts as checked yet
 
 - **Decision:**

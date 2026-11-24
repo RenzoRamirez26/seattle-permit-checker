@@ -249,12 +249,13 @@ if extraction:
             with a2:
                 st.markdown("**Restrooms**")
                 rest_df = st.data_editor(
-                    _frame(extraction.get("restrooms"), ["label", "designation", "water_closets", "lavatories",
+                    _frame(extraction.get("restrooms"), ["label", "designation", "water_closets", "urinals", "lavatories",
                                                           "turning_circle_diameter_in", "door_clear_width_in"]),
                     key="ed_rest", num_rows="dynamic", hide_index=True,
                     column_config={"label": "Restroom",
                                    "designation": st.column_config.SelectboxColumn("For", options=["men", "women", "all_gender", "unknown"]),
                                    "water_closets": st.column_config.NumberColumn("Toilets", min_value=0, step=1),
+                                   "urinals": st.column_config.NumberColumn("Urinals", min_value=0, step=1),
                                    "lavatories": st.column_config.NumberColumn("Sinks", min_value=0, step=1),
                                    "turning_circle_diameter_in": st.column_config.NumberColumn("Turning circle (in.)", min_value=0),
                                    "door_clear_width_in": st.column_config.NumberColumn("Door (in.)", min_value=0)})
