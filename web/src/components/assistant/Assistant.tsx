@@ -187,8 +187,9 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
   const [seenDraft, setSeenDraft] = useState(s.draftVersion);
   const [voiceOn, setVoiceOn] = useState(() => voiceSetting.get());
   const [mic, setMic] = useState<MicState>({ state: "idle" });
-  const [spokenNext, setSpokenNext] = useState(false);       // the text in the box came from the microphone
-  const [heard, setHeard] = useState("");                     // the words heard, for the live region
+  // The "We heard" line lives in the store, so it survives the panel changing to the sheet (or back) right after speaking.
+  const { heard, spoken: spokenNext } = s;
+  const setSpokenNext = (spoken: boolean) => assistant.setHeard({ spoken });
   const [reading, setReading] = useState<number | null>(null);
   const recording = useRef<Recording | null>(null);
   const listening = useRef<Listening | null>(null);
@@ -295,16 +296,14 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
   /** The words heard go in the box (nothing is sent until Send) and, once, in the live region. */
   function done(words: string) {
     setText(words);
-    setHeard(words);
-    setSpokenNext(!!words.trim());
+    assistant.setHeard({ heard: words, spoken: !!words.trim() });
     setMic({ state: "idle" });
     requestAnimationFrame(() => box.current?.focus());
   }
 
   async function startMic() {
     stopSpeaking();
-    setHeard("");
-    setSpokenNext(false);
+    assistant.setHeard({ heard: "", spoken: false });
     let status: string = onDevice;
     if (path === "ondevice" && status === "unasked") {
       const s = await onDeviceStatus();

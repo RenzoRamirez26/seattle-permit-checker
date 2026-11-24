@@ -168,6 +168,25 @@ describe("Path A: on this device", () => {
     expect(fetchMock.mock.calls.filter((c) => (c[0] as Request).url.endsWith("/ask"))).toHaveLength(0);   // nothing sent until Send
   });
 
+  it("the We heard line is kept in the store, so a new panel (the sheet replacing the side panel) still shows it", async () => {
+    useRecognition(FakeRecognition);
+    const first = render(<Assistant />);
+    openPanel();
+    fireEvent.click(await startButton());
+    await waitFor(() => expect(FakeRecognition.instances).toHaveLength(1));
+    const stop = await screen.findByRole("button", { name: "Stop voice input" });
+    act(() => FakeRecognition.instances[0].say([{ transcript: HEARD, isFinal: true }]));
+    fireEvent.click(stop);
+    const line = `We heard: “${HEARD}”. Correct it if needed, then press Send.`;
+    await waitFor(() => expect(screen.getByTestId("heard").textContent).toBe(line));
+    first.unmount();                                                               // as when the layout changes
+    render(<Assistant />);
+    expect(box().value).toBe(HEARD);
+    expect(screen.getByTestId("heard").textContent).toBe(line);
+    act(() => assistant.clear());                                                  // clearing empties the box and the line
+    expect(screen.getByTestId("heard").textContent).toBe("");
+  });
+
   it("downloadable: install() runs from the mic press, says so once, then listens", async () => {
     useRecognition(FakeRecognition);
     FakeRecognition.available = vi.fn(async () => "downloadable");

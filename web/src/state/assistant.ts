@@ -1,5 +1,6 @@
 /**
- * The assistant's state for this tab: open or closed, the conversation, and a question waiting to be typed.
+ * The assistant's state for this tab: open or closed, the conversation, a question waiting to be typed, and the
+ * words last heard by voice input (the "We heard" line).
  * In memory only. It never opens by itself: only the Ask button and "Ask about this" open it.
  */
 export type Message =
@@ -7,9 +8,12 @@ export type Message =
   | { role: "assistant"; text: string; cited: string[]; by: "template" | "model" | "help"; spoken?: boolean }
   | { role: "problem"; text: string };
 
-type State = { open: boolean; messages: Message[]; draft: string; draftVersion: number; pending: boolean };
+/** heard: the words voice input put in the box; spoken: the box's text still came from the microphone. */
+type Heard = { heard: string; spoken: boolean };
+type State = { open: boolean; messages: Message[]; draft: string; draftVersion: number; pending: boolean } & Heard;
 
-let state: State = { open: false, messages: [], draft: "", draftVersion: 0, pending: false };
+const EMPTY: State = { open: false, messages: [], draft: "", draftVersion: 0, pending: false, heard: "", spoken: false };
+let state: State = EMPTY;
 const listeners = new Set<() => void>();
 const set = (patch: Partial<State>) => {
   state = { ...state, ...patch };
@@ -30,9 +34,14 @@ export const assistant = {
   keepDraft: (text: string) => {
     state = { ...state, draft: text };
   },
+  /**
+   * The "We heard" line. Kept here, not in the panel, because the side panel and the sheet are different elements:
+   * when one replaces the other (the window narrows, a phone rotates) the line must stay with the words in the box.
+   */
+  setHeard: (h: Partial<Heard>) => set(h),
   add: (m: Message) => set({ messages: [...state.messages, m] }),
   setPending: (pending: boolean) => set({ pending }),
-  clear: () => set({ messages: [], draft: "", draftVersion: state.draftVersion + 1 }),
+  clear: () => set({ messages: [], draft: "", draftVersion: state.draftVersion + 1, heard: "", spoken: false }),
   /** For tests. */
-  reset: () => set({ open: false, messages: [], draft: "", draftVersion: 0, pending: false }),
+  reset: () => set(EMPTY),
 };

@@ -73,6 +73,10 @@ source .venv/bin/activate            # Windows (PowerShell): .venv\Scripts\Activ
 python -m pip install -r requirements.txt
 ```
 
+The web front end in `web/` also needs Node 22 (see [web/README.md](web/README.md)). On the project's Intel Mac, Node is
+installed in `~/.local/node-v22.23.5-darwin-x64/bin`. If `node` or `npm` is not found, add it to the PATH for that
+terminal: `export PATH="$HOME/.local/node-v22.23.5-darwin-x64/bin:$PATH"`.
+
 **Run the website** (works with no key and no internet, on the demo plans):
 
 ```bash
@@ -122,8 +126,19 @@ PERMIT_TTS=kokoro python -m streamlit run app/streamlit_app.py
 Without the install, questions are typed and the browser reads the answers aloud. Without `PERMIT_TTS=kokoro`, the microphone works and the browser's voice reads the answers.
 
 **ffmpeg** (for the web API's `/api/transcribe`): browsers record WebM, MP4 or Ogg, and the API converts each to WAV
-with ffmpeg before faster-whisper reads it. Install it with `brew install ffmpeg` (macOS), `sudo apt-get install
-ffmpeg` (Debian, Ubuntu) or `winget install ffmpeg` (Windows), so that `ffmpeg` is on the PATH. Without it,
+with ffmpeg before faster-whisper reads it. Install it with `brew install ffmpeg` (macOS on Apple Silicon), `sudo
+apt-get install ffmpeg` (Debian, Ubuntu) or `winget install ffmpeg` (Windows), so that `ffmpeg` is on the PATH.
+
+On an Intel Mac, Homebrew no longer supports the machine, so install ffmpeg into the project's `.venv` instead. With the
+`.venv` active, from the repository root:
+
+```bash
+pip install imageio-ffmpeg
+ln -sf "$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" .venv/bin/ffmpeg
+ffmpeg -version                      # prints the version: ffmpeg is on the PATH while the .venv is active
+```
+
+This puts ffmpeg on the PATH only while the `.venv` is active, which is when the API and the tests run. Without it,
 `/api/meta` reports `speech_to_text: false` and the website records nothing; browsers that can turn speech into text
 on the device (recent Chrome) still take spoken questions, because their audio never reaches the server. The
 recording is kept in a private temporary folder only while ffmpeg converts it, then deleted. The API tests generate

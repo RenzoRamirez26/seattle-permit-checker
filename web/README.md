@@ -6,6 +6,9 @@ It holds no rules, no code values and no key: it displays what the API returns. 
 
 ## Run it on your computer
 
+Needs Node 22.22.2 or newer. On the project's Intel Mac, Node is in `~/.local/node-v22.23.5-darwin-x64/bin`; if `npm`
+is not found, run `export PATH="$HOME/.local/node-v22.23.5-darwin-x64/bin:$PATH"` first.
+
 ```bash
 # once
 cd web && npm ci
