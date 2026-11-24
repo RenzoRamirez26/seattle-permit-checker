@@ -578,6 +578,12 @@ export interface components {
         Permit: {
             /** Agency */
             agency: string;
+            /**
+             * Entry Verified
+             * @description False when the permit entry itself was written from memory and is still being checked (rulebook permits "verified": false).
+             * @default true
+             */
+            entry_verified: boolean;
             /** Id */
             id: string;
             /**
@@ -707,9 +713,10 @@ export interface components {
             name: string;
             /**
              * Use
-             * @enum {string}
+             * @description null when no use is chosen: like "other", the room's people are unknown.
+             * @enum {unknown}
              */
-            use: "dining" | "standing" | "counter_service" | "kitchen" | "retail" | "service" | "exercise" | "waiting" | "office" | "storage" | "restroom" | "corridor" | "other";
+            use?: "dining" | "standing" | "counter_service" | "kitchen" | "retail" | "service" | "exercise" | "waiting" | "office" | "storage" | "restroom" | "corridor" | "other";
             /** Width Ft */
             width_ft?: number | null;
         };

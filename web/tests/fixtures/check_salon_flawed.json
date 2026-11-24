@@ -288,45 +288,52 @@
     "permits_likely_required": [
       {
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
+        "entry_verified": true,
         "id": "building",
         "name": "Construction permit (addition/alteration; also establishes the use of the space)",
         "rule_verified": true
       },
       {
         "agency": "SDCI, issued after the final inspection",
+        "entry_verified": true,
         "id": "co",
         "name": "Certificate of Occupancy",
         "rule_verified": true
       },
       {
         "agency": "SDCI",
+        "entry_verified": true,
         "id": "electrical",
         "name": "Electrical permit",
         "rule_verified": true
       },
       {
         "agency": "Public Health - Seattle & King County",
+        "entry_verified": true,
         "id": "plumbing",
         "name": "Plumbing, gas and backflow permits",
         "rule_verified": true
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
+        "entry_verified": true,
         "id": "business",
         "name": "Washington State business license and Seattle business license",
         "rule_verified": true
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
+        "entry_verified": true,
         "id": "sign",
         "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
         "rule_verified": true
       },
       {
         "agency": "Washington State Department of Licensing",
+        "entry_verified": false,
         "id": "salon_license",
         "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)",
-        "rule_verified": false
+        "rule_verified": true
       }
     ],
     "summary": {

@@ -421,7 +421,8 @@ def unknown_grid(rules):
 def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(unknown_grid):
     """Every rule, every plan input of five demo cases, set to known values and then to unknown (null, or "unknown").
     Where any known value gives Fix or Check with the city, unknown must too: never No issues found, never missing.
-    And where some known value gives no Fix, unknown may not give a Fix either: it is Check with the city."""
+    And where some known value gives no Fix, unknown may not give a Fix either: it is Check with the city. A permit that
+    any known value lists is listed under unknown too. Room use counts "other" as unknown, like no use at all."""
     problems = []
     checked = set()
     for name, path, known, unknown in unknown_grid:
@@ -438,6 +439,11 @@ def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(
                     problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is {got}")
                 elif got == "fail" and fix_depends:          # a Fix that some known value would undo is not a Fix
                     problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is a Fix that rests on it")
+        # a permit listed under any known value is listed under unknown too (plainly or as May be needed)
+        listed_somewhere = set().union(*(U.permits(r) for _, r in known))
+        for value, result in unknown:
+            for pid in sorted(listed_somewhere - U.permits(result)):
+                problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: the {pid} permit disappeared")
     assert problems == []
     # the grid reaches every plan-based rule, so the test means something
     assert {"OL-0", "OCC-1", "EG-1", "EG-2", "EG-3", "EG-4", "FS-1", "FS-2", "FS-3", "ADA-1", "ADA-2", "ADA-3", "ADA-4",
@@ -571,7 +577,38 @@ def test_a_sign_answer_left_not_sure_lists_the_sign_permit_as_may_be_needed(rule
 def test_a_permit_from_memory_is_marked_unchecked(rules, load):
     salon = rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules)
     licence = next(p for p in salon["permits_likely_required"] if p["id"] == "salon_license")
-    assert licence["rule_verified"] is False
-    assert all(p["rule_verified"] for p in salon["permits_likely_required"]
-               if next(q for q in rules["permits"] if q["id"] == p["id"]).get("verified", True)
-               and next(q for q in rules["permits"] if q["id"] == p["id"])["when"] not in rules_engine.PERMIT_RESTS_ON)
+    assert licence["entry_verified"] is False and licence["rule_verified"] is True   # the entry, not a value, is unchecked
+    assert all(p["entry_verified"] for p in salon["permits_likely_required"] if p["id"] != "salon_license")
+    assert rules_engine.UNVERIFIED_ENTRY in pdf_text(salon) and rules_engine.UNVERIFIED_PERMIT not in pdf_text(salon)
+
+
+def pdf_text(result):
+    import pypdfium2 as pdfium
+    from checker import pdf
+    doc = pdfium.PdfDocument(pdf.report_pdf(result))
+    return " ".join(doc[i].get_textpage().get_text_range().replace("\r\n", " ").replace("\n", " ") for i in range(len(doc)))
+
+
+def test_a_room_marked_other_or_with_no_use_makes_the_load_unknown(rules, load):
+    """A 1,200 sq ft room marked Other used to count as no people: the salon stayed at 15 and passed."""
+    for use in ("other", None):
+        plan = load("salon_flawed")
+        plan["spaces"].append({"name": "Back room", "use": use, "area_sqft": 1200, "width_ft": None, "length_ft": None})
+        result = rules_engine.run_checks(plan, {"business_type": "salon"}, rules)
+        by_rule = {f["rule_id"]: f for f in result["findings"]}
+        assert any(f["rule_id"] == "OL-0" and "Back room" in f["detail"] for f in result["findings"])
+        for rule_id in ("OCC-1", "EG-1", "PL-1"):
+            assert by_rule[rule_id]["status"] != "pass", (use, rule_id)
+            assert "the use of Back room" in by_rule[rule_id]["detail"]
+
+
+def test_cooking_permits_are_may_be_needed_when_grease_cooking_is_unknown(rules, load):
+    plan = load("flawed")
+    plan["kitchen"]["grease_producing_cooking"] = None
+    for answer in (False, None):
+        intake = {"business_type": "cafe_restaurant"} | ({} if answer is None else {"cooking_on_site": answer})
+        result = rules_engine.run_checks(plan, intake, rules)
+        cooking_ids = {p["id"] for p in rules["permits"] if p["when"] == "cooking"}
+        listed = {p["id"]: p for p in result["permits_likely_required"]}
+        assert cooking_ids <= set(listed), answer
+        assert all("grease or smoke" in listed[i]["may_be_needed"] for i in cooking_ids)

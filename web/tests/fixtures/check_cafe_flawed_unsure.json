@@ -441,72 +441,84 @@
     "permits_likely_required": [
       {
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
+        "entry_verified": true,
         "id": "building",
         "name": "Construction permit (addition/alteration; also establishes the use of the space)",
         "rule_verified": true
       },
       {
         "agency": "SDCI, issued after the final inspection",
+        "entry_verified": true,
         "id": "co",
         "name": "Certificate of Occupancy",
         "rule_verified": true
       },
       {
         "agency": "SDCI",
+        "entry_verified": true,
         "id": "electrical",
         "name": "Electrical permit",
         "rule_verified": true
       },
       {
         "agency": "Public Health - Seattle & King County",
+        "entry_verified": true,
         "id": "plumbing",
         "name": "Plumbing, gas and backflow permits",
         "rule_verified": true
       },
       {
         "agency": "SDCI",
+        "entry_verified": true,
         "id": "mechanical",
         "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)",
         "rule_verified": true
       },
       {
         "agency": "Seattle Fire Department",
+        "entry_verified": true,
         "id": "hood_fire",
         "name": "Range-hood fire suppression inspection",
         "rule_verified": true
       },
       {
         "agency": "Seattle Fire Department",
+        "entry_verified": true,
         "id": "assembly",
         "name": "Assembly permit (spaces holding 100 or more people)",
         "rule_verified": false
       },
       {
         "agency": "SDCI with Seattle Fire Department plan review; Seattle Public Utilities for water availability",
+        "entry_verified": true,
         "id": "sprinkler",
         "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate",
         "rule_verified": false
       },
       {
         "agency": "Public Health - Seattle & King County",
+        "entry_verified": true,
         "id": "health",
         "name": "Food service plan review (before construction) and annual food business permit",
         "rule_verified": true
       },
       {
         "agency": "Seattle Public Utilities",
+        "entry_verified": true,
         "id": "grease",
         "name": "Grease trap or interceptor approval (fats, oils and grease program)",
         "rule_verified": true
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
+        "entry_verified": true,
         "id": "business",
         "name": "Washington State business license and Seattle business license",
         "rule_verified": true
       },
       {
         "agency": "Washington State Liquor and Cannabis Board",
+        "entry_verified": true,
         "id": "alcohol",
         "may_be_needed": "May be needed: check with the city. It depends on whether alcohol will be served, which was answered Not sure.",
         "name": "Liquor license",
@@ -514,12 +526,14 @@
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
+        "entry_verified": true,
         "id": "sign",
         "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
         "rule_verified": true
       },
       {
         "agency": "Seattle Department of Transportation (SDOT)",
+        "entry_verified": true,
         "id": "patio",
         "may_be_needed": "May be needed: check with the city. It depends on whether there will be outdoor seating, which was answered Not sure.",
         "name": "Sidewalk café or tables-and-chairs permit",
@@ -527,6 +541,7 @@
       },
       {
         "agency": "Seattle Department of Neighborhoods",
+        "entry_verified": true,
         "id": "historic",
         "may_be_needed": "May be needed: check with the city. It depends on whether the building is a landmark or in a historic district, which was answered Not sure.",
         "name": "Certificate of Approval (landmark building or historic district)",

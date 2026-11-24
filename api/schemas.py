@@ -22,15 +22,16 @@ class _Facts(BaseModel):
 
 class Space(_Facts):
     name: str
-    use: str = Field(json_schema_extra={"enum": SPACE_USES})
+    use: Optional[str] = Field(default=None, json_schema_extra={"enum": SPACE_USES},
+                               description="null when no use is chosen: like \"other\", the room's people are unknown.")
     area_sqft: Optional[float] = None
     width_ft: Optional[float] = None
     length_ft: Optional[float] = None
 
     @field_validator("use")
     @classmethod
-    def _known_use(cls, v: str) -> str:
-        if v not in SPACE_USES:
+    def _known_use(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in SPACE_USES:
             raise ValueError(f"must be one of: {', '.join(SPACE_USES)}")
         return v
 
@@ -263,6 +264,8 @@ class Permit(BaseModel):
     agency: str
     rule_verified: bool = Field(default=True, description="False when the permit is listed because of a rule value still being "
                                                           "checked against the code (the occupant load, the sprinkler rule).")
+    entry_verified: bool = Field(default=True, description="False when the permit entry itself was written from memory and is "
+                                                           "still being checked (rulebook permits \"verified\": false).")
     may_be_needed: Optional[str] = Field(default=None, exclude_if=lambda v: v is None, description="Set when the permit depends on an answer left as Not sure: "
                                                                    "a sentence naming the question. The permit is listed, never dropped.")
 

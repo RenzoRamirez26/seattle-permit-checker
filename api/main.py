@@ -111,11 +111,7 @@ def get_meta() -> dict:
     }
 
 
-def rule_counts(rulebook: dict) -> dict[str, int]:
-    """How many rules the rulebook lists, and how many are not yet checked against the code text, counting a rule as
-    unchecked when a rule it depends on is (rules_engine.rule_checked)."""
-    entries = [k for k in (rulebook.get("rules") or {}) if not k.startswith("_")]
-    return {"rules": len(entries), "rules_unverified": sum(not rules_engine.rule_checked(rulebook, k) for k in entries)}
+rule_counts = rules_engine.rule_counts     # how many rules, and how many not yet checked against the code text
 
 
 def edition_date(rulebook: dict) -> Optional[str]:

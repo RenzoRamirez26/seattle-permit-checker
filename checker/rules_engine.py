@@ -74,8 +74,8 @@ def occupant_load(extraction: dict, rules: dict, business_type: Optional[str] = 
     factors = rules["occupant_load_factors_sqft_per_person"]
     rows, total, missing, no_use = [], 0, [], []
     for s in extraction.get("spaces", []):
-        if s.get("use") is None:
-            no_use.append(s.get("name", "?"))   # unknown use: its people can't be counted, so the load is a minimum
+        if s.get("use") in UNKNOWN_USES:
+            no_use.append(s.get("name", "?"))   # unknown use ("other" too): its people can't be counted, so the load is a minimum
             continue
         f = factors.get(s.get("use"))
         if not f:
@@ -164,6 +164,25 @@ def _sprinkler_need(rule: dict) -> str:
     limits = [f"{rule['occupant_load']} or more people"] if rule.get("occupant_load") else []
     limits += [f"more than {rule['fire_area_sqft']:,} sq ft"] if rule.get("fire_area_sqft") else []
     return f"This kind of space needs sprinklers with {' or '.join(limits)}."
+
+
+# Room uses that say nothing about how many people a room holds: no use chosen, or "other".
+UNKNOWN_USES = (None, "other")
+
+def rule_counts(rules: dict) -> dict[str, int]:
+    """How many rules the rulebook lists, and how many are not yet checked against the code text (rule_checked)."""
+    entries = [k for k in (rules.get("rules") or {}) if not k.startswith("_")]
+    return {"rules": len(entries), "rules_unverified": sum(not rule_checked(rules, k) for k in entries)}
+
+
+def rules_checked_sentence(counts: dict[str, int]) -> str:
+    """How many rules are checked against the code text, in words, from rule_counts()."""
+    n, u = counts["rules"], counts["rules_unverified"]
+    if u == n:
+        return f"None of the {n} rules is checked against the code text yet."
+    if u:
+        return f"{u} of the {n} rules aren't checked against the code text yet."
+    return f"All {n} rules are checked against the code text."
 
 
 # Permits whose listing rests on a rule's values: the assembly permit on the occupant load, the sprinkler permit on FS-2.
@@ -323,7 +342,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          rules["rules"]["OL-0"]["source"], "Add dimensions or areas for these rooms to the plan."))
     if ol["missing_use"]:
         F.append(Finding("OL-0", "Label each room's use", "review", "high",
-                         f"Your plan doesn't show what {', '.join(ol['missing_use'])} is used for. The number of people is "
+                         f"The use of {', '.join(ol['missing_use'])} isn't known, so the people in "
+                         f"{'it' if len(ol['missing_use']) == 1 else 'them'} can't be counted. The number of people is "
                          f"figured from each room's use and area.",
                          rules["rules"]["OL-0"]["source"], "Label the use of these rooms on the plan."))
     if not ol["by_space"]:
@@ -573,8 +593,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     k = extraction.get("kitchen") or {}
     cooking = bool(intake.get("cooking_on_site")) or (bool(bt.get("food")) and bool(k.get("grease_producing_cooking")))
     food = bool(bt.get("food")) or bool(intake.get("food_prep")) or cooking
-    cooking_unknown = (not cooking and bool(bt.get("food")) and not intake.get("cooking_on_site")
-                       and k.get("grease_producing_cooking") is None)
+    cooking_unknown = (not cooking and bool(bt.get("food")) and k.get("grease_producing_cooking") is None)
     if cooking_unknown and k.get("type1_hood_shown") is not True:
         F.append(Finding("MECH-1", "Show whether the cooking makes grease or smoke", "review", "high",
                          "Your plan doesn't show whether the cooking makes grease or smoke. Cooking that does needs a Type I "
@@ -730,11 +749,14 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     # "May be needed" rather than dropped (unknown never disappears).
     sprinkler_unknown = bool(spk_maybe)            # even when sprinklers are shown: the permit still depends on it
     maybe = {"assembly_permit": load_unknown and not flags["assembly_permit"],
-             "sprinkler": sprinkler_unknown and not flags["sprinkler"]}
-    missing = " or ".join(gaps) if gaps else "the floor area"
+             "sprinkler": sprinkler_unknown and not flags["sprinkler"],
+             "cooking": cooking_unknown and not flags["cooking"],       # whatever the cooking answer was
+             "outdoor_seating": extraction.get("outdoor_seating_shown") is None and not flags["outdoor_seating"]}
+    missing = {"assembly_permit": " or ".join(gaps), "sprinkler": " or ".join(gaps) or "the floor area",
+               "cooking": "whether the cooking makes grease or smoke", "outdoor_seating": "whether there is outdoor seating"}
     permits = [{k: p[k] for k in ("id", "name", "agency")}
-               | ({"may_be_needed": f"May be needed: check with the city. It depends on {missing}, which your plan "
-                                    f"doesn't show."} if maybe.get(p["when"]) else {})
+               | ({"may_be_needed": f"May be needed: check with the city. It depends on {missing[p['when']]}, which your "
+                                    f"plan doesn't show."} if maybe.get(p["when"]) else {})
                for p in rules["permits"] if flags.get(p["when"]) or maybe.get(p["when"])]
     # A permit listed because of the number of people or the sprinkler rule rests on those rules' values. The others
     # come from the city's own permit lists (_meta.checked_against_city_sources), unless the rulebook marks one
@@ -742,7 +764,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     entry = {p["id"]: p for p in rules["permits"]}
     for p in permits:
         rests_on = PERMIT_RESTS_ON.get(entry[p["id"]]["when"])
-        p["rule_verified"] = entry[p["id"]].get("verified", True) is True and (not rests_on or rule_checked(rules, rests_on))
+        p["rule_verified"] = not rests_on or rule_checked(rules, rests_on)        # the values that put it on the list
+        p["entry_verified"] = entry[p["id"]].get("verified", True) is True       # the permit entry itself
 
     return {
         "summary": {
@@ -772,6 +795,8 @@ UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still bein
 # Beside a figure or a permit that rests on such values: the occupant load, the occupancy group, the exits required.
 UNVERIFIED_FIGURES = "The occupant load, occupancy group and exits required rest on values still being checked against the code."
 UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code."
+# Beside a permit whose own entry was written from memory (rulebook permits "verified": false), e.g. the salon licence.
+UNVERIFIED_ENTRY = "This permit entry is still being checked against the agency's own rules."
 
 
 def to_markdown(result: dict, title: Optional[str] = None) -> str:

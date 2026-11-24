@@ -70,6 +70,8 @@ def values_for(field: str) -> tuple[list, list]:
         return list(NUMBERS), [None]
     if kind == "boolean":
         return [True, False], [None]
+    if field == "use":                       # a room marked "other" says nothing about its people: unknown, like no use
+        return [v for v in enum if v not in ("unknown", "other")], [None, "other"]
     if kind == "enum":
         return [v for v in enum if v != "unknown"], [None] + (["unknown"] if "unknown" in enum else [])
     return [], []
@@ -111,6 +113,11 @@ def _plan(name: str) -> str:
 def run(rules: dict, business: str, facts: dict, zone: str) -> dict:
     z = zoning.classify(zone, rules, business_type=business, area_sqft=facts.get("gross_area_sqft"))
     return rules_engine.run_checks(facts, {"business_type": business}, rules, z)
+
+
+def permits(result: dict) -> set[str]:
+    """The permit ids a result lists, with or without "May be needed"."""
+    return {p["id"] for p in result["permits_likely_required"]}
 
 
 def outcomes(result: dict) -> dict[str, str]:
