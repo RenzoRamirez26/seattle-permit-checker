@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { expectNoAxeViolations, expectTouchTargets, fixture, shoot, WIDTHS } from "./helpers";
 
 const CORS = { "access-control-allow-origin": "*" };
@@ -119,4 +121,24 @@ test("a zone entered by hand gives no map and no zoning request", async ({ page 
   await expect(page.locator("section[aria-labelledby=zoning]")).toContainText("Zone: NC2-55 (M)");
   await expect(page.locator(".place-map")).toHaveCount(0);
   expect(asked).toBe(false);
+});
+
+test("F6: the map uses MapLibre's production build from this site, and the build ships no development copy", async ({ page }) => {
+  const scripts: string[] = [];
+  page.on("request", (r) => { if (/maplibre/i.test(r.url())) scripts.push(new URL(r.url()).pathname); });
+  await serveZoning(page, fixture("zoning_address"));
+  await page.goto("/business/");
+  await page.getByText("Café or restaurant").click();
+  await page.getByLabel("Street address in Seattle (optional)").fill("123 Example St, Seattle, WA");
+  await page.getByLabel("Zone from the zoning map (optional)").focus();
+  const map = page.getByRole("img", { name: "Map with a pin at 123 Example St, Seattle, WA" });
+  await expect(map).toHaveAttribute("data-map-state", "drawn", { timeout: 15_000 });
+  expect(scripts).toContain("/maplibre-gl.mjs");
+  expect(scripts.filter((u) => /-dev/.test(u))).toEqual([]);
+
+  const out = join(__dirname, "..", "..", "out");          // the static export the tests run against
+  const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
+  const shipped = files(out).filter((f) => /maplibre/i.test(f)).map((f) => f.slice(out.length));
+  expect(shipped.sort()).toEqual(["/maplibre-gl-worker.mjs", "/maplibre-gl.mjs"]);
 });

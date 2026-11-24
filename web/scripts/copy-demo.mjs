@@ -1,5 +1,5 @@
 // Copies the three invented demo plans from ../demo into public/demo/ (git-ignored), for "Try an example plan"
-// and for the plan beside the facts on step 3. Also copies the PDF.js and MapLibre workers into public/.
+// and for the plan beside the facts on step 3. Also copies the PDF.js worker and MapLibre's production build into public/.
 import { copyFileSync, mkdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +20,10 @@ function pngSize(path) {
 writeFileSync(join(out, "plans.json"), JSON.stringify(Object.fromEntries(cases.map((c) => [c.id, { file: c.plan, ...pngSize(join(demo, c.plan)) }]))) + "\n");
 const worker = join(web, "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs");
 if (existsSync(worker)) copyFileSync(worker, join(web, "public", "pdf.worker.min.mjs"));
-// MapLibre draws GeoJSON (the zone outline) in a web worker, served from our own site.
-const mapWorker = join(web, "node_modules", "maplibre-gl", "dist", "maplibre-gl-worker.mjs");
-if (existsSync(mapWorker)) copyFileSync(mapWorker, join(web, "public", "maplibre-gl-worker.mjs"));
+// MapLibre's production build, served from our own site: the library, and the web worker that draws GeoJSON (the zone
+// outline). The library is loaded from here rather than bundled, because bundling it made the build copy MapLibre's
+// development builds into out/ as well (F6).
+for (const name of ["maplibre-gl.mjs", "maplibre-gl-worker.mjs"]) {
+  const src = join(web, "node_modules", "maplibre-gl", "dist", name);
+  if (existsSync(src)) copyFileSync(src, join(web, "public", name));
+}
