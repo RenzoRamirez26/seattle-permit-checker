@@ -121,7 +121,7 @@ goes to Google, Apple or any third party.
 
 | Path | When | What the owner sees |
 |---|---|---|
-| A, on this device | The browser's SpeechRecognition has `processLocally` and `available()` says `available` or `downloadable` | Words appear live in the question box; final words replace the interim ones |
+| A, on this device | The browser's SpeechRecognition has `processLocally`, and `available()`, asked only when Start voice input is pressed, says `available` or `downloadable` | Words appear live in the question box; final words replace the interim ones |
 | B, recorded | No on-device option, and the server has speech to text (faster-whisper and ffmpeg) and the browser can record WebM, MP4 or Ogg | The recording goes to our API only; then the words appear in the box |
 | C, none | Neither | "Voice isn't available in this browser. Type your question instead." and a disabled button |
 

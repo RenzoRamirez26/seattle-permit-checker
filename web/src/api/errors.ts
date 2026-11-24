@@ -26,6 +26,7 @@ export const ERROR_WORDS: Record<string, string> = {
   speech_not_understood: "The recording could not be made out. Try again closer to the microphone, or type the question.",
   microphone_blocked: "The microphone is blocked. Allow it in your browser settings, or type your question.",
   no_speech_heard: "We didn't hear a question. Press Start voice input and speak, or type your question.",
+  no_voice_here: "Voice isn’t available in this browser. Type your question instead.",
   ondevice_failed: "Voice on this device stopped. Press Start voice input to record instead, or type your question.",
 };
 
