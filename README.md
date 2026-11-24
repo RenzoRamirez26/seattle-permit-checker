@@ -177,10 +177,18 @@ Only one key is needed, and only for reading uploaded plans and for model-writte
 
 ## What Seattle's data showed
 
-Queried directly from the city's portal on 20 November 2026, using its text search for "restaurant". The pipeline's own numbers will differ a little; use those in a pitch once it has run.
+Source: the pipeline's download of Seattle's open data on 21 November 2026. Tenant build-outs (additions and alterations) that went through plan review:
 
-- Of 529 restaurant-related alteration permits applied for since 2019 that went through plan review, 67 (13%) passed in one round and 462 (87%) needed two or more.
-- In round 1 the building-code review sent back most of them (Ordinance: 153 sent back, 24 approved). Zoning and Fire approved most (Zoning: 406 approved, 188 sent back).
+| Business type | Permits | Needed two or more review rounds | Median days in review |
+|---|---|---|---|
+| Food and drink | 656 | 88% | 74 |
+| Retail | 391 | 86% | 63 |
+| Gym and fitness | 67 | 81% | 62.5 |
+| Salon | 43 | 79% | 43 |
+
+The points below come from an earlier query of the city's portal on 20 November 2026, using its text search for "restaurant". They have not been re-run through the pipeline.
+
+- In round 1 the building-code review sent back most restaurant-related permits (Ordinance: 153 sent back, 24 approved). Zoning and Fire approved most (Zoning: 406 approved, 188 sent back).
 - One real case, permit 6998648-CN: an office converted to a coffee shop, a $60,000 project, spent 175 days in plan review over three rounds, 77 of them waiting on the applicant's corrections.
 - The reviewer-comments dataset is a sample: about 26,300 comments on 707 permits, 2022 to 2025.
 
