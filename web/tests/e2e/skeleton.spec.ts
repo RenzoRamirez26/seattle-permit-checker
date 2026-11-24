@@ -48,3 +48,20 @@ test("screenshots: stage 0", async ({ page }) => {
   await expect(page.getByRole("contentinfo")).toContainText("2021 Seattle");
   await shoot(page, "stage-0", "start-empty");
 });
+
+test("F3: the site has a favicon, so a first page load asks for nothing that is not there", async ({ page, request }) => {
+  const missing: string[] = [];
+  page.on("response", (r) => { if (r.status() === 404) missing.push(r.url()); });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  const icon = page.locator('head link[rel="icon"][type="image/svg+xml"]');
+  await expect(icon).toHaveCount(1);
+  const svg = await request.get(new URL((await icon.getAttribute("href"))!, page.url()).href);
+  expect(svg.status()).toBe(200);
+  expect(svg.headers()["content-type"]).toContain("image/svg+xml");
+  const ico = await request.get("/favicon.ico");
+  expect(ico.status()).toBe(200);
+  expect(ico.headers()["content-type"]).toBe("image/x-icon");
+  await page.waitForLoadState("networkidle");
+  expect(missing).toEqual([]);
+});

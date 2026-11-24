@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const out = fileURLToPath(new URL("../out", import.meta.url));
 const port = Number(process.argv[2] ?? 3765);
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
-  ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff",
+  ".png": "image/png", ".ico": "image/x-icon", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".woff": "font/woff",
   ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".pmtiles": "application/octet-stream", ".wav": "audio/wav" };
 
 async function file(path) {
