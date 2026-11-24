@@ -32,7 +32,7 @@ const group = (name: string) => screen.getByRole("region", { name });
 const rowTitles = (el: HTMLElement) => within(el).queryAllByRole("listitem").filter((li) => li.id).map((li) => li.getAttribute("id"));
 
 describe("Check these first", () => {
-  it("holds exactly the rows the reading left empty, each with the line and the hollow ? mark", () => {
+  it("holds exactly the rows the reading left empty, with the line and the hollow ? mark under each empty reading", () => {
     const facts = cafe();
     render(<Editor start={facts} />);
     const first = group("Check these first");
@@ -42,9 +42,15 @@ describe("Check these first", () => {
       "fact-kitchen", "fact-fire", "fact-seats",                  // grease interceptor, emergency lighting, accessible seats
     ]);
     for (const li of within(first).getAllByRole("listitem").filter((l) => l.id)) {
-      expect(within(li).getByText(ANSWERS.emptyLine)).toBeTruthy();
-      expect(li.querySelector('svg[data-mark="city"]')).toBeTruthy();
-      expect(within(li).getAllByText("Not sure").length).toBeGreaterThan(0);
+      // one line per reading left empty, never on the row's title
+      const empty = within(li).getAllByText("Not sure");
+      const lines = within(li).getAllByText(ANSWERS.emptyLine);
+      expect(empty.length).toBeGreaterThan(0);
+      expect(lines).toHaveLength(empty.length);
+      expect(li.querySelectorAll('svg[data-mark="city"]')).toHaveLength(empty.length);
+      const title = li.querySelector("h3, h4")!;
+      expect(title.nextElementSibling?.textContent).not.toBe(ANSWERS.emptyLine);
+      for (const line of lines) expect(line.closest("dd") ?? line.previousElementSibling?.textContent?.startsWith(ANSWERS.where)).toBeTruthy();
     }
     expect(within(first).getByText("Restroom room dimensions are not printed.")).toBeTruthy();
     // The other rows are under "Also used in the check", each with Change, and none says it is unsure.

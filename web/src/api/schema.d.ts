@@ -392,6 +392,18 @@ export interface components {
             /** Rule Id */
             rule_id: string;
             /**
+             * Rule Source
+             * @description The code edition and section the rule comes from, e.g. "SBC 2021 1010.1.1".
+             * @default
+             */
+            rule_source: string;
+            /**
+             * Rule Verified
+             * @description True only when this rule's values were read from the code text (rulebook: rules). False, the default, means still being checked. It never changes the status.
+             * @default false
+             */
+            rule_verified: boolean;
+            /**
              * Severity
              * @enum {string}
              */
@@ -443,7 +455,7 @@ export interface components {
             historic_district: boolean | null;
             /**
              * New Signage
-             * @description Leave out to use the checker's default.
+             * @description Leave out to use the checker's default (yes). null is Not sure: the sign permit is listed as May be needed.
              */
             new_signage?: boolean | null;
             /**
@@ -530,6 +542,18 @@ export interface components {
              * @default []
              */
             missing_area: string[];
+            /**
+             * Rule Source
+             * @description The code edition and section of the factors.
+             * @default
+             */
+            rule_source: string;
+            /**
+             * Rule Verified
+             * @description True only when every square-feet-per-person factor was read from the code text (rule OL-0).
+             * @default false
+             */
+            rule_verified: boolean;
             /** Total */
             total: number;
         } & {
@@ -554,6 +578,12 @@ export interface components {
         Permit: {
             /** Agency */
             agency: string;
+            /**
+             * Entry Verified
+             * @description False when the permit entry itself was written from memory and is still being checked (rulebook permits "verified": false).
+             * @default true
+             */
+            entry_verified: boolean;
             /** Id */
             id: string;
             /**
@@ -563,6 +593,12 @@ export interface components {
             may_be_needed?: string | null;
             /** Name */
             name: string;
+            /**
+             * Rule Verified
+             * @description False when the permit is listed because of a rule value still being checked against the code (the occupant load, the sprinkler rule).
+             * @default true
+             */
+            rule_verified: boolean;
         } & {
             [key: string]: unknown;
         };
@@ -656,6 +692,16 @@ export interface components {
              * @description The rulebook's edition date (_meta.edition_date), for the site's footer. null while the rulebook still holds the placeholder.
              */
             edition_date: string | null;
+            /**
+             * Rules
+             * @description How many rules the rulebook lists (rulebook: rules).
+             */
+            rules: number;
+            /**
+             * Rules Unverified
+             * @description How many of them still have values not checked against the code text. The site says some values are still being checked while this is above 0.
+             */
+            rules_unverified: number;
         };
         /** Space */
         Space: {
@@ -667,9 +713,10 @@ export interface components {
             name: string;
             /**
              * Use
-             * @enum {string}
+             * @description null when no use is chosen: like "other", the room's people are unknown.
+             * @enum {unknown}
              */
-            use: "dining" | "standing" | "counter_service" | "kitchen" | "retail" | "service" | "exercise" | "waiting" | "office" | "storage" | "restroom" | "corridor" | "other";
+            use?: "dining" | "standing" | "counter_service" | "kitchen" | "retail" | "service" | "exercise" | "waiting" | "office" | "storage" | "restroom" | "corridor" | "other";
             /** Width Ft */
             width_ft?: number | null;
         };

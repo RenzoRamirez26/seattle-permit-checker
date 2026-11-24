@@ -18,6 +18,8 @@ export type FieldSpec = {
   choices?: { value: string; label: string }[];
   /** false for facts the plan always has (a door's name, whether it is an exit). Otherwise empty means "Not sure". */
   nullable: boolean;
+  /** The question the change form asks, where it reads better than the label (a room's use). */
+  question?: string;
   /** Shown as the row's name rather than as a fact. */
   isName?: boolean;
   /** Where on the plan, in words. */
@@ -63,10 +65,10 @@ export const GROUPS: GroupSpec[] = [
   },
   {
     id: "rooms", title: "Rooms", kind: "list", key: "spaces", itemWord: "room", addLabel: "Add a room",
-    blank: () => ({ name: "New room", use: "other", area_sqft: null, width_ft: null, length_ft: null }),
+    blank: () => ({ name: "New room", use: null, area_sqft: null, width_ft: null, length_ft: null }),
     fields: [
       { key: "name", label: "Name", kind: "text", nullable: false, isName: true },
-      { key: "use", label: "Used for", kind: "choice", nullable: false,
+      { key: "use", label: "Used for", question: "What is this room used for?", kind: "choice", nullable: true,
         choices: Object.entries(SPACE_USE_WORDS).map(([value, label]) => ({ value, label })) },
       { key: "area_sqft", label: "Floor area", kind: "number", unit: "sq ft", nullable: true },
       { key: "width_ft", label: "Width", kind: "number", unit: FT, nullable: true },
@@ -164,7 +166,7 @@ export const NOT_SURE = "Not sure";
 
 /** The Answers page (step 3): its groups, notes and messages. Words only. */
 export const ANSWERS = {
-  intro: "Change anything that's wrong. Anything left as Not sure is listed under Check with the city.",
+  intro: "Change anything that's wrong. Any check that needs a value left as Not sure becomes Check with the city, unless the rest of the plan already shows something to fix.",
   checkFirst: "Check these first",
   /**
    * Under a row the reading left empty. The API marks no single reading as uncertain (its `uncertainties` is a free-text
@@ -198,7 +200,7 @@ export const ANSWERS = {
   runNote: "The check uses these values, including your changes.",
   run: "Run the check",
   running: "Running the check…",
-  runningStatus: "Running Seattle's rules on your readings…",
+  runningStatus: "Running the rules on your readings…",
   needBusiness: "Answer what kind of business it is first.",
   saveFirst: "Save or cancel your change first.",
 };

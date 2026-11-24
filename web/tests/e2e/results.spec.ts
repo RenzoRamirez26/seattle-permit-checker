@@ -35,7 +35,7 @@ test("the flawed café: counts, Fix always shown, the two tab rows, code referen
   await expect(page.getByRole("tablist", { name: "Summary" }).getByRole("tab")).toHaveText(["In short", "Zoning", "Downloads"]);
   const fix = page.getByRole("region", { name: "Fix before you apply (11)" });
   await expect(fix.getByRole("heading", { level: 2 })).toHaveText("Fix before you apply (11)");
-  await expect(fix.getByText("These would stop a permit review.")).toBeVisible();
+  await expect(fix.getByText("These are likely to stop a permit review.")).toBeVisible();
   await expect(fix.locator("article")).toHaveCount(5);                          // many findings: the first five, then Show all
   await expect(page.getByRole("tablist", { name: "Check with the city / No issues found" }).getByRole("tab")).toHaveText(["Check with the city (2)", "No issues found (6)"]);
   await expect(page.getByRole("tab", { name: "Check with the city (2)" })).toHaveAttribute("aria-selected", "true");
@@ -222,7 +222,7 @@ test("state: nothing to fix shows one line with the No issues found mark", async
   await expect(fix.getByText("Nothing to fix before you apply.")).toBeVisible();
   await expect(fix.locator("[data-mark=none]")).toHaveCount(1);
   await expect(fix.locator("article")).toHaveCount(0);
-  await expect(fix.getByText("These would stop a permit review.")).toHaveCount(0);
+  await expect(fix.getByText("These are likely to stop a permit review.")).toHaveCount(0);
   await axeBoth(page, "nothing to fix");
   await fix.evaluate((el) => el.scrollIntoView({ block: "start" }));
   await shoot(page, "design-v3", "state-nothing-to-fix", { fullPage: false });
@@ -266,6 +266,10 @@ test("state: no zoning result offers the address, Try again and the city's map",
   await panel.getByRole("button", { name: "Try again" }).click();
   await expect(panel).toContainText(`Zone: ${zoning.zoning.district}`);
   await expect(panel).toContainText("This is not in your result yet. Run the check again to include it.");
+  // a zoning found again still shows its code section, and says its rule is still being checked (no finding yet)
+  expect(typeof zoning.zoning.cite).toBe("string");
+  await expect(panel.getByText(zoning.zoning.cite, { exact: true })).toBeVisible();
+  await expect(panel.getByText("This rule's value is still being checked against the code.")).toBeVisible();
 });
 
 /** The rail's items, with their state: current, seen or next. */

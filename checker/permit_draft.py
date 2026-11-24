@@ -16,6 +16,13 @@ from __future__ import annotations
 from typing import Any, Optional
 
 UNFILLED = "to be filled in by the applicant"
+# The same words as rules_engine.UNVERIFIED_NOTE and SOME_UNVERIFIED (this module imports no rules; a test keeps them equal).
+UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
+SOME_UNVERIFIED = "Some rule values are still being checked against the code."
+UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
+UNVERIFIED_VALUE = "Still being checked against the code."
+UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code."
+UNVERIFIED_ENTRY = "This permit entry is still being checked against the agency's own rules."
 
 NOTICE = ("This is a preparation aid, not the City of Seattle's official form. It gathers, in one place, what the "
           "city's published pages say you will be asked for. You apply in the Seattle Services Portal.")
@@ -114,9 +121,12 @@ def sheet(result: dict) -> dict[str, Any]:
             ("Existing use (last permitted use)", None, f"{TI_STANDARDS}; {TI_CHECKLIST}"),
             ("Proposed use", s["business_label"], TI_STANDARDS),
             ("Area of proposed use", f"{area:,g} sq ft (from the plan reading)" if area else None, TI_STANDARDS),
-            ("Type of occupancy", f"Group {s['occupancy_group']} (calculated by the pre-check; your designer confirms)", TI_STANDARDS),
-            ("Occupant load calculations", f"{s['occupant_load']} people (table below)" if spaces else None, TI_STANDARDS),
-            ("Exits", f"{s['exits_shown']} shown on the plan; the pre-check calculates {s['exits_required']} required", TI_STANDARDS),
+            ("Type of occupancy", f"Group {s['occupancy_group']} (calculated by the pre-check; your designer confirms)"
+             + _unchecked(_checked(result, "OCC-1")), TI_STANDARDS),
+            ("Occupant load calculations", f"{s['occupant_load']} people (table below)"
+             + _unchecked(result["occupant_load"].get("rule_verified")) if spaces else None, TI_STANDARDS),
+            ("Exits", f"{s['exits_shown']} shown on the plan; the pre-check calculates {s['exits_required']} required"
+             + _unchecked(_checked(result, "EG-1")), TI_STANDARDS),
             ("Exit doors and swing", f"As read from the plan: {exit_doors}" if exit_doors else None, TI_STANDARDS),
             ("Construction type", None, TI_STANDARDS),
             ("Number of stories", None, TI_STANDARDS),
@@ -124,21 +134,36 @@ def sheet(result: dict) -> dict[str, Any]:
              TI_STANDARDS),
         ],
         "rooms": spaces,
+        # under the rooms table when some of its factors are not yet read from the code text (rule OL-0)
+        "rooms_unverified": None if result["occupant_load"].get("rule_verified") else UNVERIFIED_FACTORS,
         "uploads": UPLOADS,
         "permits": result["permits_likely_required"],
         # one line each, to keep the sheet short: the report has the detail, the fix and the code section
         "open_items": [f"{STATUS_LABEL[f['status']]}: {f['title']} ({f['severity']})"
+                       + ("" if f.get("rule_verified") else f". {UNVERIFIED_NOTE}")
                        for f in result["findings"] if f["status"] != "pass"],
+        # once, at the top, when any finding uses a rule whose values are still being checked against the code
+        "unverified": SOME_UNVERIFIED if any(not f.get("rule_verified") for f in result["findings"]) else None,
         "open_pointer": OPEN_POINTER,
         "nothing_open": "No issues found in the checks we ran.",
         "disclaimer": result["disclaimer"],
     }
 
 
+def _checked(result: dict, rule_id: str) -> bool:
+    """Whether the finding for this rule says its values were checked against the code (rule_verified)."""
+    return any(f["rule_id"] == rule_id and f.get("rule_verified") for f in result["findings"])
+
+
+def _unchecked(checked: Optional[bool]) -> str:
+    return "" if checked else f". {UNVERIFIED_VALUE}"
+
+
 def to_markdown(result: dict) -> str:
     """The preparation sheet for one audit result, as Markdown."""
     d = sheet(result)
     out = [f"# {d['title']}", "", f"> **{d['notice']}**", ">", f"> {d['currency']}", "",
+           *([f"> {d['unverified']}", ""] if d["unverified"] else []),
            f"## {SECTIONS[0]}", ""]
     out += _table(d["portal"])
     out += ["", f"## {SECTIONS[1]}", ""]
@@ -146,12 +171,15 @@ def to_markdown(result: dict) -> str:
     if d["rooms"]:
         out += ["", "| " + " | ".join(ROOM_COLUMNS) + " |", "|---|---|---|---|---|"]
         out += [f"| {_cell(r['space'])} | {_cell(r['use'])} | {r['area_sqft']:g} | {r['factor']} | {r['load']} |" for r in d["rooms"]]
+        if d["rooms_unverified"]:
+            out += ["", d["rooms_unverified"]]
 
     out += ["", f"## {SECTIONS[2]}", ""]
     out += [f"- [ ] {item} ({source})" for item, source in d["uploads"]]
 
     out += ["", f"## {SECTIONS[3]}", "", f"**{PERMITS_HEADING}**", ""]
-    out += [f"- {p['name']}: {p['agency']}" for p in d["permits"]]
+    out += [f"- {p['name']}{'' if p.get('rule_verified', True) else '. ' + UNVERIFIED_PERMIT}"
+            f"{'' if p.get('entry_verified', True) else '. ' + UNVERIFIED_ENTRY}: {p['agency']}" for p in d["permits"]]
     out += ["", f"**{OPEN_HEADING} ({len(d['open_items'])})**", ""]
     out += [f"- {line}" for line in d["open_items"]] or [f"- {d['nothing_open']}"]
     if d["open_items"]:

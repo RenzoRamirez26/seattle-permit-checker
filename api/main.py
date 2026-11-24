@@ -106,8 +106,12 @@ def get_meta() -> dict:
                    "max_question_chars": config.MAX_QUESTION_CHARS, "max_history_turns": config.MAX_HISTORY_TURNS,
                    "check_days": config.check_days(), "max_audio_mb": config.max_audio_bytes() / 1024 / 1024,
                    "max_audio_seconds": config.MAX_AUDIO_SECONDS},
-        "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"]},
+        "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"],
+                     **rule_counts(rules())},
     }
+
+
+rule_counts = rules_engine.rule_counts     # how many rules, and how many not yet checked against the code text
 
 
 def edition_date(rulebook: dict) -> Optional[str]:
@@ -175,8 +179,8 @@ def create_check(req: schemas.CheckRequest) -> dict:
     bt = business_type(req.intake.business_type)
     facts = req.facts.model_dump()
     intake = req.intake.model_dump() | {"business_type": bt["key"]}      # null ("Not sure") is kept: the rules engine treats it as unknown
-    if intake.get("new_signage") is None:
-        intake.pop("new_signage", None)                                      # left out: the checker's default
+    if "new_signage" not in req.intake.model_fields_set:
+        intake.pop("new_signage", None)                                      # left out: the checker's default; null is Not sure
     db_path, notice = seattle_database()
     result = audit.audit(None, intake, extraction=facts, address=req.zoning.address, zoning_override=req.zoning.zone,
                          db_path=db_path)

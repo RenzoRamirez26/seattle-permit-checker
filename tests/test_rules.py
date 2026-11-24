@@ -1,5 +1,6 @@
 """The rules engine: occupant load, exits, accessibility, plumbing, fire, permits, for each business type."""
 import json
+import re
 
 import pytest
 
@@ -153,7 +154,7 @@ def test_missing_information_becomes_a_question_not_a_pass(rules):
 def test_report_markdown(rules, load):
     z = zoning.classify("NR3", rules, business_type="salon", area_sqft=800)
     md = rules_engine.to_markdown(rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules, z))
-    assert md.startswith("# Permit pre-check: Salon, barbershop or spa") and "Checked by: SDCI Ordinance" in md
+    assert md.startswith("# Permit pre-check: Salon, barbershop or spa") and "Who to ask: SDCI Ordinance" in md
     assert "Washington State Department of Licensing" in md and "Atlanta" not in md and "Georgia" not in md
 
 
@@ -229,7 +230,8 @@ def test_an_omitted_answer_and_an_explicit_false_give_todays_results(rules, load
         facts = json.loads((ROOT / "demo" / case["extraction"]).read_text(encoding="utf-8"))
         z = zoning.classify(case["zoning"], rules, business_type=case["intake"]["business_type"], area_sqft=facts.get("gross_area_sqft"))
         omitted = rules_engine.run_checks(facts, case["intake"], rules, z)
-        explicit = rules_engine.run_checks(facts, {k: False for k in UNSURE} | case["intake"], rules, z)
+        # left out means no, except the sign question, whose default is yes (a new sign is the usual case)
+        explicit = rules_engine.run_checks(facts, {k: False for k in UNSURE if k != "new_signage"} | case["intake"], rules, z)
         assert omitted == explicit == rules_engine._run_checks(facts, case["intake"], rules, z)
         if case["id"] == "cafe_flawed":
             assert (omitted["summary"]["fails"], omitted["summary"]["reviews"], omitted["summary"]["passes"]) == (11, 2, 6)
@@ -245,3 +247,368 @@ def test_the_command_line_audit_is_unchanged(tmp_path, capsys):
     result = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
     assert (result["summary"]["fails"], result["summary"]["reviews"], result["summary"]["passes"]) == (11, 2, 6)
     assert "Not sure" not in capsys.readouterr().out and "may_be_needed" not in json.dumps(result)
+
+
+# ---------------------------------------------------------------- rule verification (rulebook: rules)
+ENGINE_RULE_IDS = set(re.findall(r'"([A-Z]+-\d+)"', (ROOT / "checker" / "rules_engine.py").read_text(encoding="utf-8")))
+SECTION = re.compile(r"\b(\d{3,4}(?:\.\d+)+)\b")        # 1010.1.2.1, 903.2.7; not an edition year
+
+
+def _rule_entries(rules):
+    return {k: v for k, v in rules["rules"].items() if not k.startswith("_")}
+
+
+def test_every_rule_has_verified_and_source(rules):
+    """Every rule in the rulebook says whether its values were checked against the code text, and where it comes from."""
+    entries = _rule_entries(rules)
+    for rule_id, entry in entries.items():
+        assert isinstance(entry.get("verified"), bool), f"{rule_id} has no verified true/false"
+        assert isinstance(entry.get("source"), str) and entry["source"].strip(), f"{rule_id} has no source"
+    assert ENGINE_RULE_IDS <= set(entries), f"rules missing from the rulebook: {sorted(ENGINE_RULE_IDS - set(entries))}"
+
+
+def test_a_rule_is_verified_only_with_evidence_in_the_rulebook(rules):
+    """verified: true needs every section it names to be listed under _meta.checked_against_city_sources."""
+    checked = " ".join(rules["_meta"]["checked_against_city_sources"])
+    verified = {k: v for k, v in _rule_entries(rules).items() if v["verified"]}
+    assert verified, "no rule is verified: the test would prove nothing"
+    for rule_id, entry in verified.items():
+        sections = SECTION.findall(entry["source"])
+        assert sections, f"{rule_id} is verified but names no section"
+        for s in sections:
+            assert s in checked, f"{rule_id} is verified but {s} is not in _meta.checked_against_city_sources"
+    # The rules _meta.verify names as from memory stay unverified.
+    for rule_id in ("OCC-1", "EG-1", "EG-3", "ADA-3", "FS-3", "ADA-1", "ADA-2", "ADA-4", "MECH-1", "HLTH-1", "ZN-1", "PL-1"):
+        assert _rule_entries(rules)[rule_id]["verified"] is False
+
+
+def test_findings_carry_the_rule_verification_and_source(rules, load):
+    entries = _rule_entries(rules)
+    for business, facts in _cases(load):
+        for f in rules_engine.run_checks(facts, {"business_type": business, "cooking_on_site": True}, rules)["findings"]:
+            assert f["rule_verified"] is rules_engine.rule_checked(rules, f["rule_id"])
+            assert f["rule_source"] == entries[f["rule_id"]]["source"]
+            assert not f["rule_verified"] or entries[f["rule_id"]]["verified"]       # never more than the rulebook says
+
+
+def test_a_rule_counts_as_checked_only_when_the_rules_it_depends_on_are(rules, load):
+    """FS-2's sprinkler triggers were read from the code, but the occupant load and group it uses were not (OL-0, OCC-1)."""
+    entries = _rule_entries(rules)
+    assert entries["FS-2"]["verified"] and set(entries["FS-2"]["depends_on"]) == {"OL-0", "OCC-1"}
+    assert not rules_engine.rule_checked(rules, "FS-2") and not rules_engine.rule_checked(rules, "FS-1")
+    door = json.loads(json.dumps(rules))
+    door["rules"]["EG-3"]["verified"] = True
+    assert not rules_engine.rule_checked(rules, "EG-3")                # its ADA cross-reference is from memory
+    assert rules_engine.rule_checked(door, "EG-3")                     # once read, a door width needs no occupant load
+    for rule_id, entry in entries.items():                              # every dependency is a rule in the rulebook
+        assert set(entry.get("depends_on", [])) <= set(entries), rule_id
+    loads_on_occupants = {"OCC-1", "EG-1", "EG-2", "EG-4", "FS-2", "PL-1", "PL-2"}
+    assert all("OL-0" in entries[r]["depends_on"] for r in loads_on_occupants)
+
+    fixed = json.loads(json.dumps(rules))
+    fixed["rules"]["OL-0"]["verified"] = fixed["rules"]["OCC-1"]["verified"] = True
+    assert rules_engine.rule_checked(fixed, "FS-2") and rules_engine.rule_checked(fixed, "EG-2")
+    loop = json.loads(json.dumps(rules))
+    loop["rules"]["EG-3"]["depends_on"] = ["ADA-3"]; loop["rules"]["ADA-3"]["depends_on"] = ["EG-3"]
+    assert not rules_engine.rule_checked(loop, "EG-3")                 # a loop never counts as checked
+
+    cafe = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    sprinklers = next(f for f in cafe["findings"] if f["rule_id"] == "FS-2")
+    assert sprinklers["status"] == "fail" and sprinklers["rule_verified"] is False
+    assert cafe["occupant_load"]["rule_verified"] is False and cafe["occupant_load"]["rule_source"] == entries["OL-0"]["source"]
+
+
+def test_verification_never_changes_a_finding(rules, load):
+    """Fix stays Fix, Check with the city stays as it is, and nothing unknown becomes No issues found."""
+    def strip(result):
+        return [{k: v for k, v in f.items() if k not in ("rule_verified", "rule_source")} for f in result["findings"]]
+    all_true = json.loads(json.dumps(rules))
+    all_false = json.loads(json.dumps(rules))
+    for k in _rule_entries(rules):
+        all_true["rules"][k]["verified"] = True
+        all_false["rules"][k]["verified"] = False
+    no_section = {k: v for k, v in rules.items() if k != "rules"}
+    for business, facts in _cases(load):
+        intake = {"business_type": business, "cooking_on_site": True, "serves_alcohol": None}
+        base = rules_engine.run_checks(facts, intake, rules)
+        for other in (all_true, all_false, no_section):
+            r = rules_engine.run_checks(facts, intake, other)
+            assert strip(r) == strip(base) and r["summary"] == base["summary"]
+    # With no rules section at all, every finding counts as unverified.
+    r = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant"}, no_section)
+    assert all(f["rule_verified"] is False and f["rule_source"] == "" for f in r["findings"])
+
+
+def test_report_markdown_marks_unverified_rules(rules, load):
+    result = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    md = rules_engine.to_markdown(result)
+    assert rules_engine.SOME_UNVERIFIED in md and rules_engine.UNVERIFIED_FACTORS in md
+    unverified_open = [f for f in result["findings"] if f["status"] != "pass" and not f["rule_verified"]]
+    assert unverified_open and md.count(rules_engine.UNVERIFIED_NOTE) == len(unverified_open)
+
+
+# ---------------------------------------------------------------- message numbers come from the rulebook
+import ast  # noqa: E402
+
+MESSAGE_MODULES = [ROOT / "checker" / "rules_engine.py", ROOT / "checker" / "zoning.py"]
+_KEY = re.compile(r"^([A-Z]+-\d+|[a-z0-9_]+|utf-8)$")      # rule ids, dict keys and field names, not words a person reads
+
+
+def _written_numbers(path):
+    """Every string a person could read, written in the source, that contains a digit. Docstrings, format specs
+    (':.1f'), rule ids and dict keys are left out: the guard is about message, title and fix text."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    skip = set()
+    for n in ast.walk(tree):
+        body = getattr(n, "body", None)
+        if isinstance(body, list) and body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+            skip.add(id(body[0].value))
+        if isinstance(n, ast.FormattedValue) and n.format_spec:
+            skip.update(id(m) for m in ast.walk(n.format_spec))
+    return [(n.lineno, n.value) for n in ast.walk(tree)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in skip
+            and re.search(r"\d", n.value) and not _KEY.match(n.value)]
+
+
+@pytest.mark.parametrize("path", MESSAGE_MODULES, ids=lambda p: p.name)
+def test_no_rule_message_or_fix_writes_a_number_itself(path):
+    """A finding's title, message and fix get every number from seattle.json or from the plan, never from the source."""
+    assert _written_numbers(path) == []
+
+
+def test_the_guard_catches_a_written_number(tmp_path):
+    bad = tmp_path / "bad.py"
+    bad.write_text('def f(eg):\n    """SBC 1010.1.1 in a docstring is fine."""\n'
+                   '    return Finding("ADA-3", "Widen", "fail", "high", f"{eg[\'w\']:.1f} in.", "c", "Install a 36 in. door.")\n')
+    assert _written_numbers(bad) == [(3, "Install a 36 in. door.")]
+
+
+def test_the_door_size_in_fix_text_comes_from_the_rulebook(rules, load):
+    plan = load("flawed")
+    plan["restrooms"][0]["door_clear_width_in"] = 28
+    plan["doors"] = [d for d in plan["doors"] if plan["restrooms"][0]["label"] not in d["label"]]
+    bigger = json.loads(json.dumps(rules))
+    bigger["egress"]["door_nominal_width_in"] = 40
+    fixes = [f["fix"] for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, bigger)["findings"]
+             if f["rule_id"] == "ADA-3"]
+    assert fixes == ["Install a 40 in. door."]
+
+
+def test_every_no_issues_found_row_says_what_the_plan_shows_and_what_is_needed(rules, load):
+    """Two sentences each: the observation, then the requirement it meets (CONTENT.md rule 2)."""
+    seen = set()
+    for business, facts in _cases(load):
+        result = rules_engine.run_checks(facts, {"business_type": business, "cooking_on_site": True}, rules)
+        for f in result["findings"]:
+            if f["status"] != "pass" or f["rule_id"] == "ZN-1":
+                continue
+            seen.add(f["rule_id"])
+            sentences = [x for x in re.split(r"(?<=\.)\s+(?=[A-Z])", f["detail"]) if x]
+            assert len(sentences) >= 2, f"{f['rule_id']}: {f['detail']}"
+            assert re.search(r"\b(need|needs|puts)\b", sentences[-1]), f"{f['rule_id']}: {f['detail']}"
+    assert {"EG-1", "EG-3", "FS-1", "PL-1", "PL-2", "OCC-1"} <= seen
+
+
+# ---------------------------------------------------------------- unknown never becomes a pass
+from tests import unknown_inputs as U  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def unknown_grid(rules):
+    return list(U.grid(rules))
+
+
+def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(unknown_grid):
+    """Every rule, every plan input of five demo cases, set to known values and then to unknown (null, or "unknown").
+    Where any known value gives Fix or Check with the city, unknown must too: never No issues found, never missing.
+    And where some known value gives no Fix, unknown may not give a Fix either: it is Check with the city. A permit that
+    any known value lists is listed under unknown too. Room use counts "other" as unknown, like no use at all."""
+    problems = []
+    checked = set()
+    for name, path, known, unknown in unknown_grid:
+        known_outcomes = [U.outcomes(r) for _, r in known]
+        for rule_id in set().union(*known_outcomes):
+            worst = min(U.ORDER[o.get(rule_id, "absent")] for o in known_outcomes)
+            if worst > U.ORDER["review"]:
+                continue
+            checked.add(rule_id)
+            fix_depends = any(o.get(rule_id, "absent") != "fail" for o in known_outcomes)
+            for value, result in unknown:
+                got = U.outcomes(result).get(rule_id, "absent")
+                if U.ORDER[got] > U.ORDER["review"]:
+                    problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is {got}")
+                elif got == "fail" and fix_depends:          # a Fix that some known value would undo is not a Fix
+                    problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is a Fix that rests on it")
+        # a permit listed under any known value is listed under unknown too (plainly or as May be needed)
+        listed_somewhere = set().union(*(U.permits(r) for _, r in known))
+        for value, result in unknown:
+            for pid in sorted(listed_somewhere - U.permits(result)):
+                problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: the {pid} permit disappeared")
+    assert problems == []
+    # the grid reaches every plan-based rule, so the test means something
+    assert {"OL-0", "OCC-1", "EG-1", "EG-2", "EG-3", "EG-4", "FS-1", "FS-2", "FS-3", "ADA-1", "ADA-2", "ADA-3", "ADA-4",
+            "PL-1", "PL-2", "MECH-1", "HLTH-1", "HLTH-2", "ZN-1"} <= checked
+
+
+# A Fix stays a Fix only when it holds whatever an unknown value turns out to be. These four rules used to read an
+# unknown count or door as 0 or "not an exit" and report a Fix; with the unknown, they now say Check with the city.
+UNCERTAIN_FIX_RULES = {"EG-1", "EG-4", "PL-1", "PL-2"}
+
+
+def test_unknown_handling_leaves_every_fix_finding_as_it_was(rules, unknown_grid):
+    """tests/fixtures/fix_findings_snapshot.json was written by the engine before unknown inputs were enforced, over the
+    same grid. Under every known value the Fix findings are identical. Under an unknown value a Fix is only ever
+    removed, only from the four rules above, and only by becoming Check with the city for the same rule."""
+    before = json.loads(U.SNAPSHOT.read_text(encoding="utf-8"))
+    changed_known, problems, removed_seen = [], [], set()
+    for name, path, known, unknown in unknown_grid:
+        key = f"{name}|{'.'.join(map(str, path))}"
+        if U._hash([[repr(v), U.fix_findings(r)] for v, r in known]) != before[key]["known"]:
+            changed_known.append(key)
+        for v, r in unknown:
+            old_ids, old_hash = before[key]["unknown"][repr(v)]
+            now = U.fix_findings(r)
+            new_ids = [f[0] for f in now]
+            removed = list(old_ids)
+            for i in new_ids:
+                if i in removed:
+                    removed.remove(i)
+                else:
+                    problems.append(f"{key}={v!r}: a new Fix for {i}")
+            if not removed and U._hash(now) != old_hash:
+                problems.append(f"{key}={v!r}: a Fix changed its wording")
+            for rule_id in removed:
+                removed_seen.add(rule_id)
+                if rule_id not in UNCERTAIN_FIX_RULES:
+                    problems.append(f"{key}={v!r}: the {rule_id} Fix disappeared")
+                elif not any(f["rule_id"] == rule_id and f["status"] == "review" for f in r["findings"]):
+                    problems.append(f"{key}={v!r}: the {rule_id} Fix became nothing, not Check with the city")
+    assert changed_known == [] and problems == []
+    assert removed_seen <= UNCERTAIN_FIX_RULES and {"EG-1", "PL-1", "PL-2"} <= removed_seen   # EG-4: its own test below
+
+
+def test_an_unknown_exit_width_could_make_up_the_difference(rules, load):
+    """EG-4 used to add up only the known exit widths and report a Fix; one unknown width could cover the gap."""
+    plan = load("flawed")
+    exits = [d for d in plan["doors"] if d.get("is_exit")]
+    plan["doors"].append({**exits[0], "label": "Door X", "clear_width_in": None})
+    exits[0]["clear_width_in"] = 10
+    eg4 = [f for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)["findings"]
+           if f["rule_id"] == "EG-4"]
+    assert [f["status"] for f in eg4] == ["review"] and "Door X" in eg4[0]["detail"]
+    plan["doors"][-1]["clear_width_in"] = 2                              # known and too narrow: still a Fix
+    eg4 = [f for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)["findings"]
+           if f["rule_id"] == "EG-4"]
+    assert [f["status"] for f in eg4] == ["fail"]
+
+
+def test_an_unknown_count_is_never_reported_as_zero(rules, load):
+    plan = load("compliant")
+    for r in plan["restrooms"]:
+        r["water_closets"] = r["lavatories"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    plumbing = [f for f in result["findings"] if f["rule_id"] in ("PL-1", "PL-2")]
+    assert plumbing and all(f["status"] == "review" for f in plumbing)
+    assert not any("shows no toilets" in f["detail"] or "shows no restroom sinks" in f["detail"] for f in plumbing)
+
+
+def test_a_permit_that_rests_on_an_unknown_load_is_may_be_needed_not_dropped(rules, load):
+    plan = load("flawed")
+    dining = next(s for s in plan["spaces"] if s["use"] == "dining")
+    dining["area_sqft"] = dining["width_ft"] = dining["length_ft"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    by_id = {p["id"]: p for p in result["permits_likely_required"]}
+    for permit in ("assembly", "sprinkler"):
+        assert by_id[permit]["may_be_needed"].startswith("May be needed: check with the city.")
+        assert "Dining Room" in by_id[permit]["may_be_needed"]
+
+
+def test_the_aisle_and_seating_bugs_are_fixed(rules, load):
+    cafe = load("flawed")
+    for a in cafe["aisles"]:
+        a["min_width_in"] = None
+    cafe["seat_count"] = None
+    result = rules_engine.run_checks(cafe, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    by_rule = {}
+    for f in result["findings"]:
+        by_rule.setdefault(f["rule_id"], []).append(f)
+    assert by_rule["ADA-1"] and all(f["status"] == "review" for f in by_rule["ADA-1"])
+    assert any(f["title"] == "Show the seat count" and f["status"] == "review" for f in by_rule["ADA-4"])
+    assert "No issues found" not in json.dumps([f for f in result["findings"] if f["rule_id"] in ("ADA-1", "ADA-4")])
+
+
+def test_urinals_left_unknown_are_not_counted_as_zero(rules, load):
+    """The independent scoring's counterexample: a bar, Restroom 1 with 2 toilets, Restroom 2's urinals Not sure."""
+    plan = load("flawed")
+    plan["restrooms"][0]["water_closets"] = 2
+    plan["restrooms"][1]["urinals"] = None
+    pl1 = [f for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"] if f["rule_id"] == "PL-1"]
+    assert [f["status"] for f in pl1] == ["review"]
+    plan["restrooms"][1]["urinals"] = 1
+    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == ["pass"]
+    plan["restrooms"][1]["urinals"] = 0
+    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == ["fail"]
+    del plan["restrooms"][1]["urinals"]                                  # not in the reading at all: none drawn, as before
+    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == ["fail"]
+
+
+def test_the_sprinkler_permit_stays_may_be_needed_even_when_sprinklers_are_shown(rules, load):
+    plan = load("compliant")
+    plan["fire_safety"]["sprinklers_noted"] = True
+    dining = next(s for s in plan["spaces"] if s["use"] == "dining")
+    dining["area_sqft"] = dining["width_ft"] = dining["length_ft"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    sprinkler = next(p for p in result["permits_likely_required"] if p["id"] == "sprinkler")
+    assert sprinkler["may_be_needed"].startswith("May be needed")
+
+
+def test_a_sign_answer_left_not_sure_lists_the_sign_permit_as_may_be_needed(rules, load):
+    result = rules_engine.run_checks(load("compliant"), {"business_type": "retail", "new_signage": None}, rules)
+    sign = next(p for p in result["permits_likely_required"] if p["id"] == next(
+        q["id"] for q in rules["permits"] if q["when"] == "signage"))
+    assert "a new sign" in sign["may_be_needed"]
+    left_out = rules_engine.run_checks(load("compliant"), {"business_type": "retail"}, rules)
+    assert not next(p for p in left_out["permits_likely_required"] if p["id"] == sign["id"]).get("may_be_needed")
+
+
+def test_a_permit_from_memory_is_marked_unchecked(rules, load):
+    salon = rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules)
+    licence = next(p for p in salon["permits_likely_required"] if p["id"] == "salon_license")
+    assert licence["entry_verified"] is False and licence["rule_verified"] is True   # the entry, not a value, is unchecked
+    assert all(p["entry_verified"] for p in salon["permits_likely_required"] if p["id"] != "salon_license")
+    assert rules_engine.UNVERIFIED_ENTRY in pdf_text(salon) and rules_engine.UNVERIFIED_PERMIT not in pdf_text(salon)
+
+
+def pdf_text(result):
+    import pypdfium2 as pdfium
+    from checker import pdf
+    doc = pdfium.PdfDocument(pdf.report_pdf(result))
+    return " ".join(doc[i].get_textpage().get_text_range().replace("\r\n", " ").replace("\n", " ") for i in range(len(doc)))
+
+
+def test_a_room_marked_other_or_with_no_use_makes_the_load_unknown(rules, load):
+    """A 1,200 sq ft room marked Other used to count as no people: the salon stayed at 15 and passed."""
+    for use in ("other", None):
+        plan = load("salon_flawed")
+        plan["spaces"].append({"name": "Back room", "use": use, "area_sqft": 1200, "width_ft": None, "length_ft": None})
+        result = rules_engine.run_checks(plan, {"business_type": "salon"}, rules)
+        by_rule = {f["rule_id"]: f for f in result["findings"]}
+        assert any(f["rule_id"] == "OL-0" and "Back room" in f["detail"] for f in result["findings"])
+        for rule_id in ("OCC-1", "EG-1", "PL-1"):
+            assert by_rule[rule_id]["status"] != "pass", (use, rule_id)
+            assert "the use of Back room" in by_rule[rule_id]["detail"]
+
+
+def test_cooking_permits_are_may_be_needed_when_grease_cooking_is_unknown(rules, load):
+    plan = load("flawed")
+    plan["kitchen"]["grease_producing_cooking"] = None
+    for answer in (False, None):
+        intake = {"business_type": "cafe_restaurant"} | ({} if answer is None else {"cooking_on_site": answer})
+        result = rules_engine.run_checks(plan, intake, rules)
+        cooking_ids = {p["id"] for p in rules["permits"] if p["when"] == "cooking"}
+        listed = {p["id"]: p for p in result["permits_likely_required"]}
+        assert cooking_ids <= set(listed), answer
+        assert all("grease or smoke" in listed[i]["may_be_needed"] for i in cooking_ids)

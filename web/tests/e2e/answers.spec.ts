@@ -31,16 +31,19 @@ async function pillStyle(page: Page, group: string, option: string) {
     .evaluate((el) => { const s = getComputedStyle(el); return { bg: s.backgroundColor, color: s.color, border: s.borderTopColor, weight: s.fontWeight, height: el.getBoundingClientRect().height }; });
 }
 
-test("Check these first lists the rows the reading left empty, first, each with the line and the ? mark", async ({ page }) => {
+test("Check these first lists the rows the reading left empty, first, with the line under each empty reading", async ({ page }) => {
   await seed(page, { caseId: "cafe_flawed" });
   await page.goto("/check/");
   const first = checkFirst(page);
   await expect(first).toBeVisible();
   await expect(rowsOf(first).locator("h3")).toHaveText(UNSURE);
   for (const row of await rowsOf(first).all()) {
-    await expect(row.getByText("We couldn't read this from your plan.")).toBeVisible();
-    await expect(row.locator('svg[data-mark="city"]')).toHaveCount(1);
-    await expect(row.getByText("Not sure").first()).toBeVisible();
+    // under each reading left empty, not under the row's title
+    const empty = await row.getByText("Not sure", { exact: true }).count();
+    expect(empty).toBeGreaterThan(0);
+    await expect(row.getByText("We couldn't read this from your plan.")).toHaveCount(empty);
+    await expect(row.locator('svg[data-mark="city"]')).toHaveCount(empty);
+    await expect(row.locator("h3 + [data-testid=empty-line], h4 + [data-testid=empty-line]")).toHaveCount(0);
   }
   await expect(first.getByText(fixture("reading_cafe_flawed").facts.uncertainties[0])).toBeVisible();
   // It comes before every other row: the first Change on the page is in it.
@@ -162,7 +165,7 @@ test("the caption over the plan names the reading being changed and where it is,
   await expect(caption).toHaveText("Selected: Kitchen and food preparation. Where: not marked on the plan.");
 });
 
-test("while the check runs, a status says Seattle's rules are running", async ({ page }) => {
+test("while the check runs, a status says the rules are running", async ({ page }) => {
   await seed(page, { caseId: "cafe_flawed" });
   await page.route("**/api/checks", async (route) => {
     await new Promise((r) => setTimeout(r, 1500));
@@ -170,7 +173,7 @@ test("while the check runs, a status says Seattle's rules are running", async ({
   });
   await page.goto("/check/");
   await page.getByRole("button", { name: "Run the check" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Running Seattle's rules on your readings…" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Running the rules on your readings…" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Running the check…" })).toBeDisabled();
   await expect(page).toHaveURL(/\/results\/\?check=/);
 });

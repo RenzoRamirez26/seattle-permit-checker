@@ -1,9 +1,10 @@
 "use client";
 /**
  * Start (step 1): who the pre-check is for, the four steps as one short line under the intro, an invented example plan
- * as a drawing, the step 1 form (BusinessForm) on a white card in the blue band, and "How it works" in four steps. The serif headline is Start's
- * alone (D2). In: /api/meta (through BusinessForm), /demo/plans.json for the drawing's file and size, "?deleted=1"
- * after a check was deleted.  Out: the step 1 answers, saved by BusinessForm, then /plan/.
+ * as a drawing, the step 1 form (BusinessForm) on a white card in the blue band, and "How it works" in four steps. The
+ * last step says some values are still being checked while /api/meta counts any unverified rule (and before /api/meta
+ * loads). The serif headline is Start's alone (D2). In: /api/meta, /demo/plans.json for the drawing's file and size,
+ * "?deleted=1" after a check was deleted.  Out: the step 1 answers, saved by BusinessForm, then /plan/.
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
@@ -11,20 +12,28 @@ import { BusinessForm } from "@/app/business/BusinessPage";
 import { PageHeading } from "@/components/flow/PageHeading";
 import { startOver } from "@/components/flow/startOver";
 import { useHydrated } from "@/lib/hydrated";
+import { useMeta } from "@/components/layout/Providers";
+import { DECIDE, DECIDE_TEXT, DECIDE_UNVERIFIED, rulebookUnverified, rulesCheckedWords } from "@/content/verification";
 
 const EXAMPLE_PLAN = "cafe_flawed";
 
-const HOW = [
-  { title: "You upload your plan", text: "A PDF or a photo of the floor plan. The file is deleted as soon as it is read." },
-  { title: "The model reads it", text: "It notes the rooms, doors, exits and fixtures it can see. It decides nothing." },
-  { title: "You confirm", text: "You check each reading against your plan and correct anything that is wrong." },
-  { title: "Seattle's rules decide", text: "Rules we coded from Seattle's building codes list what to fix, what to check with the city and the permits to expect. Some of their values are still being checked against the code." },
-];
+
+/** The four steps. The last one says some values are still being checked while /api/meta counts any unverified rule. */
+function howSteps(unverified: boolean, checked: string) {
+  return [
+    { title: "You upload your plan", strip: "You upload your plan", text: "A PDF or a photo of the floor plan. The file is deleted as soon as it is read." },
+    { title: "The model reads it", strip: "The model reads it", text: "It notes the rooms, doors, exits and fixtures it can see. It decides nothing." },
+    { title: "You confirm", strip: "You confirm", text: "You check each reading against your plan and correct anything that is wrong." },
+    { title: DECIDE, strip: unverified ? DECIDE_UNVERIFIED : DECIDE, text: `${DECIDE_TEXT} ${checked}` },
+  ];
+}
 
 export function StartPage() {
   const hydrated = useHydrated();
   const generation = useSyncExternalStore(startOver.subscribe, startOver.get, () => 0);   // Start over empties the form
   const deleted = useSearchParams().get("deleted") === "1";
+  const { meta } = useMeta();
+  const HOW = howSteps(rulebookUnverified(meta), rulesCheckedWords(meta));
   return (
     <div className="flex flex-col">
       <section aria-labelledby="page-heading" className="bg-paper py-12 lg:py-16">
@@ -40,9 +49,9 @@ export function StartPage() {
             </p>
             <ol aria-label="How it works, in short" className="m-0 flex list-none flex-wrap gap-x-2 gap-y-1 p-0 font-medium">
               {HOW.map((s, i) => (
-                <li key={s.title} className="flex gap-2">
+                <li key={s.title} className={i < HOW.length - 1 ? "flex gap-2 sm:whitespace-nowrap" : "flex gap-2"}>
                   {i > 0 ? <span aria-hidden className="text-blue">·</span> : null}
-                  {s.title}
+                  {s.strip}
                 </li>
               ))}
             </ol>

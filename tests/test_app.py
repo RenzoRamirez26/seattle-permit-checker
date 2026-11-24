@@ -2,6 +2,7 @@
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from checker import rules_engine
 from pipeline import db, seattle
 from tests.conftest import FIXTURES, ROOT
 
@@ -51,7 +52,12 @@ def test_cafe_flow(app):
     assert (m["Fix before you apply"], m["Check with the city"], m["No issues found"], m["Occupant load"]) == ("11", "2", "6", "106")
     text = " ".join(x.value for x in at.markdown)
     assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
-    assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
+    assert any("Who to ask: SDCI Ordinance" in c.value for c in at.caption)
+    captions = [c.value for c in at.caption]                     # rules still being checked: once on top, then per finding
+    assert captions.count(rules_engine.SOME_UNVERIFIED) == 1 and rules_engine.UNVERIFIED_NOTE in captions
+    assert rules_engine.UNVERIFIED_FACTORS in captions                                     # under the occupant-load table
+    table = next(t.value for t in at.table if t.value.index.name == "Permit or approval")
+    assert table.loc["Assembly permit (spaces holding 100 or more people)", "Note"] == rules_engine.UNVERIFIED_PERMIT
     assert any("review records are not downloaded yet" in c.value for c in at.caption)
 
 
@@ -409,3 +415,14 @@ def test_pages_with_the_seattle_database(monkeypatch, tmp_path):
     assert any("Paraphrased for the test" in x.value for x in at.markdown)       # a reviewer comment is shown
     at.selectbox[0].set_value("salon").run()
     assert not at.exception and _metrics(at)["Permits with plan review"] == "1"
+
+
+def test_the_about_text_says_who_coded_the_rules_and_how_many_are_checked():
+    from app import app_common
+
+    text = " ".join(app_common.about_note().split())        # the Markdown wraps lines
+    counts = rules_engine.rule_counts(rules_engine.load_rules())
+    assert "rules our team coded from Seattle's building codes and other city requirements" in text
+    assert rules_engine.rules_checked_sentence(counts) in text and "{checked}" not in text
+    assert rules_engine.rules_checked_sentence({"rules": 21, "rules_unverified": 21}) == "None of the 21 rules is checked against the code text yet."
+    assert rules_engine.rules_checked_sentence({"rules": 21, "rules_unverified": 3}) == "3 of the 21 rules aren't checked against the code text yet."

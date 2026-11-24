@@ -132,3 +132,17 @@ describe("errors", () => {
     expect(links.map((l) => l.getAttribute("href"))).toEqual(["#fact-doors-0-clear_width_in", "#fact-restrooms-0-water_closets"]);
   });
 });
+
+describe("a new room", () => {
+  const rooms = GROUPS.find((g) => g.id === "rooms")!;
+  const use = rooms.fields.find((f) => f.key === "use")!;
+  it("starts with no use chosen, asks what it is used for, and sends no use as null (unknown)", () => {
+    const blank = rooms.kind === "list" ? rooms.blank!() : {};
+    expect(blank.use).toBeNull();
+    expect(use.question).toBe("What is this room used for?");
+    expect(use.choices!.map((c) => c.value)).toContain("other");          // still offered; the API treats it as unknown
+    const values = toFormValues(blank, rooms.fields);
+    expect(values.use).toBe("");
+    expect(formSchema(rooms.fields).parse(values).use).toBeNull();
+  });
+});

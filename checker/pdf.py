@@ -3,7 +3,8 @@
 In:  one audit result (the same dict rules_engine.to_markdown() and permit_draft.to_markdown() take).
 Out: report_pdf(result) and permit_sheet_pdf(result) each return the bytes of a PDF: US Letter,
      black text with borders (no colour needed), page numbers, the one-line pre-check note beside the
-     results at the top and the disclaimer at the end.
+     results at the top and the disclaimer at the end. When any finding uses a rule whose values are still
+     being checked against the code, the first page says so once and each such finding says so too.
 
 This module only lays content out. It adds no rules and no numbers: the report is built from the
 audit result and the preparation sheet from permit_draft.sheet(), the same data the Markdown
@@ -168,7 +169,11 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
     pdf.grid([label["fail"], label["review"], label["pass"], "Occupant load", "Occupancy group", "Exits"],
              [[s["fails"], s["reviews"], s["passes"], s["occupant_load"], f"Group {s['occupancy_group']}",
                f"{s['exits_shown']} shown / {s['exits_required']} required"]], [1.2, 1.2, 1.1, 1.1, 1.2, 1.6])
-    pdf.box([(rules_engine.PRECHECK_NOTE, True)], fill=True)               # beside the results it qualifies
+    if figures_unverified(result):
+        pdf.paragraph(rules_engine.UNVERIFIED_FIGURES)                    # right under the figures it qualifies
+    some_unverified = any(not f.get("rule_verified") for f in result["findings"])
+    pdf.box([(rules_engine.PRECHECK_NOTE, True)]                           # beside the results it qualifies
+            + ([(rules_engine.SOME_UNVERIFIED, False)] if some_unverified else []), fill=True)
 
     open_items = [f for f in result["findings"] if f["status"] != "pass"]   # already sorted, most serious first
     pdf.heading(f"Fix list ({len(open_items)}, most serious first)")
@@ -179,8 +184,10 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
         if f.get("fix"):
             parts.append((f"Fix: {f['fix']}", False))
         if f.get("reviewed_by"):
-            parts.append((f"Checked by: {f['reviewed_by']}", False))
+            parts.append((f"Who to ask: {f['reviewed_by']}", False))
         parts.append((f"Code: {f['citation']}", False))
+        if not f.get("rule_verified"):
+            parts.append((rules_engine.UNVERIFIED_NOTE, False))
         pdf.box(parts)
 
     pdf.heading("Permits and approvals you will likely need")
@@ -193,12 +200,15 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
     pdf.grid(["Space", "Use", "Area (sq ft)", "Sq ft per person", "Load"],
              [[r["space"], r["use"], f"{r['area_sqft']:g}", r["factor"], r["load"]] for r in result["occupant_load"]["by_space"]],
              [2.2, 1.4, 1, 1.1, 0.8])
+    if not result["occupant_load"].get("rule_verified"):
+        pdf.paragraph(rules_engine.UNVERIFIED_FACTORS)
 
     passed = [f for f in result["findings"] if f["status"] == "pass"]
     if passed:
         pdf.heading(f"{label['pass']} ({len(passed)})")
         for f in passed:
-            pdf.bullet(f"{f['title']}: {f['detail']} ({f['citation']})")
+            note = "" if f.get("rule_verified") else f" {rules_engine.UNVERIFIED_NOTE}"
+            pdf.bullet(f"{f['title']}: {f['detail']} ({f['citation']}){note}")
 
     pdf.ln(2)
     pdf.box([(f"Code basis: {result['code_basis']}", False), (result["disclaimer"], True)], fill=True)   # last thing in the document
@@ -206,8 +216,17 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
 
 
 def permit_name(p: dict) -> str:
-    """A permit's name, with the rules engine's "May be needed" sentence when it depends on an answer left as Not sure."""
-    return f"{p['name']}. {p['may_be_needed']}" if p.get("may_be_needed") else p["name"]
+    """A permit's name, with the rules engine's "May be needed" sentence when it depends on an answer left as Not sure,
+    and the unchecked note when it is listed because of a value still being checked against the code."""
+    name = f"{p['name']}. {p['may_be_needed']}" if p.get("may_be_needed") else p["name"]
+    name = name if p.get("rule_verified", True) else f"{name}. {rules_engine.UNVERIFIED_PERMIT}"
+    return name if p.get("entry_verified", True) else f"{name}. {rules_engine.UNVERIFIED_ENTRY}"
+
+
+def figures_unverified(result: dict) -> bool:
+    """The occupant load, the group (OCC-1) or the exits required (EG-1) rest on values not yet checked."""
+    checked = {f["rule_id"]: f.get("rule_verified") for f in result["findings"]}
+    return not (result["occupant_load"].get("rule_verified") and checked.get("OCC-1") and checked.get("EG-1"))
 
 
 # ---------------------------------------------------------------- the permit application preparation sheet
@@ -216,7 +235,7 @@ def permit_sheet_pdf(result: dict) -> bytes:
     d = permit_draft.sheet(result)
     pdf = _Doc(d["title"], d["title"])
     pdf.big_title(d["title"])
-    pdf.box([(d["notice"], True), (d["currency"], False)], fill=True)
+    pdf.box([(d["notice"], True), (d["currency"], False)] + ([(d["unverified"], False)] if d["unverified"] else []), fill=True)
 
     def fields(rows: list[tuple[str, Optional[str], str]]) -> None:
         pdf.grid(permit_draft.TABLE_COLUMNS, [[field, value or permit_draft.UNFILLED, source] for field, value, source in rows],
@@ -229,6 +248,8 @@ def permit_sheet_pdf(result: dict) -> bytes:
     if d["rooms"]:
         pdf.grid(permit_draft.ROOM_COLUMNS,
                  [[r["space"], r["use"], f"{r['area_sqft']:g}", r["factor"], r["load"]] for r in d["rooms"]], [2.2, 1.4, 1, 1.1, 0.8])
+        if d["rooms_unverified"]:
+            pdf.paragraph(d["rooms_unverified"])
 
     pdf.heading(permit_draft.SECTIONS[2])
     for item, source in d["uploads"]:

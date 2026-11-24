@@ -32,8 +32,11 @@ def test_the_answer_depends_on_the_business(rules):
         assert c("NR3", business, 2400)["status"] == "not_permitted", business
     # bars need a conditional use in NC1 and NC2, but not in NC3
     assert c("NC2-55 (M)", "bar_taproom")["status"] == "needs_review" and "conditional use" in c("NC2-55 (M)", "bar_taproom")["detail"]
-    assert c("NC2-55 (M)", "cafe_restaurant")["status"] == "likely_permitted"
-    assert c("NC3-75 (M)", "bar_taproom")["status"] == "likely_permitted"
+    assert c("NC2-55 (M)", "cafe_restaurant", 2400)["status"] == "likely_permitted"
+    assert c("NC3-75 (M)", "bar_taproom", 2400)["status"] == "likely_permitted"
+    # unknown never becomes a pass: with no floor area in a zone with a size limit, it is a review
+    nc2 = c("NC2-55 (M)", "cafe_restaurant")
+    assert nc2["status"] == "needs_review" and "doesn't show its floor area" in nc2["detail"] and "25,000 sq ft" in nc2["detail"]
     assert "salon" in c("NC3-75 (M)", "salon")["detail"] and "fitness studio" in c("NC3-75 (M)", "fitness")["detail"]
 
 

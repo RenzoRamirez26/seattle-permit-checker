@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from api import config, geo, schemas, store, uploads
 from api import main as api_main
-from checker import audit, extract, zoning
+from checker import audit, extract, rules_engine, zoning
 from tests.conftest import FIXTURES, ROOT, FakeClient
 
 CASES = {"cafe": ("cafe_flawed", "cafe_restaurant", "NC2-55 (M)", True),
@@ -83,7 +83,8 @@ def test_meta_gives_the_rulebook_edition_date_only_once_the_owner_has_set_it(api
     """Q2: the footer's date comes from _meta.edition_date. While it is the placeholder the API sends null, never "TODO"."""
     assert api_main.rules()["_meta"]["edition_date"].startswith("TODO")
     rulebook = api.get("/api/meta").json()["rulebook"]
-    assert rulebook == {"edition_date": None, "code_basis": api_main.rules()["_meta"]["code_basis"]}
+    assert rulebook == {"edition_date": None, "code_basis": api_main.rules()["_meta"]["code_basis"],
+                        **api_main.rule_counts(api_main.rules())}
     assert "TODO" not in api.get("/api/meta").text
 
     dated = json.loads(json.dumps(api_main.rules()))
@@ -640,3 +641,47 @@ def test_the_fixture_clip_with_the_real_model(api, monkeypatch):
     assert r.status_code == 200, r.text
     words = r.json()["text"].lower()
     assert "second exit" in words and "caf" in words
+
+
+def test_meta_counts_the_rules_still_being_checked(api, monkeypatch):
+    """The Start page reads how many rules are unverified from /api/meta; nothing is counted in the browser."""
+    entries = {k: v for k, v in api_main.rules()["rules"].items() if not k.startswith("_")}
+    rulebook = api.get("/api/meta").json()["rulebook"]
+    assert rulebook["rules"] == len(entries) > 0
+    assert rulebook["rules_unverified"] == sum(not rules_engine.rule_checked(api_main.rules(), k) for k in entries) > 0
+    assert rulebook["rules_unverified"] > sum(not v["verified"] for v in entries.values())   # dependencies count too
+    checked = json.loads(json.dumps(api_main.rules()))
+    for k in entries:
+        checked["rules"][k]["verified"] = True
+    monkeypatch.setattr(api_main, "rules", lambda: checked)
+    assert api.get("/api/meta").json()["rulebook"]["rules_unverified"] == 0
+    spec = api.get("/openapi.json").json()["components"]["schemas"]
+    assert {"rules", "rules_unverified"} <= set(spec["Rulebook"]["required"])
+
+
+def test_each_finding_says_whether_its_rule_was_checked_and_where_it_comes_from(api):
+    check = _new_check(api, "cafe")
+    entries = api_main.rules()["rules"]
+    findings = check["result"]["findings"]
+    assert findings
+    for f in findings:
+        assert f["rule_verified"] is rules_engine.rule_checked(api_main.rules(), f["rule_id"])
+        assert f["rule_source"] == entries[f["rule_id"]]["source"]
+    assert {f["rule_verified"] for f in findings} == {False}           # no rule counts as checked yet (EG-3's ADA section)
+    assembly = [p for p in check["result"]["permits_likely_required"] if not p["rule_verified"]]
+    assert {p["id"] for p in assembly} == {"assembly", "sprinkler"}    # listed because of the number of people
+    again = api.get(f"/api/checks/{check['id']}").json()                         # stored and read back unchanged
+    assert [(f["rule_verified"], f["rule_source"]) for f in again["result"]["findings"]] == \
+           [(f["rule_verified"], f["rule_source"]) for f in findings]
+    assert check["result"]["occupant_load"]["rule_verified"] is False
+    props = api.get("/openapi.json").json()["components"]["schemas"]["Finding"]["properties"]
+    assert props["rule_verified"]["type"] == "boolean" and props["rule_verified"]["default"] is False
+    assert props["rule_source"]["type"] == "string"
+
+
+def test_a_sign_answer_sent_as_null_is_not_sure_and_left_out_is_the_default(api):
+    facts = _demo_facts("salon_flawed")
+    sent = api.post("/api/checks", json={"facts": facts, "intake": {"business_type": "retail", "new_signage": None}}).json()
+    left = api.post("/api/checks", json={"facts": facts, "intake": {"business_type": "retail"}}).json()
+    sign = lambda c: next(p for p in c["result"]["permits_likely_required"] if p["id"] == "sign")
+    assert "a new sign" in sign(sent)["may_be_needed"] and "may_be_needed" not in sign(left)

@@ -159,7 +159,7 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
               {running ? (
                 <div className="mt-4 flex flex-col gap-4" data-testid="checking">
                   <CheckingSteps current={3} />
-                  <CheckingBar label="Running Seattle's rules" />
+                  <CheckingBar label="Running the rules" />
                 </div>
               ) : null}
             </div>

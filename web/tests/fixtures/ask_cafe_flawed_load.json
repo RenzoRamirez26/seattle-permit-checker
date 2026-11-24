@@ -5,7 +5,7 @@
     ],
     "generated_by": "template",
     "problems": [],
-    "text": "No issues found there. Occupancy classification: Café or restaurant for 106 people: Group A-2. [OCC-1]"
+    "text": "No issues found there. Occupancy classification: Your plan holds 106 people. The building code puts a café or restaurant that size in Group A-2. This rule's value is still being checked against the code. [OCC-1]"
   },
   "question": "Why is the occupant load what it is?"
 }

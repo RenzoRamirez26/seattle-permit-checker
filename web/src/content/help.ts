@@ -7,7 +7,7 @@ export type HelpTopic = { id: string; question: string; answer: string; words: s
 export const HELP: HelpTopic[] = [
   {
     id: "what", question: "What does the pre-check look at?",
-    answer: "It reads your floor plan for rooms and their sizes, doors and exits, aisles, restrooms, the kitchen and fire safety, then checks those facts against rules taken from Seattle's building, plumbing and accessibility codes. It also lists the permits a business like yours usually needs and, when you give an address or a zone, screens the zoning. It does not look at structure, energy, electrical, ventilation or anything outside your space.",
+    answer: "It reads your floor plan for rooms and their sizes, doors and exits, aisles, restrooms, the kitchen and fire safety, then checks those facts against rules we coded from Seattle's building and plumbing codes, the federal accessibility standards and, for food businesses, King County's food code. Each result says which rules' values are still being checked against the code. It also lists the permits a business like yours usually needs and, when you give an address or a zone, screens the zoning. It checks for a kitchen exhaust hood where there is cooking, but not ventilation rates, structure, energy, electrical or anything outside your space.",
     words: ["look", "check", "what does", "cover", "rules", "codes"],
   },
   {
@@ -22,7 +22,7 @@ export const HELP: HelpTopic[] = [
   },
   {
     id: "not-sure", question: "What if I am not sure of an answer?",
-    answer: "Choose Not sure. Anything left as Not sure is never treated as fine: every result that depends on it is marked Check with the city, and a permit that depends on it is listed as May be needed.",
+    answer: "Choose Not sure. Any check that needs an answer or a plan value left as Not sure becomes Check with the city, unless the rest of the plan already shows something to fix, and a permit that depends on it is listed as May be needed.",
     words: ["not sure", "don't know", "dont know", "unsure", "unknown"],
   },
   {

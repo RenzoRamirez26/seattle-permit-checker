@@ -16,7 +16,7 @@ export function toFormValues(item: Item | null | undefined, fields: FieldSpec[])
     const v = item?.[f.key];
     if (f.kind === "yesno") out[f.key] = v === true ? "yes" : v === false ? "no" : f.nullable ? "unsure" : "no";
     else if (f.kind === "lines") out[f.key] = Array.isArray(v) ? v.join("\n") : "";
-    else if (f.kind === "choice") out[f.key] = typeof v === "string" ? v : (f.choices?.[f.choices.length - 1]?.value ?? "");
+    else if (f.kind === "choice") out[f.key] = typeof v === "string" ? v : f.nullable ? "" : (f.choices?.[f.choices.length - 1]?.value ?? "");
     else out[f.key] = v === null || v === undefined ? "" : String(v);
   }
   return out;
@@ -57,7 +57,7 @@ function fieldSchema(f: FieldSpec) {
       case "lines":
         return raw.split("\n").map((l) => l.trim()).filter(Boolean);
       case "choice":
-        return text;
+        return text || (f.nullable ? null : text);      // nothing chosen: unknown, sent as null
       default:
         if (!text) {
           if (f.nullable) return null;

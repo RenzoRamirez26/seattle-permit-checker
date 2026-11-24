@@ -57,7 +57,7 @@ def test_report_pdf(case, title, finding, permit, request):
     assert notice in last and last.index(notice) > last.index("Code basis:")              # and the disclaimer closes the last page
     labels = ("Fix before you apply", "Check with the city", "No issues found")
     assert first.index(note) > max(first.index(x) for x in labels)                        # beside the three status counts
-    assert not re.search(r"\b(OK|Pass|Passed|MUST FIX|FAIL|CONFIRM)\b", text)
+    assert not re.search(r"\b(OK|Pass|Passed|MUST FIX|FAIL|CONFIRM)\b", text) and "Checked by" not in text
     assert finding in text and any(permit in p["name"] and permit in text for p in result["permits_likely_required"])
     for n, page in enumerate(pages, 1):
         assert f"Page {n} of {len(pages)}" in page
@@ -71,8 +71,17 @@ def test_report_pdf(case, title, finding, permit, request):
     assert positions == sorted(positions)
     for f in open_items:
         assert f["detail"] in text and f"Code: {f['citation']}" in text
+        if not f["rule_verified"]:                                                       # the note right after the code section
+            assert f"Code: {f['citation']} {rules_engine.UNVERIFIED_NOTE}" in text
         assert not f["fix"] or f"Fix: {f['fix']}" in text
-        assert not f["reviewed_by"] or f"Checked by: {f['reviewed_by']}" in text
+        assert not f["reviewed_by"] or f"Who to ask: {f['reviewed_by']}" in text
+    # rules still being checked: one line on the first page, beside the pre-check note, and one per such finding
+    unverified = [f for f in result["findings"] if not f["rule_verified"]]
+    assert unverified and first.index(rules_engine.SOME_UNVERIFIED) > first.index(note)
+    assert first.index(rules_engine.SOME_UNVERIFIED) < first.index("Fix list") and text.count(rules_engine.SOME_UNVERIFIED) == 1
+    flowing = re.sub(rf" {re.escape(pdf.REPORT_NAME)}: {re.escape(s['business_label'])} Page \d+ of \d+ ", " ", text)
+    assert flowing.count(rules_engine.UNVERIFIED_NOTE) == len(unverified)                 # a note may run across a page break
+    assert (rules_engine.UNVERIFIED_FACTORS in flowing) is (not result["occupant_load"]["rule_verified"])
     # tables: every permit with its agency, every room of the occupant-load calculation
     for p in result["permits_likely_required"]:
         assert p["name"] in text and p["agency"] in text
@@ -97,13 +106,17 @@ def test_permit_sheet_pdf(case, finding, permit, request):
     assert first.startswith(d["title"]) and "preparation aid, not the City of Seattle's official form" in first
     assert first.index(permit_draft.NOTICE) < first.index(permit_draft.SECTIONS[0])
     assert permit_draft.CURRENCY in first and "dated 2016" in first
+    assert permit_draft.SOME_UNVERIFIED in first and first.index(permit_draft.SOME_UNVERIFIED) < first.index(permit_draft.SECTIONS[0])
+    assert (permit_draft.UNVERIFIED_FACTORS in text) is (not result["occupant_load"]["rule_verified"])   # under the rooms table
     assert last.rstrip().split(" Permit application preparation sheet")[0].endswith(result["disclaimer"])   # last thing before the footer
     assert finding in text and any(permit in p["name"] and permit in text for p in result["permits_likely_required"])
     # each open problem is one line, title and severity; the fix and the code section are left to the report
     open_items = [f for f in result["findings"] if f["status"] != "pass"]
     assert d["open_items"] and len(d["open_items"]) == len(open_items)
+    flowing = re.sub(rf" {re.escape(d['title'])} Page \d+ of \d+ ", " ", text)         # a line may run across a page break
     for line, f in zip(d["open_items"], open_items):
-        assert line in text and line.endswith(f"{f['title']} ({f['severity']})")
+        note = "" if f["rule_verified"] else f". {permit_draft.UNVERIFIED_NOTE}"
+        assert line in flowing and line == f"{permit_draft.STATUS_LABEL[f['status']]}: {f['title']} ({f['severity']}){note}"
         assert f["detail"] not in text and (not f["fix"] or f["fix"] not in text)
     assert permit_draft.OPEN_POINTER in text and "Code:" not in text
 
@@ -211,3 +224,33 @@ def test_a_permit_that_may_be_needed_says_so_in_both_pdfs():
     for data in (pdf.report_pdf(result), pdf.permit_sheet_pdf(result)):
         text = _text(data)
         assert "May be needed: check with the city." in text and "whether alcohol will be served" in text
+
+
+def test_the_pdfs_say_nothing_about_checking_when_every_rule_is_checked(cafe):
+    """With every finding's rule verified, neither PDF carries the note or the first-page line."""
+    checked = cafe | {"findings": [f | {"rule_verified": True} for f in cafe["findings"]]}
+    for data in (pdf.report_pdf(checked), pdf.permit_sheet_pdf(checked)):
+        text = " ".join(_pages(data))
+        assert rules_engine.UNVERIFIED_NOTE not in text and rules_engine.SOME_UNVERIFIED not in text
+
+
+def test_the_sheet_uses_the_engine_s_words_for_unverified_rules():
+    assert permit_draft.UNVERIFIED_NOTE == rules_engine.UNVERIFIED_NOTE
+    assert permit_draft.SOME_UNVERIFIED == rules_engine.SOME_UNVERIFIED
+    assert permit_draft.UNVERIFIED_FACTORS == rules_engine.UNVERIFIED_FACTORS
+    assert permit_draft.UNVERIFIED_PERMIT == rules_engine.UNVERIFIED_PERMIT
+    assert permit_draft.UNVERIFIED_ENTRY == rules_engine.UNVERIFIED_ENTRY
+
+
+def test_the_report_marks_the_figures_and_the_assembly_permit_beside_them(cafe):
+    """Group A-2, the occupant load and the exits required, and a permit listed because of the number of people,
+    each say they rest on values still being checked, next to them, not only on page one."""
+    first = _pages(pdf.report_pdf(cafe))[0]
+    assert first.index(rules_engine.UNVERIFIED_FIGURES) < first.index(rules_engine.PRECHECK_NOTE)   # right under the figures
+    text = " ".join(_pages(pdf.report_pdf(cafe)))
+    assembly = [p for p in cafe["permits_likely_required"] if p["rule_verified"] is False]
+    assert assembly and all(pdf.permit_name(p).endswith(rules_engine.UNVERIFIED_PERMIT) for p in assembly)
+    assert text.count(rules_engine.UNVERIFIED_PERMIT) == len(assembly)
+    sheet = " ".join(_pages(pdf.permit_sheet_pdf(cafe)))
+    assert f"Group {cafe['summary']['occupancy_group']} (calculated by the pre-check; your designer confirms). " \
+           f"{permit_draft.UNVERIFIED_VALUE}" in sheet and sheet.count(rules_engine.UNVERIFIED_PERMIT) == len(assembly)

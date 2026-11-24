@@ -4,7 +4,7 @@
   "id": "fixture-salon_flawed",
   "notices": [],
   "result": {
-    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design; King County Board of Health Code and the Washington State Retail Food Code (chapter 246-215 WAC) for food businesses.",
     "disclaimer": "Not a code determination: have a licensed design professional and the city's plan reviewer confirm the design.",
     "extraction": {
       "accessible_seat_count": null,
@@ -116,6 +116,8 @@
         "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
+        "rule_source": "SBC 2021 1010.1.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom door (Restroom)"
@@ -126,6 +128,8 @@
         "fix": "Move furniture or fixtures to give 36 in. clear.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the aisle: Aisle A (between chairs)"
@@ -136,6 +140,8 @@
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
+        "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1",
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the restroom so a wheelchair can turn: Restroom"
@@ -146,26 +152,32 @@
         "fix": "Confirm the use with SDCI land use coaching (free) or the Office of Economic Development, (206) 684-8090 before signing a lease.",
         "reviewed_by": "SDCI Zoning review",
         "rule_id": "ZN-1",
+        "rule_source": "SMC Title 23",
+        "rule_verified": false,
         "severity": "high",
         "status": "review",
         "title": "Confirm the zoning: NR3"
       },
       {
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
-        "detail": "Your plan doesn't show fire extinguishers.",
+        "detail": "Your plan doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel.",
         "fix": "Show extinguisher locations.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
+        "rule_source": "SFC 2021 906.1; SFC 2021 906.4",
+        "rule_verified": false,
         "severity": "medium",
         "status": "review",
         "title": "Show the fire extinguishers"
       },
       {
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
-        "detail": "Salon, barbershop or spa for 15 people: Group B.",
+        "detail": "Your plan holds 15 people. The building code puts a salon, barbershop or spa that size in Group B.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
+        "rule_source": "SBC 2021 303.1.1; SBC 2021 Chapter 3",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Occupancy classification"
@@ -176,6 +188,8 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
+        "rule_source": "SBC 2021 Table 1006.2.1; SBC 2021 1006.3",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exits"
@@ -186,26 +200,32 @@
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
+        "rule_source": "SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Toilet count"
       },
       {
         "citation": "SBC 1005.3.2",
-        "detail": "Your exit doors add up to 34 in. A space for 15 people needs 3.0 in.",
+        "detail": "Your exit doors add up to 34 in. A space for 15 people needs 3.0 in. (15 x 0.2 in.).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
+        "rule_source": "SBC 2021 1005.3.2",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "Your plan shows 1 restroom sink.",
+        "detail": "Your plan shows 1 restroom sink. This space needs at least 1, one in each toilet room.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
+        "rule_source": "SBC 2021 Table 2902.1",
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Restroom sinks"
@@ -259,44 +279,61 @@
       ],
       "calculated_dining_load": 0,
       "missing_area": [],
+      "missing_use": [],
+      "rule_source": "SBC 2021 Table 1004.5",
+      "rule_verified": false,
       "seat_count": null,
       "total": 15
     },
     "permits_likely_required": [
       {
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
+        "entry_verified": true,
         "id": "building",
-        "name": "Construction permit (addition/alteration; also establishes the use of the space)"
+        "name": "Construction permit (addition/alteration; also establishes the use of the space)",
+        "rule_verified": true
       },
       {
         "agency": "SDCI, issued after the final inspection",
+        "entry_verified": true,
         "id": "co",
-        "name": "Certificate of Occupancy"
+        "name": "Certificate of Occupancy",
+        "rule_verified": true
       },
       {
         "agency": "SDCI",
+        "entry_verified": true,
         "id": "electrical",
-        "name": "Electrical permit"
+        "name": "Electrical permit",
+        "rule_verified": true
       },
       {
         "agency": "Public Health - Seattle & King County",
+        "entry_verified": true,
         "id": "plumbing",
-        "name": "Plumbing, gas and backflow permits"
+        "name": "Plumbing, gas and backflow permits",
+        "rule_verified": true
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
+        "entry_verified": true,
         "id": "business",
-        "name": "Washington State business license and Seattle business license"
+        "name": "Washington State business license and Seattle business license",
+        "rule_verified": true
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
+        "entry_verified": true,
         "id": "sign",
-        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)"
+        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
+        "rule_verified": true
       },
       {
         "agency": "Washington State Department of Licensing",
+        "entry_verified": false,
         "id": "salon_license",
-        "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)"
+        "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)",
+        "rule_verified": true
       }
     ],
     "summary": {
