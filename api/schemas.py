@@ -278,6 +278,9 @@ class OccupantLoad(BaseModel):
     total: int
     by_space: list[OccupantLoadRow]
     missing_area: list[str] = []
+    rule_verified: bool = Field(default=False, description="True only when every square-feet-per-person factor was read "
+                                                           "from the code text (rule OL-0).")
+    rule_source: str = Field(default="", description="The code edition and section of the factors.")
 
 
 class Result(BaseModel):

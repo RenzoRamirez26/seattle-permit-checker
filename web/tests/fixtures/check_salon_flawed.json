@@ -213,7 +213,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
         "rule_source": "SBC 2021 1005.3.2",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
@@ -279,6 +279,8 @@
       ],
       "calculated_dining_load": 0,
       "missing_area": [],
+      "rule_source": "SBC 2021 Table 1004.5",
+      "rule_verified": false,
       "seat_count": null,
       "total": 15
     },

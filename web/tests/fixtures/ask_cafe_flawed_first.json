@@ -7,7 +7,7 @@
     ],
     "generated_by": "template",
     "problems": [],
-    "text": "I found 11 items to fix before you apply and 2 to check with the city. The space is for 106 people, which makes it Group A-2. Most serious first: Add a second exit. [EG-1] Add a Type I hood over the cooking line. [MECH-1] Add a sprinkler system. [FS-2] There are 10 more in the fix list."
+    "text": "I found 11 items to fix before you apply and 2 to check with the city. The space is for 106 people, which makes it Group A-2. Most serious first: Add a second exit. [EG-1] Add a Type I hood over the cooking line. [MECH-1] Add a sprinkler system. [FS-2] There are 10 more in the fix list. Some rule values are still being checked against the code."
   },
   "question": "What should I fix first?"
 }

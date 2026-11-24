@@ -542,6 +542,18 @@ export interface components {
              * @default []
              */
             missing_area: string[];
+            /**
+             * Rule Source
+             * @description The code edition and section of the factors.
+             * @default
+             */
+            rule_source: string;
+            /**
+             * Rule Verified
+             * @description True only when every square-feet-per-person factor was read from the code text (rule OL-0).
+             * @default false
+             */
+            rule_verified: boolean;
             /** Total */
             total: number;
         } & {

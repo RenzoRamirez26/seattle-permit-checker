@@ -59,6 +59,15 @@ def business(rules: dict, key: Optional[str]) -> dict[str, Any]:
     return types[key] | {"key": key}
 
 
+def rule_checked(rules: dict, rule_id: str, _seen: frozenset = frozenset()) -> bool:
+    """True only when the rule's values were read from the code text (rulebook: rules) and so were those of every rule
+    whose result it uses (depends_on). A rule missing from the rulebook, or a loop, counts as unverified."""
+    entry = (rules.get("rules") or {}).get(rule_id)
+    if not entry or entry.get("verified") is not True or rule_id in _seen:
+        return False
+    return all(rule_checked(rules, d, _seen | {rule_id}) for d in entry.get("depends_on", []))
+
+
 # ---------------------------------------------------------------- occupant load
 def occupant_load(extraction: dict, rules: dict, business_type: Optional[str] = None) -> dict[str, Any]:
     bt = business(rules, business_type)
@@ -272,6 +281,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     F: list[Finding] = []
     bt = business(rules, intake.get("business_type"))
     ol = occupant_load(extraction, rules, bt["key"])
+    ol |= {"rule_verified": rule_checked(rules, "OL-0"),       # the factors behind every "a space for N people"
+           "rule_source": ((rules.get("rules") or {}).get("OL-0") or {}).get("source", "")}
     n = ol["total"]
     eg, acc, pl, fire, health = rules["egress"], rules["accessibility"], rules["plumbing"], rules["fire"], rules["health"]
     group = occupancy_group(n, bt, rules)
@@ -539,11 +550,9 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         route = routing.get(f.rule_id) or routing.get(f.rule_id.split("-")[0]) or {}   # exact rule, then its family
         f.reviewed_by = route.get("label", "")
 
-    checked = rules.get("rules") or {}
     for f in F:
-        entry = checked.get(f.rule_id) or {}   # a rule missing from the rulebook counts as unverified
-        f.rule_verified = entry.get("verified") is True
-        f.rule_source = entry.get("source", "")
+        f.rule_verified = rule_checked(rules, f.rule_id)
+        f.rule_source = ((rules.get("rules") or {}).get(f.rule_id) or {}).get("source", "")
 
     F.sort(key=lambda f: ({"fail": 0, "review": 1, "pass": 2}[f.status], SEVERITY_ORDER[f.severity]))
 
@@ -585,6 +594,8 @@ NOTHING_OPEN = "No issues found in the checks we ran."
 # Beside a finding whose rule values were not yet read from the code text, and once on a report that uses one.
 UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
 SOME_UNVERIFIED = "Some rule values are still being checked against the code."
+# Under the occupant-load table when some of its square-feet-per-person factors are not yet read from the code text.
+UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
 
 
 def to_markdown(result: dict, title: Optional[str] = None) -> str:
@@ -619,6 +630,8 @@ def to_markdown(result: dict, title: Optional[str] = None) -> str:
             "| Space | Use | Area (sq ft) | Sq ft per person | Load |", "|---|---|---|---|---|"]
     out += [f"| {r['space']} | {r['use']} | {r['area_sqft']:g} | {r['factor']} | {r['load']} |"
             for r in result["occupant_load"]["by_space"]]
+    if not result["occupant_load"].get("rule_verified"):
+        out += ["", f"_{UNVERIFIED_FACTORS}_"]
     out += ["", f"_Code basis: {result['code_basis']}_", "", f"_{result['disclaimer']}_", ""]
     return "\n".join(out)
 

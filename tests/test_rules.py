@@ -285,8 +285,33 @@ def test_findings_carry_the_rule_verification_and_source(rules, load):
     entries = _rule_entries(rules)
     for business, facts in _cases(load):
         for f in rules_engine.run_checks(facts, {"business_type": business, "cooking_on_site": True}, rules)["findings"]:
-            assert f["rule_verified"] is entries[f["rule_id"]]["verified"]
+            assert f["rule_verified"] is rules_engine.rule_checked(rules, f["rule_id"])
             assert f["rule_source"] == entries[f["rule_id"]]["source"]
+            assert not f["rule_verified"] or entries[f["rule_id"]]["verified"]       # never more than the rulebook says
+
+
+def test_a_rule_counts_as_checked_only_when_the_rules_it_depends_on_are(rules, load):
+    """FS-2's sprinkler triggers were read from the code, but the occupant load and group it uses were not (OL-0, OCC-1)."""
+    entries = _rule_entries(rules)
+    assert entries["FS-2"]["verified"] and set(entries["FS-2"]["depends_on"]) == {"OL-0", "OCC-1"}
+    assert not rules_engine.rule_checked(rules, "FS-2") and not rules_engine.rule_checked(rules, "FS-1")
+    assert rules_engine.rule_checked(rules, "EG-3")                    # a door width needs no occupant load
+    for rule_id, entry in entries.items():                              # every dependency is a rule in the rulebook
+        assert set(entry.get("depends_on", [])) <= set(entries), rule_id
+    loads_on_occupants = {"OCC-1", "EG-1", "EG-2", "EG-4", "FS-2", "PL-1", "PL-2"}
+    assert all("OL-0" in entries[r]["depends_on"] for r in loads_on_occupants)
+
+    fixed = json.loads(json.dumps(rules))
+    fixed["rules"]["OL-0"]["verified"] = fixed["rules"]["OCC-1"]["verified"] = True
+    assert rules_engine.rule_checked(fixed, "FS-2") and rules_engine.rule_checked(fixed, "EG-2")
+    loop = json.loads(json.dumps(rules))
+    loop["rules"]["EG-3"]["depends_on"] = ["ADA-3"]; loop["rules"]["ADA-3"]["depends_on"] = ["EG-3"]
+    assert not rules_engine.rule_checked(loop, "EG-3")                 # a loop never counts as checked
+
+    cafe = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    sprinklers = next(f for f in cafe["findings"] if f["rule_id"] == "FS-2")
+    assert sprinklers["status"] == "fail" and sprinklers["rule_verified"] is False
+    assert cafe["occupant_load"]["rule_verified"] is False and cafe["occupant_load"]["rule_source"] == entries["OL-0"]["source"]
 
 
 def test_verification_never_changes_a_finding(rules, load):
@@ -313,6 +338,6 @@ def test_verification_never_changes_a_finding(rules, load):
 def test_report_markdown_marks_unverified_rules(rules, load):
     result = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
     md = rules_engine.to_markdown(result)
-    assert rules_engine.SOME_UNVERIFIED in md
+    assert rules_engine.SOME_UNVERIFIED in md and rules_engine.UNVERIFIED_FACTORS in md
     unverified_open = [f for f in result["findings"] if f["status"] != "pass" and not f["rule_verified"]]
     assert unverified_open and md.count(rules_engine.UNVERIFIED_NOTE) == len(unverified_open)

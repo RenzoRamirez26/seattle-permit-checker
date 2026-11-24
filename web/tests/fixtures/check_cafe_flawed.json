@@ -178,7 +178,7 @@
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-2",
         "rule_source": "SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "critical",
         "status": "fail",
         "title": "Add a sprinkler system"
@@ -190,7 +190,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-2",
         "rule_source": "SBC 2021 1010.1.2.1",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Turn the exit door to swing outward: Door 1"
@@ -226,7 +226,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "FS-1",
         "rule_source": "SBC 2021 1013.1",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Add an exit sign at each exit"
@@ -346,7 +346,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
         "rule_source": "SBC 2021 1005.3.2",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
@@ -432,6 +432,8 @@
       ],
       "calculated_dining_load": 102,
       "missing_area": [],
+      "rule_source": "SBC 2021 Table 1004.5",
+      "rule_verified": false,
       "seat_count": 56,
       "total": 106
     },

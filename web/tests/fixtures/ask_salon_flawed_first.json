@@ -7,7 +7,7 @@
     ],
     "generated_by": "template",
     "problems": [],
-    "text": "I found 3 items to fix before you apply and 2 to check with the city. The space is for 15 people, which makes it Group B. Most serious first: Widen the door: Restroom door (Restroom). [EG-3] Widen the aisle: Aisle A (between chairs). [ADA-1] Widen the restroom so a wheelchair can turn: Restroom. [ADA-2] There are 2 more in the fix list."
+    "text": "I found 3 items to fix before you apply and 2 to check with the city. The space is for 15 people, which makes it Group B. Most serious first: Widen the door: Restroom door (Restroom). [EG-3] Widen the aisle: Aisle A (between chairs). [ADA-1] Widen the restroom so a wheelchair can turn: Restroom. [ADA-2] There are 2 more in the fix list. Some rule values are still being checked against the code."
   },
   "question": "What should I fix first?"
 }

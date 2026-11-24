@@ -112,9 +112,10 @@ def get_meta() -> dict:
 
 
 def rule_counts(rulebook: dict) -> dict[str, int]:
-    """How many rules the rulebook lists, and how many are not yet checked against the code text (not verified: true)."""
-    entries = {k: v for k, v in (rulebook.get("rules") or {}).items() if not k.startswith("_")}
-    return {"rules": len(entries), "rules_unverified": sum(v.get("verified") is not True for v in entries.values())}
+    """How many rules the rulebook lists, and how many are not yet checked against the code text, counting a rule as
+    unchecked when a rule it depends on is (rules_engine.rule_checked)."""
+    entries = [k for k in (rulebook.get("rules") or {}) if not k.startswith("_")]
+    return {"rules": len(entries), "rules_unverified": sum(not rules_engine.rule_checked(rulebook, k) for k in entries)}
 
 
 def edition_date(rulebook: dict) -> Optional[str]:

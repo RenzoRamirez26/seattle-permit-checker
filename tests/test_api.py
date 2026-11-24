@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from api import config, geo, schemas, store, uploads
 from api import main as api_main
-from checker import audit, extract, zoning
+from checker import audit, extract, rules_engine, zoning
 from tests.conftest import FIXTURES, ROOT, FakeClient
 
 CASES = {"cafe": ("cafe_flawed", "cafe_restaurant", "NC2-55 (M)", True),
@@ -648,7 +648,8 @@ def test_meta_counts_the_rules_still_being_checked(api, monkeypatch):
     entries = {k: v for k, v in api_main.rules()["rules"].items() if not k.startswith("_")}
     rulebook = api.get("/api/meta").json()["rulebook"]
     assert rulebook["rules"] == len(entries) > 0
-    assert rulebook["rules_unverified"] == sum(not v["verified"] for v in entries.values()) > 0
+    assert rulebook["rules_unverified"] == sum(not rules_engine.rule_checked(api_main.rules(), k) for k in entries) > 0
+    assert rulebook["rules_unverified"] > sum(not v["verified"] for v in entries.values())   # dependencies count too
     checked = json.loads(json.dumps(api_main.rules()))
     for k in entries:
         checked["rules"][k]["verified"] = True
@@ -664,12 +665,13 @@ def test_each_finding_says_whether_its_rule_was_checked_and_where_it_comes_from(
     findings = check["result"]["findings"]
     assert findings
     for f in findings:
-        assert f["rule_verified"] is entries[f["rule_id"]]["verified"]
+        assert f["rule_verified"] is rules_engine.rule_checked(api_main.rules(), f["rule_id"])
         assert f["rule_source"] == entries[f["rule_id"]]["source"]
     assert {f["rule_verified"] for f in findings} == {True, False}     # the demo café uses both kinds
     again = api.get(f"/api/checks/{check['id']}").json()                         # stored and read back unchanged
     assert [(f["rule_verified"], f["rule_source"]) for f in again["result"]["findings"]] == \
            [(f["rule_verified"], f["rule_source"]) for f in findings]
+    assert check["result"]["occupant_load"]["rule_verified"] is False
     props = api.get("/openapi.json").json()["components"]["schemas"]["Finding"]["properties"]
     assert props["rule_verified"]["type"] == "boolean" and props["rule_verified"]["default"] is False
     assert props["rule_source"]["type"] == "string"
