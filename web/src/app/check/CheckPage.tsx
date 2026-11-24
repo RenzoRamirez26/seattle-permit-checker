@@ -10,6 +10,7 @@ import Link from "next/link";
 import { api, ApiProblem, call, type Facts } from "@/api/client";
 import { errorWords } from "@/api/errors";
 import { ErrorSummary, type ProblemItem } from "@/components/flow/ErrorSummary";
+import { ExampleAnswersNotice } from "@/components/flow/ExampleAnswersNotice";
 import { PageShell } from "@/components/flow/PageShell";
 import { FactsEditor } from "@/components/plan/FactGroup";
 import type { RowProblem } from "@/components/plan/FactRow";
@@ -109,6 +110,8 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
       {!reading || !facts ? (
         <NothingRead />
       ) : (
+        <>
+        {reading.case_id ? <ExampleAnswersNotice meta={meta} /> : null}
         <div className="grid grid-cols-1 gap-x-6 gap-y-12 lg:grid-cols-12">
           <div className="min-w-0 lg:col-span-7">
             <div className="lg:sticky lg:top-6">
@@ -142,6 +145,7 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
             </div>
           </div>
         </div>
+        </>
       )}
     </>
   );

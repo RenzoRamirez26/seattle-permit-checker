@@ -28,7 +28,10 @@ export type Reading = Pick<PlanReading, "source_label" | "case_id"> & {
   file_type?: string | null;
 };
 
-const KEYS = { business: "precheck.business", reading: "precheck.reading", facts: "precheck.facts", check: "precheck.check" } as const;
+const KEYS = {
+  business: "precheck.business", reading: "precheck.reading", facts: "precheck.facts", check: "precheck.check",
+  fromExample: "precheck.business.example", replaced: "precheck.business.replaced",
+} as const;
 
 function read<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
@@ -51,7 +54,24 @@ function write(key: string, value: unknown) {
 
 export const flow = {
   business: () => read<Business>(KEYS.business),
-  setBusiness: (b: Business | null) => write(KEYS.business, b),
+  /** The owner's own answers (step 1, or "Keep my answers"): any answers an example replaced are no longer needed. */
+  setBusiness: (b: Business | null) => {
+    write(KEYS.business, b);
+    write(KEYS.fromExample, null);
+    write(KEYS.replaced, null);
+  },
+  /**
+   * An example plan's answers. If they replace answers the owner gave on step 1, those are kept aside so step 3 can
+   * say so and offer "Keep my answers". Answers set by an earlier example are not the owner's, so they are not kept.
+   */
+  setExampleBusiness: (b: Business) => {
+    const owner = read<Business>(KEYS.replaced) ?? (read<boolean>(KEYS.fromExample) ? null : read<Business>(KEYS.business));
+    write(KEYS.replaced, owner && !sameBusiness(owner, b) ? owner : null);
+    write(KEYS.business, b);
+    write(KEYS.fromExample, true);
+  },
+  /** The owner's step 1 answers that an example plan replaced, or null. */
+  replacedBusiness: () => read<Business>(KEYS.replaced),
   reading: () => read<Reading>(KEYS.reading),
   /** A new reading replaces the facts with the ones just read. */
   setReading: (r: Reading | null) => {
@@ -74,6 +94,12 @@ export const flow = {
     planFile.clear();
   },
 };
+
+const BUSINESS_KEYS: (keyof Business)[] = ["business_type", "cooking_on_site", "food_prep", "serves_alcohol", "outdoor_seating",
+  "upper_floor", "historic_district", "new_signage", "address", "zone"];
+export function sameBusiness(a: Business, b: Business): boolean {
+  return BUSINESS_KEYS.every((k) => (a[k] ?? null) === (b[k] ?? null));
+}
 
 /** Every fact empty ("Not sure"): the owner enters the measurements by hand. */
 export function emptyFacts(): Facts {

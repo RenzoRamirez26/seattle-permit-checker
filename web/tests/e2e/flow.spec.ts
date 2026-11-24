@@ -201,3 +201,38 @@ test("Start again clears the answers", async ({ page }) => {
   await page.goto("/check/");
   await expect(page.getByText("No plan has been read in this browser tab yet.")).toBeVisible();
 });
+
+test("F2: an example plan that replaces the owner's step 1 answers says so, and Keep my answers puts them back", async ({ page }) => {
+  await page.goto("/business/");
+  await page.getByText("Retail shop").click();
+  await page.getByLabel("Zone from the zoning map (optional)").fill("NC3-75");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/plan\/$/);
+  await page.goto("/plan/reading/?example=cafe_flawed");             // the same link as "Try the example plan" on step 2
+  await expect(page).toHaveURL(/\/check\/$/);
+
+  const notice = page.getByRole("region", { name: "The example plan uses its own answers" });
+  await expect(notice).toContainText("They replaced your answers from step 1: Café or restaurant; cooking that makes grease or smoke: Yes; alcohol: No; zone NC2-55 (M).");
+  await axeBoth(page, "example answers notice");
+  await expectNoSidewaysScroll(page);
+  await shoot(page, "verify", "check-example-answers-notice", { fullPage: false });
+
+  await notice.getByRole("button", { name: "Keep my answers" }).click();
+  const kept = page.getByRole("status").filter({ hasText: "Your answers from step 1 are kept." });
+  await expect(kept).toBeFocused();
+  await expect(notice).toHaveCount(0);
+
+  const sent = page.waitForRequest((r) => r.url().endsWith("/api/checks") && r.method() === "POST");
+  await page.getByRole("button", { name: "Run the check" }).click();
+  const body = (await sent).postDataJSON();
+  expect(body.intake.business_type).toBe("retail");
+  expect(body.zoning).toEqual({ address: null, zone: "NC3-75" });
+  await expect(page.getByTestId("counts")).toBeVisible();
+});
+
+test("F2: an example chosen with no step 1 answers shows no notice", async ({ page }) => {
+  await page.goto("/plan/reading/?example=cafe_flawed");
+  await expect(page).toHaveURL(/\/check\/$/);
+  await expect(page.getByRole("button", { name: "Run the check" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "The example plan uses its own answers" })).toHaveCount(0);
+});

@@ -3,7 +3,8 @@
  * "Reading your plan": sends the plan to POST /api/plans/read and opens step 3 with what came back.
  * The API reads a plan in one request with no progress events, so no stage is named (D4): the page says
  * what it is reading and offers Cancel, which stops the request and returns to step 2.
- * "?example=<id>" reads an example plan instead and sets the example's business answers.
+ * "?example=<id>" reads an example plan instead and sets the example's business answers; if they replace the
+ * owner's own answers, step 3 says so and offers to keep the owner's.
  */
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -56,7 +57,7 @@ function Reading() {
           }));
           const b = exampleBusiness(meta, example);
           if (b) {
-            flow.setBusiness(b);
+            flow.setExampleBusiness(b);          // step 3 names these answers and offers "Keep my answers"
             flow.clearBusinessDraft();
           }
           planFile.clear();
