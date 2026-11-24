@@ -248,3 +248,18 @@ def test_template_answers_say_when_a_rule_value_is_still_being_checked(salon):
     assert rules_engine.SOME_UNVERIFIED not in agent.spoken_summary(checked)
     assert rules_engine.UNVERIFIED_NOTE not in agent.template_answer("What about the aisle?", checked)
     assert '"rule_verified"' in agent.build_context(salon)
+
+
+def test_the_permit_answer_carries_may_be_needed_and_the_unchecked_note(rules, load):
+    """The template answer names a permit the way the pages do: with May be needed, and with the unchecked note when it
+    is listed because of a value still being checked."""
+    cafe = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": None}, rules)
+    permits = [p for p in cafe["permits_likely_required"] if p.get("may_be_needed") or p["rule_verified"] is False]
+    assert permits
+    first = cafe | {"permits_likely_required": permits}
+    answer = agent.template_answer("Which permits will I need?", first)
+    for p in permits[:5]:
+        assert p["name"] in answer
+    assert answer.count("listed because of a value still being checked against the code") == \
+        sum(p["rule_verified"] is False for p in permits[:5])
+    assert answer.count("may be needed: check with the city") == sum(bool(p.get("may_be_needed")) for p in permits[:5])

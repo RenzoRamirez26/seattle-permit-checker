@@ -21,7 +21,7 @@ import os
 import re
 from typing import Any, Optional
 
-from .rules_engine import PRECHECK_NOTE, SOME_UNVERIFIED, UNVERIFIED_NOTE
+from .rules_engine import PRECHECK_NOTE, SOME_UNVERIFIED, UNVERIFIED_NOTE, UNVERIFIED_PERMIT
 
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
@@ -112,11 +112,18 @@ def spoken_summary(result: dict, limit: int = 3) -> str:
     return head + top + more + unverified
 
 
+def _permit_words(p: dict) -> str:
+    """A permit as the answer names it, with its "May be needed" sentence and the unchecked note, as the pages show."""
+    out = f"{p['name']} from {p['agency']}"
+    notes = ([p["may_be_needed"]] if p.get("may_be_needed") else []) + ([UNVERIFIED_PERMIT] if p.get("rule_verified") is False else [])
+    return out + "".join(f" ({n.rstrip('.')[0].lower()}{n.rstrip('.')[1:]})" for n in notes)
+
+
 def template_answer(question: str, result: dict) -> str:
     """Answer from the findings by matching the question's topic. Used with no API key and as the fallback."""
     q = question.lower()
     if any(w in q for w in ("permit", "licen", "approval", "who do i", "which agenc")):
-        names = "; ".join(f"{p['name']} from {p['agency']}" for p in result["permits_likely_required"][:5])
+        names = "; ".join(_permit_words(p) for p in result["permits_likely_required"][:5])
         more = len(result["permits_likely_required"]) - 5
         return f"You will likely need: {names}" + (f"; and {more} more in the permit list." if more > 0 else ".")
     if any(w in q for w in ("how long", "how many rounds", "wait", "timeline", "delay")):

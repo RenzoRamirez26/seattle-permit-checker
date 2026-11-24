@@ -330,8 +330,12 @@ if result:
 
         with side_col:
             st.markdown("**Permits and approvals you will likely need**")
-            st.table(pd.DataFrame(result["permits_likely_required"])[["name", "agency"]]
-                     .rename(columns={"name": "Permit or approval", "agency": "Who issues it"}).set_index("Permit or approval"))
+            permits = pd.DataFrame([{"name": p["name"], "agency": p["agency"],
+                                     "note": " ".join(([p["may_be_needed"]] if p.get("may_be_needed") else [])
+                                                      + ([rules_engine.UNVERIFIED_PERMIT] if p.get("rule_verified") is False else []))}
+                                    for p in result["permits_likely_required"]])
+            st.table(permits.rename(columns={"name": "Permit or approval", "agency": "Who issues it", "note": "Note"})
+                     .set_index("Permit or approval"))
 
             review = result.get("local_review_data")
             if review:

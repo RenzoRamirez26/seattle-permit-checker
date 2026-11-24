@@ -56,6 +56,8 @@ def test_cafe_flow(app):
     captions = [c.value for c in at.caption]                     # rules still being checked: once on top, then per finding
     assert captions.count(rules_engine.SOME_UNVERIFIED) == 1 and rules_engine.UNVERIFIED_NOTE in captions
     assert rules_engine.UNVERIFIED_FACTORS in captions                                     # under the occupant-load table
+    table = next(t.value for t in at.table if t.value.index.name == "Permit or approval")
+    assert table.loc["Assembly permit (spaces holding 100 or more people)", "Note"] == rules_engine.UNVERIFIED_PERMIT
     assert any("review records are not downloaded yet" in c.value for c in at.caption)
 
 
