@@ -150,6 +150,39 @@ test("with no key, the upload path shows the no_model_key message and offers the
   await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
 });
 
+test("with no key, step 2 lists the example plans itself instead of sending the owner back to Start", async ({ page }) => {
+  const meta = fixture("meta");
+  expect(meta.features.model_api_key).toBe(false);                     // the e2e API runs with no key
+  await page.goto("/plan/");
+  const notice = page.getByRole("region", { name: /^This server cannot read uploaded plans yet\./ });
+  await expect(notice).toBeVisible();
+  await expect(notice.getByRole("link")).toHaveText([
+    "Enter the measurements yourself",
+    ...meta.demo_cases.map((c: { title: string }) => `Try the example plan: ${c.title}`),
+  ]);
+  for (const c of meta.demo_cases as { id: string; title: string }[]) {
+    await expect(notice.getByRole("link", { name: `Try the example plan: ${c.title}` })).toHaveAttribute("href", `/plan/reading/?example=${c.id}`);
+  }
+  await expect(page.locator('main a[href="/"]')).toHaveCount(0);       // no link back to Start for the examples
+  await axeBoth(page, "step 2 no key");
+  await expectNoSidewaysScroll(page);
+  await expectTouchTargets(page);
+
+  await notice.getByRole("link", { name: "Try the example plan: Café with planted problems" }).click();
+  await expect(page).toHaveURL(/\/check\/$/);
+  await expect(page.getByText("The saved reading for this example plan. No model was used.")).toBeVisible();
+});
+
+test("with a key, step 2 shows no no-key notice", async ({ page }) => {
+  const meta = fixture("meta");
+  meta.features.model_api_key = true;
+  await page.route("**/api/meta", (route) => route.fulfill({ json: meta, headers: { "access-control-allow-origin": "*" } }));
+  await page.goto("/plan/");
+  await expect(page.locator("[data-state]")).toHaveAttribute("data-state", "empty");
+  await expect(page.getByText(/This server cannot read uploaded plans yet/)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /^Try the example plan:/ })).toHaveCount(0);
+});
+
 test("an uploaded plan read by the model (intercepted 200) opens step 3 with the plan beside the facts", async ({ page }) => {
   const reading = { ...fixture("reading_cafe_flawed"), source: "vision_model", source_label: "the vision model", case_id: null };
   let form = "";

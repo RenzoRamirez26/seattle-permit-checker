@@ -2,7 +2,8 @@
 /**
  * Step 2, "Upload your floor plan": a drop area, "Choose a file", and the camera on phones. The file type and
  * size are checked here, before anything is sent, against the API's own limits (/api/meta). States: empty, a file
- * chosen, read (a reading is kept from before), failed (?problem=<code> from the Reading page).
+ * chosen, read (a reading is kept from before), failed (?problem=<code> from the Reading page). On a server with no
+ * model key, the example plans and manual entry are listed here before the owner tries an upload.
  * The file stays in memory only (D12).
  */
 import { useRef, useState, useSyncExternalStore } from "react";
@@ -104,12 +105,7 @@ function PlanBody() {
           {USABLE_PLAN.map((t) => <li key={t}>{t}</li>)}
         </ul>
         {meta ? <p className="m-0 text-ink-muted">{NOT_SAVED(meta.limits.check_days)}</p> : null}
-        {meta && !meta.features.model_api_key && problemCode !== "no_model_key" ? (
-          <p className="m-0 border-l-2 border-city bg-city-tint p-4">
-            This server cannot read uploaded plans yet. You can still <Link href="/">try an example plan</Link> or{" "}
-            <Link href="/check/?enter=yourself">enter the measurements yourself</Link>.
-          </p>
-        ) : null}
+        {meta && !meta.features.model_api_key && problemCode !== "no_model_key" ? <NoModelKey meta={meta} /> : null}
       </div>
 
       <div id="plan-file">
@@ -169,18 +165,37 @@ function PlanBody() {
   );
 }
 
+/** The ways to finish without an uploaded plan being read: by hand, or with one of the example plans from /api/meta. */
+function WithoutReading({ meta, children }: { meta: Meta | null; children?: React.ReactNode }) {
+  return (
+    <ul className="m-0 flex list-disc flex-col gap-1 pl-6">
+      <li><Link href="/check/?enter=yourself">Enter the measurements yourself</Link></li>
+      {meta?.demo_cases.map((c) => (
+        <li key={c.id}><Link href={`/plan/reading/?example=${encodeURIComponent(c.id)}`}>Try the example plan: {c.title}</Link></li>
+      ))}
+      {children}
+    </ul>
+  );
+}
+
 /** When reading failed: other ways to finish (brief: no dead ends; the model failing must not stop the owner). */
 function OtherWays({ meta }: { meta: Meta | null }) {
   return (
     <section aria-labelledby="other-ways" className="flex flex-col gap-2">
       <h2 id="other-ways" className="m-0 text-section-heading">Other ways to go on</h2>
-      <ul className="m-0 flex list-disc flex-col gap-1 pl-6">
-        <li><Link href="/check/?enter=yourself">Enter the measurements yourself</Link></li>
-        {meta?.demo_cases.map((c) => (
-          <li key={c.id}><Link href={`/plan/reading/?example=${encodeURIComponent(c.id)}`}>Try the example plan: {c.title}</Link></li>
-        ))}
+      <WithoutReading meta={meta}>
         <li>Upload a clearer copy of your plan below.</li>
-      </ul>
+      </WithoutReading>
+    </section>
+  );
+}
+
+/** A server with no model key cannot read uploads: say so before the owner tries, and list the examples here on step 2. */
+function NoModelKey({ meta }: { meta: Meta }) {
+  return (
+    <section aria-labelledby="no-model-key" className="flex flex-col gap-2 border-l-2 border-city bg-city-tint p-4">
+      <p id="no-model-key" className="m-0">This server cannot read uploaded plans yet. You can still try an example plan, or enter the measurements yourself:</p>
+      <WithoutReading meta={meta} />
     </section>
   );
 }
