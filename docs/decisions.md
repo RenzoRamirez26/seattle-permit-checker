@@ -6,6 +6,19 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · An unknown aisle width still gives No issues found (open)
+
+- **Found by:** the second independent checklist scoring on the rule-verification branch.
+- **What:** with every aisle's width left empty, ADA-1 reports "Every route width on your plan is at least 36 in." as
+  No issues found. With no seat count, ADA-4 disappears instead of becoming Check with the city. Both break "Unknown
+  never becomes a pass".
+- **Decision for now:** the owner allowed only message changes in `rules_engine.py` this round, so the logic is
+  unchanged. The Answers intro and Help no longer claim that a Not sure value is never counted as meeting a rule.
+- **TODO:** make ADA-1 a review when any aisle width is unknown, and ADA-4 a review when the seat count is unknown;
+  audit the other `passes` entries whose `applies` is always true (FS-3); add a test that sets each plan value to null
+  and asserts no finding that depends on it is a pass.
+- **Who:** found by evaluation; the fix waits on the owner.
+
 ## 2026-11-24 · No issues found rows name the requirement; numbers only from the rulebook
 
 - **Decision:** Every "No issues found" message has two sentences: what the plan shows, then what it meets ("Your plan
