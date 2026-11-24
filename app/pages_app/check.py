@@ -301,6 +301,8 @@ if result:
         m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks where we found no issue.")
         st.caption(f"Occupant load {s['occupant_load']} · Group {s['occupancy_group']} · "
                    f"Exits: {s['exits_shown']} shown, {s['exits_required']} required")
+        if any(not f.get("rule_verified") for f in result["findings"]):
+            st.caption(rules_engine.SOME_UNVERIFIED)
 
         open_items = [f for f in result["findings"] if f["status"] != "pass"]
         fix_col, side_col = st.columns([7, 5])
@@ -316,12 +318,15 @@ if result:
                     if f["fix"]:
                         st.markdown(f"**Fix:** {f['fix']}")
                     st.caption(f"Checked by: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
+                    if not f.get("rule_verified"):
+                        st.caption(rules_engine.UNVERIFIED_NOTE)
 
             with st.expander(f"No issues found ({s['passes']})"):
                 for f in result["findings"]:
                     if f["status"] == "pass":
                         st.markdown(f"{ICON['pass']} {STATUS_LABEL['pass']} &nbsp; **{f['title']}**: {f['detail']}  \n"
-                                    f":gray[{f['citation']}]")
+                                    f":gray[{f['citation']}]"
+                                    + ("" if f.get("rule_verified") else f"  \n:gray[{rules_engine.UNVERIFIED_NOTE}]"))
 
         with side_col:
             st.markdown("**Permits and approvals you will likely need**")

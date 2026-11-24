@@ -66,9 +66,11 @@ def test_cafe_sheet_is_filled_from_the_audit(cafe):
     lines = sheet.splitlines()
     for f in open_items:
         word = "Fix before you apply" if f["status"] == "fail" else "Check with the city"
-        assert f"- {word}: {f['title']} ({f['severity']})" in lines
+        note = "" if f["rule_verified"] else f". {permit_draft.UNVERIFIED_NOTE}"          # a rule still being checked says so
+        assert f"- {word}: {f['title']} ({f['severity']}){note}" in lines
         assert f["detail"] not in sheet and (not f["fix"] or f["fix"] not in sheet)      # the detail and the fix stay in the report
-    assert "- Fix before you apply: Add a second exit (critical)" in lines and any(line.startswith("- Check with the city: ") for line in lines)
+    assert f"- Fix before you apply: Add a second exit (critical). {permit_draft.UNVERIFIED_NOTE}" in lines \
+        and any(line.startswith("- Check with the city: ") for line in lines)                 # EG-1 is still being checked
     assert "The pre-check report gives the fix and the code section for each of these." in lines
     assert "SBC 1010.1.1" not in sheet
     assert not any(f["title"] in sheet for f in cafe["findings"] if f["status"] == "pass" and f["title"] != "Occupancy classification")

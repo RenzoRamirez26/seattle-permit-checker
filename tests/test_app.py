@@ -2,6 +2,7 @@
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from checker import rules_engine
 from pipeline import db, seattle
 from tests.conftest import FIXTURES, ROOT
 
@@ -52,6 +53,8 @@ def test_cafe_flow(app):
     text = " ".join(x.value for x in at.markdown)
     assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
     assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
+    captions = [c.value for c in at.caption]                     # rules still being checked: once on top, then per finding
+    assert captions.count(rules_engine.SOME_UNVERIFIED) == 1 and rules_engine.UNVERIFIED_NOTE in captions
     assert any("review records are not downloaded yet" in c.value for c in at.caption)
 
 

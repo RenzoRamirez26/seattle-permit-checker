@@ -16,6 +16,9 @@ from __future__ import annotations
 from typing import Any, Optional
 
 UNFILLED = "to be filled in by the applicant"
+# The same words as rules_engine.UNVERIFIED_NOTE and SOME_UNVERIFIED (this module imports no rules; a test keeps them equal).
+UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
+SOME_UNVERIFIED = "Some rule values are still being checked against the code."
 
 NOTICE = ("This is a preparation aid, not the City of Seattle's official form. It gathers, in one place, what the "
           "city's published pages say you will be asked for. You apply in the Seattle Services Portal.")
@@ -128,7 +131,10 @@ def sheet(result: dict) -> dict[str, Any]:
         "permits": result["permits_likely_required"],
         # one line each, to keep the sheet short: the report has the detail, the fix and the code section
         "open_items": [f"{STATUS_LABEL[f['status']]}: {f['title']} ({f['severity']})"
+                       + ("" if f.get("rule_verified") else f". {UNVERIFIED_NOTE}")
                        for f in result["findings"] if f["status"] != "pass"],
+        # once, at the top, when any finding uses a rule whose values are still being checked against the code
+        "unverified": SOME_UNVERIFIED if any(not f.get("rule_verified") for f in result["findings"]) else None,
         "open_pointer": OPEN_POINTER,
         "nothing_open": "No issues found in the checks we ran.",
         "disclaimer": result["disclaimer"],
@@ -139,6 +145,7 @@ def to_markdown(result: dict) -> str:
     """The preparation sheet for one audit result, as Markdown."""
     d = sheet(result)
     out = [f"# {d['title']}", "", f"> **{d['notice']}**", ">", f"> {d['currency']}", "",
+           *([f"> {d['unverified']}", ""] if d["unverified"] else []),
            f"## {SECTIONS[0]}", ""]
     out += _table(d["portal"])
     out += ["", f"## {SECTIONS[1]}", ""]

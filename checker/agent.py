@@ -21,7 +21,7 @@ import os
 import re
 from typing import Any, Optional
 
-from .rules_engine import PRECHECK_NOTE
+from .rules_engine import PRECHECK_NOTE, UNVERIFIED_NOTE
 
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
@@ -40,6 +40,8 @@ SYSTEM = (
     "- Name a status only with these words: \"Fix before you apply\" (status fail), \"Check with the "
     "city\" (status review), \"No issues found\" (status pass). Never call the plan or a finding OK, "
     "passed, approved or compliant, and do not use the words must, invalid, illegal or violation.\n"
+    "- A finding with rule_verified false uses a rule value that is still being checked against the "
+    "code. When you rely on one, say so.\n"
     "- Your answer may be read aloud: two to five plain sentences, no lists, no markdown."
 )
 
@@ -67,6 +69,7 @@ def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
     ctx: dict[str, Any] = {
         "summary": result["summary"],
         "findings": [{k: f[k] for k in ("rule_id", "title", "status", "severity", "detail", "fix", "citation", "reviewed_by")}
+                     | {"rule_verified": f.get("rule_verified", False)}
                      for f in result["findings"]],
         "permits_likely_required": result["permits_likely_required"],
         "occupant_load_by_space": result["occupant_load"]["by_space"],
@@ -88,7 +91,8 @@ def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
 # ---------------------------------------------------------------- template (no model)
 def _say(f: dict) -> str:
     fix = f" {f['fix']}" if f.get("fix") else ""
-    return f"{f['title']}. {f['detail']}{fix} [{f['rule_id']}]"
+    unverified = "" if f.get("rule_verified") else f" {UNVERIFIED_NOTE}"
+    return f"{f['title']}. {f['detail']}{fix}{unverified} [{f['rule_id']}]"
 
 
 def spoken_summary(result: dict, limit: int = 3) -> str:
