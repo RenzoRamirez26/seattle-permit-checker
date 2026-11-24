@@ -186,9 +186,10 @@ Source: the pipeline's download of Seattle's open data on 21 November 2026. Tena
 | Gym and fitness | 67 | 81% | 62.5 |
 | Salon | 43 | 79% | 43 |
 
+- In round 1, for food and drink, the building-code review sent back most permits (Ordinance: 182 sent back, 31 approved). Zoning approved most (203 sent back, 458 approved).
+
 The points below come from an earlier query of the city's portal on 20 November 2026, using its text search for "restaurant". They have not been re-run through the pipeline.
 
-- In round 1 the building-code review sent back most restaurant-related permits (Ordinance: 153 sent back, 24 approved). Zoning and Fire approved most (Zoning: 406 approved, 188 sent back).
 - One real case, permit 6998648-CN: an office converted to a coffee shop, a $60,000 project, spent 175 days in plan review over three rounds, 77 of them waiting on the applicant's corrections.
 - The reviewer-comments dataset is a sample: about 26,300 comments on 707 permits, 2022 to 2025.
 
