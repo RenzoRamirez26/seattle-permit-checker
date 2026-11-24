@@ -455,7 +455,7 @@ export interface components {
             historic_district: boolean | null;
             /**
              * New Signage
-             * @description Leave out to use the checker's default.
+             * @description Leave out to use the checker's default (yes). null is Not sure: the sign permit is listed as May be needed.
              */
             new_signage?: boolean | null;
             /**

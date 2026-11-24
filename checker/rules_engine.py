@@ -183,6 +183,7 @@ UNSURE_ANSWERS = {
     "outdoor_seating": "whether there will be outdoor seating",
     "upper_floor": "whether the space is above or below the street-level floor",
     "historic_district": "whether the building is a landmark or in a historic district",
+    "new_signage": "whether you will put up a new sign",
 }
 STATUS_ORDER = {"fail": 0, "review": 1, "pass": 2}
 
@@ -500,7 +501,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     have_total = men + women + allg
     short = max(0, fx["men"] - men) + max(0, fx["women"] - women)
     toilets_unknown = [r["label"] for r in restrooms
-                       if r.get("water_closets") is None or r.get("designation") is None   # urinals optional: none drawn is 0
+                       if r.get("water_closets") is None or r.get("designation") is None
+                       or (r.get("designation") in ("men", "unknown") and "urinals" in r and r["urinals"] is None)
                        or (not fx["shared_room_allowed"] and r.get("designation") == "unknown")]
     if toilets_unknown:
         unknown["PL-1"] = (f"Your plan doesn't show the toilets or who uses {', '.join(toilets_unknown)}. "
@@ -516,7 +518,9 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          f"({fx['profile']}).",
                          pl["cite"], "Add the restrooms to the plan."))
     elif (have_total < fx["water_closets"] or (not fx["shared_room_allowed"] and short > allg)) and toilets_unknown \
-            and (any(r.get("water_closets") is None or r.get("designation") is None for r in restrooms)
+            and (any(r.get("water_closets") is None or r.get("designation") is None
+                     or (r.get("designation") in ("men", "unknown") and "urinals" in r and r["urinals"] is None)
+                     for r in restrooms)
                  or have_total >= fx["water_closets"]):
         F.append(Finding("PL-1", "Show the toilets in each restroom", "review", "high",
                          f"{unknown['PL-1']} A space for {n} people needs {fx['water_closets']} ({fx['profile']}: {basis}).",
@@ -616,9 +620,12 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          f"This Group {group} space needs them: {'; '.join(spk['reasons'])} (limit: {spk['thresholds']}).",
                          spk["cite"], "Ask the landlord whether the building has sprinklers and note it on the plan. If it "
                                       "has none, budget for a system or plan for fewer people."))
-    if not spk and fs.get("sprinklers_noted") is not True and (load_unknown or extraction.get("gross_area_sqft") is None):
-        maybe = {group} | ({bt["assembly_group"]} if load_unknown and bt.get("assembly_group") else set())
-        rule = next((fire["sprinklers"][g] for g in sorted(maybe) if fire["sprinklers"].get(g)), None)
+    spk_maybe = None        # the sprinkler rule that could apply once the unknown load or floor area is known
+    if not spk and (load_unknown or extraction.get("gross_area_sqft") is None):
+        could_be = {group} | ({bt["assembly_group"]} if load_unknown and bt.get("assembly_group") else set())
+        spk_maybe = next((fire["sprinklers"][g] for g in sorted(could_be) if fire["sprinklers"].get(g)), None)
+    if spk_maybe and fs.get("sprinklers_noted") is not True:
+        rule = spk_maybe
         if rule:
             why = load_unknown or "Your plan doesn't show the floor area."
             F.append(Finding("FS-2", "Confirm whether the space needs sprinklers", "review", "high",
@@ -680,7 +687,8 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                                   "that Public Health accepts.", health["cite"], food),
         ("FS-2", "Sprinklers", f"Your plan shows sprinklers. This Group {group} space needs them.", spk_cite, bool(spk)),
         ("FS-3", "Fire extinguishers", f"Your plan shows {_count(fs.get('fire_extinguishers_shown') or 0, 'fire extinguisher')}. "
-                                       "The space needs portable fire extinguishers placed where people can reach them.",
+                                       f"Each floor needs at least one within {fire['extinguisher_max_travel_ft']} ft of travel, which this check "
+                                       f"doesn't measure.",
          fire["extinguisher_cite"], True),
     ]
     for rule_id, title, detail, cite, applies in passes:
@@ -720,7 +728,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     }
     # A permit that rests on the number of people or the floor area, when the plan leaves one unknown, is listed as
     # "May be needed" rather than dropped (unknown never disappears).
-    sprinkler_unknown = not spk and any(f.rule_id == "FS-2" and f.status == "review" for f in F)
+    sprinkler_unknown = bool(spk_maybe)            # even when sprinklers are shown: the permit still depends on it
     maybe = {"assembly_permit": load_unknown and not flags["assembly_permit"],
              "sprinkler": sprinkler_unknown and not flags["sprinkler"]}
     missing = " or ".join(gaps) if gaps else "the floor area"
@@ -728,11 +736,13 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                | ({"may_be_needed": f"May be needed: check with the city. It depends on {missing}, which your plan "
                                     f"doesn't show."} if maybe.get(p["when"]) else {})
                for p in rules["permits"] if flags.get(p["when"]) or maybe.get(p["when"])]
-    # A permit listed because of the number of people or the sprinkler rule rests on those rules' values; the others
-    # come from the city's own permit lists (_meta.checked_against_city_sources). This never adds or drops a permit.
-    rests_on = {p["id"]: PERMIT_RESTS_ON.get(p["when"]) for p in rules["permits"]}
+    # A permit listed because of the number of people or the sprinkler rule rests on those rules' values. The others
+    # come from the city's own permit lists (_meta.checked_against_city_sources), unless the rulebook marks one
+    # "verified": false (entered from memory, e.g. the state salon licence). This never adds or drops a permit.
+    entry = {p["id"]: p for p in rules["permits"]}
     for p in permits:
-        p["rule_verified"] = rule_checked(rules, rests_on[p["id"]]) if rests_on.get(p["id"]) else True
+        rests_on = PERMIT_RESTS_ON.get(entry[p["id"]]["when"])
+        p["rule_verified"] = entry[p["id"]].get("verified", True) is True and (not rests_on or rule_checked(rules, rests_on))
 
     return {
         "summary": {

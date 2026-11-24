@@ -677,3 +677,11 @@ def test_each_finding_says_whether_its_rule_was_checked_and_where_it_comes_from(
     props = api.get("/openapi.json").json()["components"]["schemas"]["Finding"]["properties"]
     assert props["rule_verified"]["type"] == "boolean" and props["rule_verified"]["default"] is False
     assert props["rule_source"]["type"] == "string"
+
+
+def test_a_sign_answer_sent_as_null_is_not_sure_and_left_out_is_the_default(api):
+    facts = _demo_facts("salon_flawed")
+    sent = api.post("/api/checks", json={"facts": facts, "intake": {"business_type": "retail", "new_signage": None}}).json()
+    left = api.post("/api/checks", json={"facts": facts, "intake": {"business_type": "retail"}}).json()
+    sign = lambda c: next(p for p in c["result"]["permits_likely_required"] if p["id"] == "sign")
+    assert "a new sign" in sign(sent)["may_be_needed"] and "may_be_needed" not in sign(left)

@@ -4,7 +4,7 @@
   "id": "fixture-cafe_flawed",
   "notices": [],
   "result": {
-    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design; King County Board of Health Code and the Washington State Retail Food Code (chapter 246-215 WAC) for food businesses.",
     "disclaimer": "Not a code determination: have a licensed design professional and the city's plan reviewer confirm the design.",
     "extraction": {
       "accessible_seat_count": null,

@@ -230,7 +230,8 @@ def test_an_omitted_answer_and_an_explicit_false_give_todays_results(rules, load
         facts = json.loads((ROOT / "demo" / case["extraction"]).read_text(encoding="utf-8"))
         z = zoning.classify(case["zoning"], rules, business_type=case["intake"]["business_type"], area_sqft=facts.get("gross_area_sqft"))
         omitted = rules_engine.run_checks(facts, case["intake"], rules, z)
-        explicit = rules_engine.run_checks(facts, {k: False for k in UNSURE} | case["intake"], rules, z)
+        # left out means no, except the sign question, whose default is yes (a new sign is the usual case)
+        explicit = rules_engine.run_checks(facts, {k: False for k in UNSURE if k != "new_signage"} | case["intake"], rules, z)
         assert omitted == explicit == rules_engine._run_checks(facts, case["intake"], rules, z)
         if case["id"] == "cafe_flawed":
             assert (omitted["summary"]["fails"], omitted["summary"]["reviews"], omitted["summary"]["passes"]) == (11, 2, 6)
@@ -419,7 +420,8 @@ def unknown_grid(rules):
 
 def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(unknown_grid):
     """Every rule, every plan input of five demo cases, set to known values and then to unknown (null, or "unknown").
-    Where any known value gives Fix or Check with the city, unknown must too: never No issues found, never missing."""
+    Where any known value gives Fix or Check with the city, unknown must too: never No issues found, never missing.
+    And where some known value gives no Fix, unknown may not give a Fix either: it is Check with the city."""
     problems = []
     checked = set()
     for name, path, known, unknown in unknown_grid:
@@ -429,10 +431,13 @@ def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(
             if worst > U.ORDER["review"]:
                 continue
             checked.add(rule_id)
+            fix_depends = any(o.get(rule_id, "absent") != "fail" for o in known_outcomes)
             for value, result in unknown:
                 got = U.outcomes(result).get(rule_id, "absent")
                 if U.ORDER[got] > U.ORDER["review"]:
                     problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is {got}")
+                elif got == "fail" and fix_depends:          # a Fix that some known value would undo is not a Fix
+                    problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is a Fix that rests on it")
     assert problems == []
     # the grid reaches every plan-based rule, so the test means something
     assert {"OL-0", "OCC-1", "EG-1", "EG-2", "EG-3", "EG-4", "FS-1", "FS-2", "FS-3", "ADA-1", "ADA-2", "ADA-3", "ADA-4",
@@ -524,3 +529,49 @@ def test_the_aisle_and_seating_bugs_are_fixed(rules, load):
     assert by_rule["ADA-1"] and all(f["status"] == "review" for f in by_rule["ADA-1"])
     assert any(f["title"] == "Show the seat count" and f["status"] == "review" for f in by_rule["ADA-4"])
     assert "No issues found" not in json.dumps([f for f in result["findings"] if f["rule_id"] in ("ADA-1", "ADA-4")])
+
+
+def test_urinals_left_unknown_are_not_counted_as_zero(rules, load):
+    """The independent scoring's counterexample: a bar, Restroom 1 with 2 toilets, Restroom 2's urinals Not sure."""
+    plan = load("flawed")
+    plan["restrooms"][0]["water_closets"] = 2
+    plan["restrooms"][1]["urinals"] = None
+    pl1 = [f for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"] if f["rule_id"] == "PL-1"]
+    assert [f["status"] for f in pl1] == ["review"]
+    plan["restrooms"][1]["urinals"] = 1
+    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == ["pass"]
+    plan["restrooms"][1]["urinals"] = 0
+    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == ["fail"]
+    del plan["restrooms"][1]["urinals"]                                  # not in the reading at all: none drawn, as before
+    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == ["fail"]
+
+
+def test_the_sprinkler_permit_stays_may_be_needed_even_when_sprinklers_are_shown(rules, load):
+    plan = load("compliant")
+    plan["fire_safety"]["sprinklers_noted"] = True
+    dining = next(s for s in plan["spaces"] if s["use"] == "dining")
+    dining["area_sqft"] = dining["width_ft"] = dining["length_ft"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    sprinkler = next(p for p in result["permits_likely_required"] if p["id"] == "sprinkler")
+    assert sprinkler["may_be_needed"].startswith("May be needed")
+
+
+def test_a_sign_answer_left_not_sure_lists_the_sign_permit_as_may_be_needed(rules, load):
+    result = rules_engine.run_checks(load("compliant"), {"business_type": "retail", "new_signage": None}, rules)
+    sign = next(p for p in result["permits_likely_required"] if p["id"] == next(
+        q["id"] for q in rules["permits"] if q["when"] == "signage"))
+    assert "a new sign" in sign["may_be_needed"]
+    left_out = rules_engine.run_checks(load("compliant"), {"business_type": "retail"}, rules)
+    assert not next(p for p in left_out["permits_likely_required"] if p["id"] == sign["id"]).get("may_be_needed")
+
+
+def test_a_permit_from_memory_is_marked_unchecked(rules, load):
+    salon = rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules)
+    licence = next(p for p in salon["permits_likely_required"] if p["id"] == "salon_license")
+    assert licence["rule_verified"] is False
+    assert all(p["rule_verified"] for p in salon["permits_likely_required"]
+               if next(q for q in rules["permits"] if q["id"] == p["id"]).get("verified", True)
+               and next(q for q in rules["permits"] if q["id"] == p["id"])["when"] not in rules_engine.PERMIT_RESTS_ON)

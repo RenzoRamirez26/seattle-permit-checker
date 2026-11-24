@@ -216,7 +216,8 @@ class Intake(BaseModel):
     outdoor_seating: Optional[bool] = Field(default=False, description=_UNSURE)
     upper_floor: Optional[bool] = Field(default=False, description=_UNSURE)
     historic_district: Optional[bool] = Field(default=False, description=_UNSURE)
-    new_signage: Optional[bool] = Field(default=None, description="Leave out to use the checker's default.")
+    new_signage: Optional[bool] = Field(default=None, description="Leave out to use the checker's default (yes). "
+                                                                  "null is Not sure: the sign permit is listed as May be needed.")
 
 
 class CheckRequest(BaseModel):

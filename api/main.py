@@ -183,8 +183,8 @@ def create_check(req: schemas.CheckRequest) -> dict:
     bt = business_type(req.intake.business_type)
     facts = req.facts.model_dump()
     intake = req.intake.model_dump() | {"business_type": bt["key"]}      # null ("Not sure") is kept: the rules engine treats it as unknown
-    if intake.get("new_signage") is None:
-        intake.pop("new_signage", None)                                      # left out: the checker's default
+    if "new_signage" not in req.intake.model_fields_set:
+        intake.pop("new_signage", None)                                      # left out: the checker's default; null is Not sure
     db_path, notice = seattle_database()
     result = audit.audit(None, intake, extraction=facts, address=req.zoning.address, zoning_override=req.zoning.zone,
                          db_path=db_path)
