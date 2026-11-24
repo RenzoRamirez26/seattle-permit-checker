@@ -6,6 +6,20 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Edition date: the 2021 Seattle codes, effective November 15, 2024
+
+- **Decision:** `_meta.edition_date` is 2024-11-15 and `_meta.code_edition` is "2021 Seattle Building Code". The
+  footer reads both from `/api/meta`: "Rules based on the 2021 Seattle Building Code, effective November 15, 2024."
+- **Why:** the date a reader needs is when the code the rules follow took effect, and SDCI states it. The edition
+  name comes from the API too, so the footer cannot say "2021" after the rulebook moves on.
+- **Re-check due:** SDCI expects the 2024 Seattle Codes no sooner than May 2027. When they are adopted, every rule,
+  `edition_date` and `code_edition` must be checked again; until then the 2021 values stand.
+- **Rejected:** the date the rulebook file was last edited (says nothing about the code); hard-coding "2021 Seattle
+  Building Code" in the footer; deriving the edition name from the long `code_basis` sentence in the front end.
+- **Source:** SDCI, [2021 Seattle Code Adoption](https://www.glb.seattle.gov/sdci/codes/changes-to-code/2021-seattle-code-adoption):
+  "The effective date for the 2021 Seattle codes was November 15, 2024." Issue #29.
+- **Who:** owner.
+
 ## 2026-11-24 · Hybrid voice input: on the device first, our server second, never a third party
 
 - **Decision:** a spoken question comes in one of three ways (DESIGN.md, Voice):

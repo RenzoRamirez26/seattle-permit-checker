@@ -4,10 +4,20 @@
 
 ## Edition date
 
-`_meta.edition_date` is the date the website footer shows for this rulebook (`GET /api/meta` returns it as
-`rulebook.edition_date`). It is still the placeholder `"TODO: the owner sets this date"`: no date has been
-chosen yet. While it is the placeholder, the API returns `null` and the footer shows no date. The owner
-sets the real date (as `YYYY-MM-DD`); no build session writes one.
+`_meta.edition_date` is **2024-11-15**, the date the 2021 Seattle codes took effect. `_meta.code_edition` is
+"2021 Seattle Building Code". `GET /api/meta` returns both as `rulebook.edition_date` and `rulebook.code_edition`,
+and the website footer reads "Rules based on the 2021 Seattle Building Code, effective November 15, 2024." The
+front end holds neither value.
+
+- **Source:** SDCI, [2021 Seattle Code Adoption](https://www.glb.seattle.gov/sdci/codes/changes-to-code/2021-seattle-code-adoption):
+  "The effective date for the 2021 Seattle codes was November 15, 2024."
+- **Checked:** confirmed on that page by the owner, November 2026 (issue #29). Also recorded in
+  `_meta.checked_against_city_sources`.
+- **Next edition:** SDCI expects the 2024 Seattle Codes no sooner than May 2027. When they are adopted, both
+  fields and every rule must be checked again (`docs/decisions.md`, 2026-11-24, Edition date).
+
+If `edition_date` is ever set back to a `"TODO..."` placeholder, the API returns `null` and the footer shows no date,
+so the word TODO never reaches a page.
 
 ## Checked against Seattle's published text
 
