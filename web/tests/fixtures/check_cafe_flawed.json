@@ -202,7 +202,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "rule_source": "SBC 2021 1010.1.1",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom 1 door (Restroom 1)"
@@ -214,7 +214,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "rule_source": "SBC 2021 1010.1.1",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom 2 door (Restroom 2)"
@@ -293,7 +293,7 @@
       },
       {
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
-        "detail": "Your plan doesn't show fire extinguishers.",
+        "detail": "Your plan doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel.",
         "fix": "Show extinguisher locations; add a Class K unit at the cooking line.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
@@ -432,6 +432,7 @@
       ],
       "calculated_dining_load": 102,
       "missing_area": [],
+      "missing_use": [],
       "rule_source": "SBC 2021 Table 1004.5",
       "rule_verified": false,
       "seat_count": 56,
@@ -441,62 +442,74 @@
       {
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
         "id": "building",
-        "name": "Construction permit (addition/alteration; also establishes the use of the space)"
+        "name": "Construction permit (addition/alteration; also establishes the use of the space)",
+        "rule_verified": true
       },
       {
         "agency": "SDCI, issued after the final inspection",
         "id": "co",
-        "name": "Certificate of Occupancy"
+        "name": "Certificate of Occupancy",
+        "rule_verified": true
       },
       {
         "agency": "SDCI",
         "id": "electrical",
-        "name": "Electrical permit"
+        "name": "Electrical permit",
+        "rule_verified": true
       },
       {
         "agency": "Public Health - Seattle & King County",
         "id": "plumbing",
-        "name": "Plumbing, gas and backflow permits"
+        "name": "Plumbing, gas and backflow permits",
+        "rule_verified": true
       },
       {
         "agency": "SDCI",
         "id": "mechanical",
-        "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)"
+        "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)",
+        "rule_verified": true
       },
       {
         "agency": "Seattle Fire Department",
         "id": "hood_fire",
-        "name": "Range-hood fire suppression inspection"
+        "name": "Range-hood fire suppression inspection",
+        "rule_verified": true
       },
       {
         "agency": "Seattle Fire Department",
         "id": "assembly",
-        "name": "Assembly permit (spaces holding 100 or more people)"
+        "name": "Assembly permit (spaces holding 100 or more people)",
+        "rule_verified": false
       },
       {
         "agency": "SDCI with Seattle Fire Department plan review; Seattle Public Utilities for water availability",
         "id": "sprinkler",
-        "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate"
+        "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate",
+        "rule_verified": false
       },
       {
         "agency": "Public Health - Seattle & King County",
         "id": "health",
-        "name": "Food service plan review (before construction) and annual food business permit"
+        "name": "Food service plan review (before construction) and annual food business permit",
+        "rule_verified": true
       },
       {
         "agency": "Seattle Public Utilities",
         "id": "grease",
-        "name": "Grease trap or interceptor approval (fats, oils and grease program)"
+        "name": "Grease trap or interceptor approval (fats, oils and grease program)",
+        "rule_verified": true
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
         "id": "business",
-        "name": "Washington State business license and Seattle business license"
+        "name": "Washington State business license and Seattle business license",
+        "rule_verified": true
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
         "id": "sign",
-        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)"
+        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
+        "rule_verified": true
       }
     ],
     "summary": {

@@ -587,6 +587,12 @@ export interface components {
             may_be_needed?: string | null;
             /** Name */
             name: string;
+            /**
+             * Rule Verified
+             * @description False when the permit is listed because of a rule value still being checked against the code (the occupant load, the sprinkler rule).
+             * @default true
+             */
+            rule_verified: boolean;
         } & {
             [key: string]: unknown;
         };

@@ -260,6 +260,8 @@ class Permit(BaseModel):
     id: str
     name: str
     agency: str
+    rule_verified: bool = Field(default=True, description="False when the permit is listed because of a rule value still being "
+                                                          "checked against the code (the occupant load, the sprinkler rule).")
     may_be_needed: Optional[str] = Field(default=None, exclude_if=lambda v: v is None, description="Set when the permit depends on an answer left as Not sure: "
                                                                    "a sentence naming the question. The permit is listed, never dropped.")
 

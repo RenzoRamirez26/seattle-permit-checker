@@ -667,7 +667,9 @@ def test_each_finding_says_whether_its_rule_was_checked_and_where_it_comes_from(
     for f in findings:
         assert f["rule_verified"] is rules_engine.rule_checked(api_main.rules(), f["rule_id"])
         assert f["rule_source"] == entries[f["rule_id"]]["source"]
-    assert {f["rule_verified"] for f in findings} == {True, False}     # the demo café uses both kinds
+    assert {f["rule_verified"] for f in findings} == {False}           # no rule counts as checked yet (EG-3's ADA section)
+    assembly = [p for p in check["result"]["permits_likely_required"] if not p["rule_verified"]]
+    assert {p["id"] for p in assembly} == {"assembly", "sprinkler"}    # listed because of the number of people
     again = api.get(f"/api/checks/{check['id']}").json()                         # stored and read back unchanged
     assert [(f["rule_verified"], f["rule_source"]) for f in again["result"]["findings"]] == \
            [(f["rule_verified"], f["rule_source"]) for f in findings]

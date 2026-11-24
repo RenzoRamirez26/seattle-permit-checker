@@ -117,7 +117,7 @@
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "rule_source": "SBC 2021 1010.1.1",
-        "rule_verified": true,
+        "rule_verified": false,
         "severity": "high",
         "status": "fail",
         "title": "Widen the door: Restroom door (Restroom)"
@@ -160,7 +160,7 @@
       },
       {
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
-        "detail": "Your plan doesn't show fire extinguishers.",
+        "detail": "Your plan doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel.",
         "fix": "Show extinguisher locations.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
@@ -279,6 +279,7 @@
       ],
       "calculated_dining_load": 0,
       "missing_area": [],
+      "missing_use": [],
       "rule_source": "SBC 2021 Table 1004.5",
       "rule_verified": false,
       "seat_count": null,
@@ -288,37 +289,44 @@
       {
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
         "id": "building",
-        "name": "Construction permit (addition/alteration; also establishes the use of the space)"
+        "name": "Construction permit (addition/alteration; also establishes the use of the space)",
+        "rule_verified": true
       },
       {
         "agency": "SDCI, issued after the final inspection",
         "id": "co",
-        "name": "Certificate of Occupancy"
+        "name": "Certificate of Occupancy",
+        "rule_verified": true
       },
       {
         "agency": "SDCI",
         "id": "electrical",
-        "name": "Electrical permit"
+        "name": "Electrical permit",
+        "rule_verified": true
       },
       {
         "agency": "Public Health - Seattle & King County",
         "id": "plumbing",
-        "name": "Plumbing, gas and backflow permits"
+        "name": "Plumbing, gas and backflow permits",
+        "rule_verified": true
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
         "id": "business",
-        "name": "Washington State business license and Seattle business license"
+        "name": "Washington State business license and Seattle business license",
+        "rule_verified": true
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
         "id": "sign",
-        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)"
+        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
+        "rule_verified": true
       },
       {
         "agency": "Washington State Department of Licensing",
         "id": "salon_license",
-        "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)"
+        "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)",
+        "rule_verified": true
       }
     ],
     "summary": {
