@@ -13,7 +13,8 @@ export function SiteFooter() {
   const edition = meta?.rulebook.edition_date;
   return (
     <footer className="mt-auto border-t border-hairline">
-      <div className="page-grid py-8">
+      {/* 96 px below the last line, so the fixed Ask button (and the results bar) never covers the footer links */}
+      <div className="page-grid pt-8 pb-24">
         <div className="col-span-full flex flex-col gap-1">
           <p className="m-0">
             <span translate="no">PermitOS</span> · Not a City of Seattle service

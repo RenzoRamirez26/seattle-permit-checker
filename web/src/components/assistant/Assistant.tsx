@@ -139,7 +139,7 @@ function AskButton({ ref, hidden }: { ref: React.Ref<HTMLButtonElement>; hidden:
       onClick={() => assistant.open()}
       aria-haspopup="dialog"
       style={{ transform: lift ? `translateY(-${lift}px)` : undefined }}
-      className="ask-button fixed right-4 bottom-4 z-40 flex size-16 cursor-pointer flex-col items-center justify-center rounded-full border border-blue bg-blue text-white hover:border-ink hover:bg-ink"
+      className="ask-button fixed right-4 bottom-4 z-40 flex size-16 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-white bg-blue text-white hover:bg-ink"
     >
       <MessageCircleQuestion aria-hidden size={22} />
       <span className="font-medium">Ask</span>

@@ -50,7 +50,7 @@ test("an example plan goes from step 2's example rows to step 3 and gives the sa
   await expect(page).toHaveURL(/\/check\/$/);
   await expect(page.getByText("The saved reading for this example plan. No model was used.")).toBeVisible();
   await page.getByRole("button", { name: "Run the check" }).click();
-  await expect(page.getByTestId("counts")).toHaveText("11 things to fix before you apply, 2 to check with the city, 6 fine.");
+  await expect(page.getByTestId("counts")).toHaveText("You have 11 things to fix before you apply and 2 to check with the city.");
 });
 
 test("step 1: errors next to the field and in the summary; Back and refresh keep the answers; Not sure is sent as null", async ({ page }) => {
