@@ -9,6 +9,17 @@
 chosen yet. While it is the placeholder, the API returns `null` and the footer shows no date. The owner
 sets the real date (as `YYYY-MM-DD`); no build session writes one.
 
+**Attempt on 24 November 2026 (branch `edition-date`): not confirmed, nothing changed.** The task was to set
+`edition_date` only from an official seattle.gov page. This environment's network policy blocks seattle.gov (the proxy
+refused `www.seattle.gov` and `buildingconnections.seattle.gov` with 403), so no seattle.gov page could be read. A web
+search summary said SDCI's "2021 Seattle Code Adoption – Timeline" page gives **15 November 2024** as the date the 2021
+Seattle codes went into effect. That is a lead from a search engine's summary, not a reading of the page, so it is not
+used. To finish: open
+<https://www.seattle.gov/sdci/codes/changes-to-code/2021-seattle-code-adoption/timeline>, confirm the date in the
+page's own words, set `_meta.edition_date` to it (`YYYY-MM-DD`), note the page here, change the footer
+(`web/src/components/layout/SiteFooter.tsx`, today "…, edition of {date}") to "Rules based on the 2021 Seattle
+Building Code, effective {date}", and close issue #29.
+
 ## Checked against Seattle's published text
 
 Read from the 2021 Seattle Building Code (SBC) chapter PDFs on seattle.gov in November 2026.
