@@ -37,7 +37,9 @@ Which path each browser is expected to take:
 | A browser without MediaRecorder, or a server without faster-whisper and ffmpeg (and no Path A) | C | Nothing to record with, or nothing to transcribe |
 
 Expected from feature detection and the tests with mocked APIs; **not yet tried by a person in any browser.** In
-headless Chromium 158, calling the real `available()` on a blank page crashed the tab, so the tests replace it.
+headless Chromium 158, calling the real `available()` on a blank page crashed the tab, and in CI's headless Chrome 159
+it crashed every page, so the site asks `available()` only when Start voice input is pressed, and the tests replace it.
+Whether a person's real Chrome survives that call is part of the hand test (#31).
 
 ## Why not a live two-way call in Streamlit
 

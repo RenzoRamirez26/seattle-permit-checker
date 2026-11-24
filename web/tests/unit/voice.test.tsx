@@ -141,8 +141,10 @@ describe("Path A: on this device", () => {
     openPanel();
     const start = await startButton();
     expect(start.getAttribute("aria-pressed")).toBe("false");
-    expect(FakeRecognition.available).toHaveBeenCalledWith({ langs: ["en-US"], processLocally: true });
+    expect(FakeRecognition.available).not.toHaveBeenCalled();                     // never when the page loads
     fireEvent.click(start);
+    await waitFor(() => expect(FakeRecognition.instances).toHaveLength(1));
+    expect(FakeRecognition.available).toHaveBeenCalledWith({ langs: ["en-US"], processLocally: true });
     const r = FakeRecognition.instances[0];
     expect((r as unknown as { processLocally: boolean }).processLocally).toBe(true);
     expect(r.interimResults).toBe(true);
@@ -176,7 +178,7 @@ describe("Path A: on this device", () => {
     const start = await startButton();
     expect(FakeRecognition.install).not.toHaveBeenCalled();                       // only from the press
     fireEvent.click(start);
-    expect(FakeRecognition.install).toHaveBeenCalledWith({ langs: ["en-US"], processLocally: true });
+    await waitFor(() => expect(FakeRecognition.install).toHaveBeenCalledWith({ langs: ["en-US"], processLocally: true }));
     expect(await screen.findByText("Getting voice ready on this device. This happens once.")).toBeTruthy();
     await act(async () => finish(true));
     expect(await screen.findByRole("button", { name: "Stop voice input" })).toBeTruthy();
@@ -254,6 +256,18 @@ describe("Path C and a blocked microphone", () => {
     await screen.findByText(/over the limit for one exit/);
   });
 
+  it("on-device recognition says unavailable on the press, and nothing can record: the Path C words, typing still works", async () => {
+    useRecognition(FakeRecognition);
+    FakeRecognition.available = vi.fn(async () => "unavailable");
+    FakeMediaRecorder.types = [];
+    render(<Assistant />);
+    openPanel();
+    fireEvent.click(await startButton());
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Voice isn’t available in this browser. Type your question instead.");
+    expect(FakeRecognition.instances).toHaveLength(0);
+    expect(box().disabled).toBe(false);
+  });
+
   it("a server without speech to text still listens on the device (Path A needs no server)", async () => {
     useRecognition(FakeRecognition);
     meta.value = { ...baseMeta, features: { ...baseMeta.features, speech_to_text: false } };
@@ -268,6 +282,7 @@ describe("Path C and a blocked microphone", () => {
     openPanel();
     fireEvent.change(box(), { target: { value: "My question" } });
     fireEvent.click(await startButton());
+    await waitFor(() => expect(FakeRecognition.instances).toHaveLength(1));
     act(() => FakeRecognition.instances[0].onerror?.({ error: "not-allowed" }));
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "The microphone is blocked. Allow it in your browser settings, or type your question.");
     expect(box().value).toBe("My question");

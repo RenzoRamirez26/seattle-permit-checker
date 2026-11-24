@@ -71,6 +71,25 @@ function watchHosts(page: Page) {
   return hosts;
 }
 
+// ---------------------------------------------------------------- the speech service is never touched on page load
+test("no page asks the browser's speech service anything until Start voice input is pressed", async ({ page }) => {
+  // Headless Chrome 159 (CI) crashes the tab on the real available(); a real browser should not be asked unprompted either.
+  await onDeviceRecognition(page, "available");
+  await toResults(page);
+  await page.getByRole("button", { name: "Ask", exact: true }).click();
+  await expect(panel(page).getByRole("button", { name: START })).toBeVisible();
+  for (const path of ["/", "/business/", "/plan/", "/help/"]) {
+    await page.goto(path);
+    await page.getByRole("button", { name: "Ask", exact: true }).click();
+    await expect(panel(page).getByRole("button", { name: START })).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __speech: unknown[] }).__speech)).toEqual([]);
+  }
+  await panel(page).getByRole("button", { name: START }).click();
+  await expect(panel(page).getByRole("button", { name: STOP })).toBeVisible();
+  const log = await page.evaluate(() => (window as unknown as { __speech: unknown[] }).__speech);
+  expect(log[0]).toEqual(["available", { langs: ["en-US"], processLocally: true }]);
+});
+
 // ---------------------------------------------------------------- Path A
 test("Path A: on this device, keyboard only: words appear live, no audio is sent, Send asks the API", async ({ page }) => {
   await onDeviceRecognition(page, "available");

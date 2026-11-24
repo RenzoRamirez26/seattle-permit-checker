@@ -11,7 +11,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { Mic, MessageCircleQuestion, Square, Volume2, X } from "lucide-react";
 import { canRecord, fileName, startRecording, type Recording } from "@/voice/recorder";
-import { installOnDevice, listen, onDeviceStatus, type Listening } from "@/voice/ondevice";
+import { installOnDevice, listen, onDevice as onDeviceClass, onDeviceStatus, type Listening } from "@/voice/ondevice";
 import { canSpeak, speak, stopSpeaking, voiceSetting } from "@/voice/speech";
 import { api, ApiProblem, call, loadCheck, type Check } from "@/api/client";
 import { errorWords } from "@/api/errors";
@@ -196,14 +196,11 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
   const words = useRef("");                                   // the box's text while listening on the device
   const maxSeconds = meta?.limits.max_audio_seconds ?? 30;
   // Which way a spoken question comes in (DESIGN.md, Voice): A on this device, B recorded and sent to our API, C none.
-  const [onDevice, setOnDevice] = useState<"checking" | "available" | "downloadable" | "unavailable">("checking");
-  useEffect(() => {
-    let live = true;
-    onDeviceStatus().then((s) => live && setOnDevice(s), () => live && setOnDevice("unavailable"));
-    return () => {
-      live = false;
-    };
-  }, []);
+  // "unasked": the browser offers on-device recognition, but available() is only called from the mic press, never when
+  // the page loads, so a page never touches the browser's speech service unless the owner asks to speak.
+  const hydrated = useHydrated();
+  const [asked, setOnDevice] = useState<"available" | "downloadable" | "unavailable" | null>(null);
+  const onDevice = !hydrated ? "checking" : asked ?? (onDeviceClass() ? "unasked" : "unavailable");
   const serverVoice = !!meta?.features.speech_to_text;
   const path: VoicePath = !voiceOn || onDevice === "checking" ? "none"
     : onDevice !== "unavailable" ? "ondevice"
@@ -308,8 +305,18 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
     stopSpeaking();
     setHeard("");
     setSpokenNext(false);
-    if (path === "ondevice") {
-      if (onDevice === "downloadable") {
+    let status: string = onDevice;
+    if (path === "ondevice" && status === "unasked") {
+      const s = await onDeviceStatus();
+      setOnDevice(s);
+      status = s;
+      if (status === "unavailable" && !(serverVoice && canRecord())) {
+        setMic({ state: "problem", code: "no_voice_here" });          // Path C, found on the press
+        return;
+      }
+    }
+    if (path === "ondevice" && status !== "unavailable") {
+      if (status === "downloadable") {
         setMic({ state: "preparing" });         // install() needs this press; it happens once on this device
         if (!(await installOnDevice())) {
           setOnDevice("unavailable");           // Path B from now on, if this browser can record
@@ -493,7 +500,7 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
           <span>
             <span className="font-medium">Voice</span>
             <span className="block text-ink-muted">
-              {serverVoice || onDevice === "available" || onDevice === "downloadable" ? "Speak questions and hear answers read aloud." : "Hear answers read aloud. Speaking questions is not available on this server."}
+              {serverVoice || (onDevice !== "checking" && onDevice !== "unavailable") ? "Speak questions and hear answers read aloud." : "Hear answers read aloud. Speaking questions is not available on this server."}
             </span>
           </span>
         </label>

@@ -33,6 +33,9 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
   - "Listening…" while listening, and the words heard in an `aria-live="polite"` line.
   - Focus stays on the button while words arrive. An old effect moved focus to the box on every text change; it now
     runs only when a question is put in the box.
+- **`available()` only on the press:** no page load asks the browser's speech service anything. The first version
+  asked on load, and headless Chrome 159 in CI crashed every tab on that call (#39's first CI run: 91 tests "Target
+  crashed"). If the press finds Path A unavailable and nothing can record, the owner sees the Path C words then.
 - **Guard:** `SpeechRecognition` may appear only in `src/voice/ondevice.ts`, which must set
   `processLocally = true`. `processLocally = false` fails anywhere.
 - **Who:** owner (the three paths, the words, no third party); team (how). Choices made without asking are in the PR
