@@ -14,7 +14,7 @@
       "Zoning layer URL and field names: read from the live layer. Ground-floor shops and restaurants up to 2,500 sq ft in Neighborhood Residential zones: Ordinance 127376, SMC 23.44.020.E. NC1/NC2 size limits: SDCI Commercial Zoning Summary (October 2019)."
     ],
     "rule_verification": "The rules section gives each rule id verified (true or false) and source (code edition and section). A rule is verified only when every value it uses is listed above under checked_against_city_sources; the others are false, and the site, the PDFs and the assistant say their value is still being checked. A rule that uses another rule's result (depends_on) counts as checked only when that rule is checked too. verified never changes a finding's status.",
-    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Also from memory: the 75 ft of travel to a fire extinguisher (fire.extinguisher_max_travel_ft), the 28 to 34 in. accessible table surface height (accessibility.table_surface_height_in) and the 5 to 7 months a land use approval can take (zoning.land_use_approval_time). Check each before relying on it."
+    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Also from memory: how many urinals may stand in for required toilets, 67% in assembly spaces and 50% in others (plumbing.urinal_substitution, SBC 2902.1.1); the 75 ft of travel to a fire extinguisher (fire.extinguisher_max_travel_ft), the 28 to 34 in. accessible table surface height (accessibility.table_surface_height_in) and the 5 to 7 months a land use approval can take (zoning.land_use_approval_time). Check each before relying on it."
   },
   "rules": {
     "_note": "One entry per rule id the checker reports. verified is true only where the repository records that the rule's values were read from the code text (_meta.checked_against_city_sources, docs/rulebook.md); every other rule is false. source is the code edition and section. A rule missing here counts as unverified. depends_on names the rules whose results this one uses (the occupant load OL-0, the occupancy group OCC-1, the number of exits EG-1): a finding counts as checked only when its rule and every rule it depends on are verified.",
@@ -169,6 +169,11 @@
         "wc_per_female": 500,
         "lav_per": 750
       }
+    },
+    "urinal_substitution": {
+      "max_share_of_required": {"assembly": 0.67, "other": 0.5},
+      "verified": false,
+      "note": "Urinals may stand in for up to this share of the toilets required for men. Entered from memory (_meta.verify); until checked, a count that passes only by counting urinals is Check with the city."
     },
     "separate_facilities_exempt_default": 15,
     "service_sink_required": false,

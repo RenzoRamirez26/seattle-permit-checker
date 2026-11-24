@@ -166,6 +166,35 @@ def _sprinkler_need(rule: dict) -> str:
     return f"This kind of space needs sprinklers with {' or '.join(limits)}."
 
 
+def may_be_needed_words(p: dict) -> str:
+    """A permit's "May be needed" sentence where no tag says it (PDFs, Streamlit, the assistant): the label, then the
+    reason the engine gives. The website shows the label as a tag and only the reason beside it."""
+    reason = p["may_be_needed"]
+    return f"May be needed: {reason[0].lower()}{reason[1:]}"
+
+
+# The plan values the rules read, as "field" or "group.field". Everything else in a reading (the plan title, the scale
+# note, overall dimensions, the grease interceptor, emergency lighting, names and locations) is recorded but no rule
+# reads it; tests/test_rules.py proves that changing any of those changes no finding and no permit.
+FACTS_CHECKED = (
+    "gross_area_sqft", "seat_count", "accessible_seat_count", "outdoor_seating_shown",
+    "spaces.use", "spaces.area_sqft", "spaces.width_ft", "spaces.length_ft",
+    "doors.clear_width_in", "doors.is_exit", "doors.swing",
+    "aisles.min_width_in",
+    "restrooms.designation", "restrooms.water_closets", "restrooms.urinals", "restrooms.lavatories",
+    "restrooms.turning_circle_diameter_in", "restrooms.door_clear_width_in",
+    "kitchen.grease_producing_cooking", "kitchen.type1_hood_shown", "kitchen.hand_sinks",
+    "kitchen.three_compartment_sink", "kitchen.mop_or_service_sink",
+    "fire_safety.exit_signs_shown", "fire_safety.fire_extinguishers_shown",
+    "fire_safety.class_k_extinguisher_shown", "fire_safety.sprinklers_noted",
+)
+
+
+def room_uses_without_load(rules: dict, uses: list[str]) -> list[str]:
+    """Room uses whose size no rule reads (restrooms, corridors): no square-feet-per-person factor, and not unknown."""
+    return [u for u in uses if u not in rules["occupant_load_factors_sqft_per_person"] and u not in UNKNOWN_USES]
+
+
 # Room uses that say nothing about how many people a room holds: no use chosen, or "other".
 UNKNOWN_USES = (None, "other")
 
@@ -262,6 +291,11 @@ def _merge_unsure(variants: dict[tuple, dict], unsure: list[str], rules: dict) -
         if len(present) == len(value_for) and all(f == present[0] for f in present):
             findings.append(present[0])
             continue
+        if len(present) == len(value_for) and len({f["status"] for f in present}) == 1:
+            # The same status whatever the answer (e.g. a sprinkler Fix that holds above or below the street): keep it,
+            # worded as with the answer "no", and don't name the question, which changed only the wording.
+            findings.append(value_for[tuple(False for _ in unsure)])
+            continue
         worst = min(present, key=lambda f: (STATUS_ORDER[f["status"]], SEVERITY_ORDER[f["severity"]]))
         asked = _questions(_depends_on(unsure, value_for))
         findings.append(worst | {
@@ -280,7 +314,7 @@ def _merge_unsure(variants: dict[tuple, dict], unsure: list[str], rules: dict) -
             continue
         entry = next(listed[c][p["id"]] for c in variants if value_for[c])
         if not all(value_for.values()):
-            entry = entry | {"may_be_needed": f"May be needed: check with the city. It depends on "
+            entry = entry | {"may_be_needed": f"Check with the city. It depends on "
                                               f"{_questions(_depends_on(unsure, value_for))}, which was answered Not sure."}
         permits.append(entry)
 
@@ -369,6 +403,14 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          f"{exits_seen} Your plan doesn't show whether {', '.join(maybe_exits)} "
                          f"{'is an exit' if len(maybe_exits) == 1 else 'are exits'}.", eg["exits_cite"],
                          "Mark every exit on the plan."))
+    elif maybe_exits:                                 # short even if every unmarked door is an exit: a Fix, at its minimum
+        more_min = need - len(exits) - len(maybe_exits)
+        F.append(Finding("EG-1", f"Add at least {_count(more_min, 'more exit', 'more exits')}", "fail", "critical",
+                         f"{exits_seen} Your plan doesn't show whether {', '.join(maybe_exits)} "
+                         f"{'is an exit' if len(maybe_exits) == 1 else 'are exits'}; even if "
+                         f"{'it is' if len(maybe_exits) == 1 else 'they are'}, {_count(more_min, 'more exit', 'more exits')} "
+                         f"{'is' if more_min == 1 else 'are'} needed.", eg["exits_cite"],
+                         "Mark every exit on the plan, and add exits placed far apart."))
     else:
         more = need - len(exits)
         new = "it" if more == 1 else "them"
@@ -393,6 +435,12 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                                  f"{eg['outward_swing_at_occupant_load']} or more people needs exit doors that swing out.",
                                  eg["swing_cite"],
                                  "Show the door swing on the plan."))
+            elif d.get("swing") != "outward":               # sliding, or anything the plan doesn't show as a swing
+                F.append(Finding("EG-2", f"Check the exit door: {d['label']}", "review", "medium",
+                                 f"Your plan shows this exit door as {d['swing']}, not swinging. A space for "
+                                 f"{eg['outward_swing_at_occupant_load']} or more people needs exit doors that swing out.",
+                                 eg["swing_cite"],
+                                 "Ask the plan reviewer whether this door can serve as an exit, or use a door that swings out."))
 
         for d in doors:
             if d.get("is_exit") is None and d.get("swing") != "outward":
@@ -428,8 +476,16 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     # --- egress capacity
     widths = [d["clear_width_in"] for d in exits if d.get("clear_width_in")]
     no_width = [d["label"] for d in exits if d.get("clear_width_in") is None]
-    if widths and not no_width:
-        required_w = n * eg["egress_width_in_per_occupant"]
+    required_w = n * eg["egress_width_in_per_occupant"]
+    maybe_doors = [d for d in doors if d.get("is_exit") is None]
+    could_add = sum(d.get("clear_width_in") or math.inf for d in maybe_doors)   # an unmarked door may be an exit
+    if widths and not no_width and maybe_doors and sum(widths) + 1e-9 < required_w <= sum(widths) + could_add:
+        F.append(Finding("EG-4", "Show which doors are exits to check the exit width", "review", "medium",
+                         f"Your marked exit doors add up to {sum(widths):g} in. A space for {n} people needs {required_w:.1f} in. "
+                         f"Your plan doesn't show whether {', '.join(d['label'] for d in maybe_doors)} "
+                         f"{'is an exit' if len(maybe_doors) == 1 else 'are exits'}.",
+                         eg["egress_width_cite"], "Mark every exit on the plan."))
+    elif widths and not no_width:
         if sum(widths) + 1e-9 < required_w:
             F.append(Finding("EG-4", "Widen the exit doors", "fail", "high",
                              f"Your exit doors add up to {sum(widths):g} in. A space for {n} people needs {required_w:.1f} in. "
@@ -440,6 +496,12 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
                          f"Your plan doesn't show the clear width of {', '.join(no_width)}. A space for {n} people needs "
                          f"{n * eg['egress_width_in_per_occupant']:.1f} in. of exit width in all.",
                          eg["egress_width_cite"], "Write each exit door's clear width on the plan."))
+    if not exits and maybe_doors:                     # no marked exit: the exit-width row stays, as Check with the city
+        F.append(Finding("EG-4", "Show which doors are exits to check the exit width", "review", "medium",
+                         f"Your plan doesn't show whether {', '.join(d['label'] for d in maybe_doors)} "
+                         f"{'is an exit' if len(maybe_doors) == 1 else 'are exits'}. A space for {n} people needs "
+                         f"{required_w:.1f} in. of exit width in all.",
+                         eg["egress_width_cite"], "Mark every exit on the plan."))
 
     # --- exit signs (not required where only one exit is required)
     fs = extraction.get("fire_safety") or {}
@@ -514,12 +576,28 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
 
     # --- restrooms: fixture count
     fx = fixtures_required(n, bt, rules)
-    wc = lambda r: (r.get("water_closets") or 0) + (r.get("urinals") or 0)
-    men = sum(wc(r) for r in restrooms if r.get("designation") == "men")
+    # Urinals count toward the toilets required for men only up to the rulebook's share. While that share is unchecked,
+    # a count that passes only by counting urinals is Check with the city (it holds neither way for certain).
+    sub = pl.get("urinal_substitution") or {}
+    share = (sub.get("max_share_of_required") or {}).get("assembly" if group.startswith("A") else "other", 0)
+    men_wc = sum(r.get("water_closets") or 0 for r in restrooms if r.get("designation") == "men")
+    urinals = sum(r.get("urinals") or 0 for r in restrooms if r.get("designation") == "men")
     women = sum(r.get("water_closets") or 0 for r in restrooms if r.get("designation") == "women")
     allg = sum(r.get("water_closets") or 0 for r in restrooms if r.get("designation") in ("all_gender", "unknown"))
-    have_total = men + women + allg
-    short = max(0, fx["men"] - men) + max(0, fx["women"] - women)
+
+    def toilets(men_count: int) -> tuple[int, int, bool]:
+        total = men_count + women + allg
+        missing = max(0, fx["men"] - men_count) + max(0, fx["women"] - women)
+        return total, missing, total < fx["water_closets"] or (not fx["shared_room_allowed"] and missing > allg)
+
+    if sub.get("verified") is True:
+        cap = math.floor(share * (fx["water_closets"] if fx["shared_room_allowed"] else fx["men"]))
+        men, urinal_band = men_wc + min(urinals, cap), False
+    else:
+        short_without, short_with = toilets(men_wc)[2], toilets(men_wc + urinals)[2]
+        urinal_band = urinals > 0 and short_without and not short_with
+        men = men_wc if not short_without else men_wc + urinals      # a pass without urinals; a Fix even with them all
+    have_total, short, _ = toilets(men)
     toilets_unknown = [r["label"] for r in restrooms
                        if r.get("water_closets") is None or r.get("designation") is None
                        or (r.get("designation") in ("men", "unknown") and "urinals" in r and r["urinals"] is None)
@@ -545,6 +623,12 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         F.append(Finding("PL-1", "Show the toilets in each restroom", "review", "high",
                          f"{unknown['PL-1']} A space for {n} people needs {fx['water_closets']} ({fx['profile']}: {basis}).",
                          pl["cite"], "Write the number of toilets and who each restroom is for on the plan."))
+    elif urinal_band:
+        F.append(Finding("PL-1", "Confirm whether the urinals count as toilets", "review", "medium",
+                         f"Your plan shows {_count(men_wc + women + allg, 'toilet')} and {_count(urinals, 'urinal')}. A space for "
+                         f"{n} people needs {fx['water_closets']} ({fx['profile']}: {basis}), which your plan meets only if the "
+                         f"urinals count. Urinals can stand in for some of the toilets required for men; how many is still "
+                         f"being checked.", pl["cite"], "Ask the plan reviewer how many of the urinals count, or add a toilet."))
     elif have_total < fx["water_closets"] or (not fx["shared_room_allowed"] and short > allg):
         F.append(Finding("PL-1", "Add more toilets", "fail", "high",
                          f"Your plan shows {_count(have_total, 'toilet')} (men {men}, women {women}, all-gender {allg}). "
@@ -755,7 +839,7 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
     missing = {"assembly_permit": " or ".join(gaps), "sprinkler": " or ".join(gaps) or "the floor area",
                "cooking": "whether the cooking makes grease or smoke", "outdoor_seating": "whether there is outdoor seating"}
     permits = [{k: p[k] for k in ("id", "name", "agency")}
-               | ({"may_be_needed": f"May be needed: check with the city. It depends on {missing[p['when']]}, which your "
+               | ({"may_be_needed": f"Check with the city. It depends on {missing[p['when']]}, which your "
                                     f"plan doesn't show."} if maybe.get(p["when"]) else {})
                for p in rules["permits"] if flags.get(p["when"]) or maybe.get(p["when"])]
     # A permit listed because of the number of people or the sprinkler rule rests on those rules' values. The others

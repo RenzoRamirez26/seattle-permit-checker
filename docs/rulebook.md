@@ -97,6 +97,7 @@ source of `rules_engine.py` and `zoning.py` and fails on any number written ther
 | --- | --- | --- |
 | 36 in. door, suggested to get 32 in. clear | `egress.door_nominal_width_in` (EG-3 and ADA-3 fixes) | Trade practice, not a code value |
 | 28 to 34 in. accessible table surface height | `accessibility.table_surface_height_in` (ADA-4 fix) | From memory (`_meta.verify`) |
+| Urinals may stand in for up to 67% (assembly) or 50% (other) of the toilets required for men | `plumbing.urinal_substitution` (PL-1) | From memory (`_meta.verify`); `verified: false`, so a count that depends on it is Check with the city |
 | 75 ft of travel to a fire extinguisher | `fire.extinguisher_max_travel_ft` (FS-3 message) | From memory (`_meta.verify`) |
 | 5 to 7 months for a land use approval | `zoning.land_use_approval_time` (zoning fix) | From memory (`_meta.verify`) |
 

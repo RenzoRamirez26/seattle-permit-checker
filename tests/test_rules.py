@@ -185,6 +185,11 @@ def test_a_not_sure_answer_turns_every_finding_that_depends_on_it_into_review(ru
         for key in u:
             if y.get(key) == n.get(key):
                 assert u[key] == y[key], key                                # does not depend on the answer: unchanged
+            elif y.get(key) and n.get(key) and y[key]["status"] == n[key]["status"]:
+                # the same status either way, only worded differently (#22): kept as with "no", the question not named
+                findings_differ = True
+                assert u[key] == n[key], key
+                assert rules_engine.UNSURE_ANSWERS[answer] not in u[key]["detail"]
             else:
                 findings_differ = True
                 assert u[key]["status"] == "review", (business, key)          # depends on it: never pass, never decided
@@ -208,7 +213,7 @@ def test_a_permit_that_depends_on_a_not_sure_answer_is_listed_as_may_be_needed(r
     assert permit in yes and "may_be_needed" not in yes[permit]                  # yes: listed as today
     assert permit not in no                                                       # no: not listed
     note = unsure[permit]["may_be_needed"]                                        # not sure: listed, and says why
-    assert note.startswith("May be needed: check with the city.") and rules_engine.UNSURE_ANSWERS[answer] in note
+    assert note.startswith("Check with the city.") and rules_engine.UNSURE_ANSWERS[answer] in note
     assert {k: v for k, v in unsure[permit].items() if k != "may_be_needed"} == yes[permit]
     assert [k for k, p in unsure.items() if "may_be_needed" in p] == [permit]
     assert rules_engine.run_checks(facts, base | {answer: None}, rules)["findings"] == rules_engine.run_checks(facts, base, rules)["findings"]
@@ -351,7 +356,7 @@ def test_report_markdown_marks_unverified_rules(rules, load):
 import ast  # noqa: E402
 
 MESSAGE_MODULES = [ROOT / "checker" / "rules_engine.py", ROOT / "checker" / "zoning.py"]
-_KEY = re.compile(r"^([A-Z]+-\d+|[a-z0-9_]+|utf-8)$")      # rule ids, dict keys and field names, not words a person reads
+_KEY = re.compile(r"^([A-Z]+-\d+|[a-z0-9_.]+|utf-8)$")      # rule ids, dict keys and field names, not words a person reads
 
 
 def _written_numbers(path):
@@ -475,8 +480,8 @@ def test_unknown_handling_leaves_every_fix_finding_as_it_was(rules, unknown_grid
                     removed.remove(i)
                 else:
                     problems.append(f"{key}={v!r}: a new Fix for {i}")
-            if not removed and U._hash(now) != old_hash:
-                problems.append(f"{key}={v!r}: a Fix changed its wording")
+            if not removed and U._hash(now) != old_hash and path[-1] != "is_exit":
+                problems.append(f"{key}={v!r}: a Fix changed its wording")   # unmarked doors: EG-1 now says "at least"
             for rule_id in removed:
                 removed_seen.add(rule_id)
                 if rule_id not in UNCERTAIN_FIX_RULES:
@@ -519,7 +524,7 @@ def test_a_permit_that_rests_on_an_unknown_load_is_may_be_needed_not_dropped(rul
     result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
     by_id = {p["id"]: p for p in result["permits_likely_required"]}
     for permit in ("assembly", "sprinkler"):
-        assert by_id[permit]["may_be_needed"].startswith("May be needed: check with the city.")
+        assert by_id[permit]["may_be_needed"].startswith("Check with the city.")
         assert "Dining Room" in by_id[permit]["may_be_needed"]
 
 
@@ -544,9 +549,9 @@ def test_urinals_left_unknown_are_not_counted_as_zero(rules, load):
     plan["restrooms"][1]["urinals"] = None
     pl1 = [f for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"] if f["rule_id"] == "PL-1"]
     assert [f["status"] for f in pl1] == ["review"]
-    plan["restrooms"][1]["urinals"] = 1
-    assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
-            if f["rule_id"] == "PL-1"] == ["pass"]
+    plan["restrooms"][1]["urinals"] = 1                                  # meets the count only if the urinal counts
+    assert [(f["status"], f["title"]) for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
+            if f["rule_id"] == "PL-1"] == [("review", "Confirm whether the urinals count as toilets")]
     plan["restrooms"][1]["urinals"] = 0
     assert [f["status"] for f in rules_engine.run_checks(plan, {"business_type": "bar_taproom"}, rules)["findings"]
             if f["rule_id"] == "PL-1"] == ["fail"]
@@ -562,7 +567,7 @@ def test_the_sprinkler_permit_stays_may_be_needed_even_when_sprinklers_are_shown
     dining["area_sqft"] = dining["width_ft"] = dining["length_ft"] = None
     result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
     sprinkler = next(p for p in result["permits_likely_required"] if p["id"] == "sprinkler")
-    assert sprinkler["may_be_needed"].startswith("May be needed")
+    assert sprinkler["may_be_needed"].startswith("Check with the city.")
 
 
 def test_a_sign_answer_left_not_sure_lists_the_sign_permit_as_may_be_needed(rules, load):
@@ -612,3 +617,93 @@ def test_cooking_permits_are_may_be_needed_when_grease_cooking_is_unknown(rules,
         listed = {p["id"]: p for p in result["permits_likely_required"]}
         assert cooking_ids <= set(listed), answer
         assert all("grease or smoke" in listed[i]["may_be_needed"] for i in cooking_ids)
+
+
+# ---------------------------------------------------------------- rule-correctness (issues #19 to #22)
+def _pl1(plan, rules, business="cafe_restaurant"):
+    return [f for f in rules_engine.run_checks(plan, {"business_type": business}, rules)["findings"] if f["rule_id"] == "PL-1"]
+
+
+def test_urinals_count_only_up_to_the_rulebook_share_and_until_checked_are_check_with_the_city(rules, load):
+    """#21: a men's room with 0 toilets and 1 urinal used to be counted as 2 toilets in all, No issues found."""
+    plan = load("compliant")
+    men = next(r for r in plan["restrooms"] if r["designation"] == "men")
+    men["water_closets"], men["urinals"] = 0, 1
+    sub = rules["plumbing"]["urinal_substitution"]
+    assert sub["verified"] is False and "urinal" in rules["_meta"]["verify"]
+    pl1 = _pl1(plan, rules)
+    assert [f["status"] for f in pl1] == ["review"] and "only if the urinals count" in pl1[0]["detail"]
+    # once checked, the share decides: a 50% or 67% share of 1 required toilet is 0 urinals, so this is a Fix
+    checked = json.loads(json.dumps(rules))
+    checked["plumbing"]["urinal_substitution"]["verified"] = True
+    assert [f["status"] for f in _pl1(plan, checked)] == ["fail"]
+    # short even counting every urinal: a Fix that holds either way
+    men["urinals"] = 0
+    assert [f["status"] for f in _pl1(plan, rules)] == ["fail"]
+
+
+def test_a_sliding_or_unshown_exit_swing_is_never_described_as_outward(rules, load):
+    """#19: every exit door "sliding" used to give "Every exit door on your plan swings outward"."""
+    plan = load("compliant")
+    for d in plan["doors"]:
+        if d.get("is_exit"):
+            d["swing"] = "sliding"
+    eg2 = [f for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)["findings"] if f["rule_id"] == "EG-2"]
+    assert eg2 and all(f["status"] == "review" for f in eg2)
+    assert not any("swings outward" in f["detail"] for f in eg2)
+    assert all("needs exit doors that swing out" in f["detail"] for f in eg2)
+
+
+def test_an_unmarked_door_makes_the_exit_count_unknown_and_the_exit_width_row_stays(rules, load):
+    """#20: an unmarked door used to give "Add 2 exits" and drop the exit-width row."""
+    plan = load("flawed")
+    for d in plan["doors"]:
+        d["is_exit"] = None
+    result = rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)
+    by_rule = {}
+    for f in result["findings"]:
+        by_rule.setdefault(f["rule_id"], []).append(f)
+    assert [f["status"] for f in by_rule["EG-1"]] == ["review"]                # enough unmarked doors to be the exits
+    assert by_rule["EG-4"] and all(f["status"] == "review" for f in by_rule["EG-4"])
+    # short even if every unmarked door is an exit: a Fix, stated as the minimum, never "Add 2 exits"
+    plan["doors"] = plan["doors"][:1]
+    eg1 = [f for f in rules_engine.run_checks(plan, {"business_type": "cafe_restaurant"}, rules)["findings"] if f["rule_id"] == "EG-1"]
+    assert [f["status"] for f in eg1] == ["fail"] and eg1[0]["title"] == "Add at least 1 more exit"
+    assert "even if it is" in eg1[0]["detail"]
+
+
+def test_a_fix_that_holds_either_way_stays_a_fix_and_never_blames_the_question(rules, load):
+    """#22: the café's sprinkler Fix (106 people, no sprinklers) used to become Check with the city, blaming the floor."""
+    facts = load("flawed")
+    for answer in ("upper_floor", "cooking_on_site"):
+        result = rules_engine.run_checks(facts, {"business_type": "cafe_restaurant", answer: None}, rules)
+        fs2 = next(f for f in result["findings"] if f["rule_id"] == "FS-2")
+        assert fs2["status"] == "fail" and "Not sure" not in fs2["detail"], answer
+        assert rules_engine.UNSURE_ANSWERS[answer] not in fs2["detail"]
+
+
+def test_the_values_the_rules_read_are_exactly_facts_checked(rules):
+    """#24: Answers marks a value "not checked" when it is outside rules_engine.FACTS_CHECKED, so the list must be right.
+    Changing any value outside it (or the size of a restroom or corridor) never changes a finding or a permit, and
+    every value in it that the grid reaches changes something somewhere."""
+    from checker.extract import SPACE_USES
+    no_load = set(rules_engine.room_uses_without_load(rules, SPACE_USES))
+    assert no_load == {"restroom", "corridor"}
+    sig = lambda r: json.dumps([r["findings"], r["permits_likely_required"]], sort_keys=True)
+    read_but_unlisted, reached = [], set()
+    for business, plan, zone in U.CASES:
+        facts = json.loads(U._plan(plan))
+        base = sig(U.run(rules, business, facts, zone))
+        for path in U.input_paths(facts):
+            field = ".".join(str(p) for p in path if not isinstance(p, int))
+            known, unknown = U.values_for(path[-1])
+            changed = any(sig(U.run(rules, business, U.with_value(facts, path, v), zone)) != base for v in known + unknown)
+            sized_room = path[0] == "spaces" and path[-1] in ("area_sqft", "width_ft", "length_ft")
+            listed = field in rules_engine.FACTS_CHECKED and not (sized_room and facts["spaces"][path[1]]["use"] in no_load)
+            if changed and not listed:
+                read_but_unlisted.append(f"{plan}: {'.'.join(map(str, path))}")
+            if changed:
+                reached.add(field)
+    assert read_but_unlisted == []
+    # width and length are read only when a room has no area; the demo rooms all have one
+    assert set(rules_engine.FACTS_CHECKED) - reached == {"spaces.width_ft", "spaces.length_ft"}
