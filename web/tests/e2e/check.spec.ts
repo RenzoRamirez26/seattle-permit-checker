@@ -127,6 +127,28 @@ test("manual entry starts with every fact empty and can still run the check", as
   await expect(page.getByTestId("counts")).toBeVisible();
 });
 
+test("D2: after an example was read, \"Enter the measurements yourself\" still opens empty facts, and a refresh keeps what was typed", async ({ page }) => {
+  await seed(page, { caseId: "cafe_flawed" });
+  await page.goto("/plan/?problem=no_model_key");                     // an upload failed after the example café was read
+  await page.getByRole("link", { name: "Enter the measurements yourself" }).first().click();
+  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page).toHaveURL(/\/check\/$/);
+  await expect(page.getByText("The saved reading for this example plan. No model was used.")).toHaveCount(0);
+  await expect(page.getByRole("img", { name: /^Example floor plan:/ })).toHaveCount(0);
+  await expect(page.getByText("None read from the plan.")).toHaveCount(4);
+  const stored = await page.evaluate(() => JSON.parse(sessionStorage.getItem("precheck.facts") ?? "null"));
+  expect(stored.doors).toEqual([]);
+  expect(stored.plan_title).toBeNull();
+
+  await page.getByRole("button", { name: "Add a door" }).click();
+  const form = page.getByRole("form", { name: "Change New door" });
+  await form.getByRole("textbox", { name: "Name" }).fill("Front door");
+  await form.getByRole("button", { name: "Save changes" }).click();
+  await page.reload();
+  await expect(page.getByText(/^You are entering the measurements yourself\. Leave/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Front door" })).toBeVisible();
+});
+
 test("after a refresh an uploaded plan is gone but the facts stay, and the file can be chosen again", async ({ page }) => {
   const reading = { ...fixture("reading_cafe_flawed"), source: "vision_model", case_id: null, file_name: "my-plan.png" };
   await seed(page, { reading });

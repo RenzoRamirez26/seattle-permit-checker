@@ -31,14 +31,17 @@ export function CheckPage() {
   );
 }
 
-/** What was read, from sessionStorage. "?enter=yourself" with nothing read starts with every fact empty. */
-function initialReading(enterYourself: boolean): Reading | null {
-  let r = flow.reading();
-  if (!r && enterYourself) {
-    r = { source: "manual", source_label: "", case_id: null, facts: emptyFacts() };
+/**
+ * What was read, from sessionStorage. "?enter=yourself" always starts a new, empty manual entry, even when an
+ * earlier or example reading is stored, so the owner never checks someone else's measurements by mistake.
+ */
+export function initialReading(enterYourself: boolean): Reading | null {
+  if (enterYourself) {
+    const r: Reading = { source: "manual", source_label: "", case_id: null, facts: emptyFacts() };
     flow.setReading(r);
+    return r;
   }
-  return r;
+  return flow.reading();
 }
 
 function CheckBody({ enterYourself }: { enterYourself: boolean }) {
@@ -51,6 +54,11 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
   const [runProblems, setRunProblems] = useState<ProblemItem[]>([]);
   const [running, setRunning] = useState(false);
   const summary = useRef<HTMLDivElement>(null);
+
+  // The empty entry is stored now; drop "?enter=yourself" so a refresh keeps what the owner types instead of emptying it again.
+  useEffect(() => {
+    if (enterYourself) router.replace("/check/", { scroll: false });
+  }, [enterYourself, router]);
 
   // Warn before leaving with a change that has not been saved.
   useEffect(() => {
