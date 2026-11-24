@@ -49,7 +49,9 @@ SECTIONS = ["1. For the Seattle Services Portal pre-application", "2. For the co
 TABLE_COLUMNS = ["What you will be asked for", "For this project", "City source"]
 ROOM_COLUMNS = ["Room", "Use", "Area (sq ft)", "Sq ft per person", "People"]
 PERMITS_HEADING = "Permits and approvals you will likely need"
-OPEN_HEADING = "Open problems to fix before submitting"
+OPEN_HEADING = "To fix or check before you apply"
+# The site's status names (CONTENT.md rule 11), here because this module imports nothing from the engine.
+STATUS_LABEL = {"fail": "Fix before you apply", "review": "Check with the city"}
 OPEN_POINTER = "The pre-check report gives the fix and the code section for each of these."
 
 
@@ -125,10 +127,10 @@ def sheet(result: dict) -> dict[str, Any]:
         "uploads": UPLOADS,
         "permits": result["permits_likely_required"],
         # one line each, to keep the sheet short: the report has the detail, the fix and the code section
-        "open_items": [f"{'Fix' if f['status'] == 'fail' else 'Confirm'}: {f['title']} ({f['severity']})"
+        "open_items": [f"{STATUS_LABEL[f['status']]}: {f['title']} ({f['severity']})"
                        for f in result["findings"] if f["status"] != "pass"],
         "open_pointer": OPEN_POINTER,
-        "nothing_open": "Nothing to fix on the items this tool checks.",
+        "nothing_open": "No issues found in the checks we ran.",
         "disclaimer": result["disclaimer"],
     }
 

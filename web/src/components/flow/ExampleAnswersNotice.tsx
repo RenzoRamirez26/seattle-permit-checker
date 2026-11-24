@@ -31,7 +31,7 @@ export function ExampleAnswersNotice({ meta }: { meta: Meta | null }) {
   const status = useRef<HTMLParagraphElement>(null);
 
   if (kept) {
-    return <p ref={status} role="status" tabIndex={-1} className="m-0 mb-8 border-l-2 border-field pl-4 measure outline-none">{EXAMPLE_ANSWERS.kept}</p>;
+    return <p ref={status} role="status" tabIndex={-1} className="m-0 mb-8 rounded-2xl bg-tint p-4 measure outline-none">{EXAMPLE_ANSWERS.kept}</p>;
   }
   if (!owner || !example || !meta) return null;
 
@@ -42,8 +42,8 @@ export function ExampleAnswersNotice({ meta }: { meta: Meta | null }) {
   };
 
   return (
-    <section aria-labelledby="example-answers" className="mb-8 flex flex-col items-start gap-3 border-l-2 border-field pl-4 measure">
-      <h2 id="example-answers" className="m-0 text-body font-semibold">{EXAMPLE_ANSWERS.heading}</h2>
+    <section aria-labelledby="example-answers" className="mb-8 flex flex-col items-start gap-3 rounded-2xl bg-tint p-4 measure">
+      <h2 id="example-answers" className="m-0 text-body font-medium">{EXAMPLE_ANSWERS.heading}</h2>
       <p className="m-0">
         {EXAMPLE_ANSWERS.replaced} {exampleAnswerWords(meta, example)}. <Link href="/business/">{EXAMPLE_ANSWERS.all}</Link>
       </p>

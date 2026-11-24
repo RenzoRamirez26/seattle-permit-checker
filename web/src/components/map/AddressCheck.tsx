@@ -35,8 +35,8 @@ export function AddressCheck({ address, businessType }: { address: string; busin
 
   if (!address.trim() || state.status === "idle") return null;
   return (
-    <section aria-labelledby="place-heading" aria-live="polite" className="flex flex-col gap-2 border-l-2 border-hairline pl-4">
-      <h2 id="place-heading" className="m-0 text-body font-semibold">Is this the right place?</h2>
+    <section aria-labelledby="place-heading" aria-live="polite" className="flex flex-col gap-2 rounded-2xl border border-hairline bg-white p-4">
+      <h2 id="place-heading" className="m-0 text-body font-medium">Is this the right place?</h2>
       {state.status === "looking" ? <p className="m-0 text-ink-muted">Finding the address on the map…</p> : null}
       {state.status === "problem" ? <p className="m-0">{errorWords(state.code)} The address is still used in the check.</p> : null}
       {state.status === "done" ? (
@@ -44,10 +44,10 @@ export function AddressCheck({ address, businessType }: { address: string; busin
           <>
             <p className="m-0 break-words">
               Found: {typeof state.z.zoning.address === "string" ? state.z.zoning.address : address.trim()}.{" "}
-              {state.z.zoning.district ? <>Zone <span className="font-mono font-semibold" translate="no">{state.z.zoning.district}</span>.</> : null}
+              {state.z.zoning.district ? <>Zone <span className="font-mono font-medium" translate="no">{state.z.zoning.district}</span>.</> : null}
             </p>
             <LazyPlaceMap point={state.z.point} label={`Map with a pin at ${address.trim()}`} />
-            <p className="m-0 text-small text-ink-muted">If the pin is in the wrong place, correct the address above, or enter the zone instead.</p>
+            <p className="m-0 text-ink-muted">If the pin is in the wrong place, correct the address above, or enter the zone instead.</p>
           </>
         ) : (
           <p className="m-0">This address was not found on Seattle&rsquo;s map. Check it, for example 1420 5th Ave, or enter the zone instead.</p>

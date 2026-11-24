@@ -21,6 +21,7 @@
 - [Try it](#try-it)
 - [How it works](#how-it-works)
 - [Repository map](#repository-map)
+- [Design](#design)
 - [Websites and keys](#websites-and-keys)
 - [What Seattle's data showed](#what-seattles-data-showed)
 - [Build phases](#build-phases)
@@ -176,6 +177,18 @@ docs/                     rulebook status, data sources, demo script, voice opti
 tests/                    one file per part, plus a headless test of the website
 CLAUDE.md                 project rules for Claude Code
 ```
+
+## Design
+
+How PermitOS looks and talks, and why:
+
+- [`DESIGN.md`](DESIGN.md): colours, type, shapes, zones, status icons and components, with the reason for each.
+- [`CONTENT.md`](CONTENT.md): the writing rules, with before and after examples.
+- [`docs/design-story.md`](docs/design-story.md): the story from the first version to this one, mistakes included.
+- [`docs/decisions.md`](docs/decisions.md): the decision log, newest first, with what was rejected.
+- [`docs/design_checklist.md`](docs/design_checklist.md): the pass/fail checklist each version is scored against.
+- Screenshots of the built site: [`docs/screenshots/design-v3/`](docs/screenshots/design-v3/). The Figma file:
+  https://www.figma.com/design/PVw8XgzSLPe2q9TR8mbbhj
 
 ## Websites and keys
 

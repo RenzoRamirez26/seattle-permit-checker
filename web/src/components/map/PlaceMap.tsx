@@ -122,9 +122,9 @@ export function PlaceMap({ point, outline, zoneName, label }: { point: Point; ou
         aria-label={label}
         data-map-state={state}
         data-outline={outline ? "yes" : "no"}
-        className="place-map aspect-[4/3] w-full overflow-hidden rounded-sm border border-hairline bg-paper"
+        className="place-map aspect-[4/3] w-full overflow-hidden rounded-2xl border border-hairline bg-paper"
       />
-      {tiles ? <figcaption className="text-small text-ink-muted">Map data © OpenStreetMap contributors, Protomaps.</figcaption> : null}
+      {tiles ? <figcaption className="text-ink-muted">Map data © OpenStreetMap contributors, Protomaps.</figcaption> : null}
     </figure>
   );
 }

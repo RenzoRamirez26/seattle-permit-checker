@@ -7,7 +7,7 @@
     ],
     "generated_by": "template",
     "problems": [],
-    "text": "I found 3 problems and 2 items to confirm. The occupant load is 15, which makes this Group B. The most serious: Door too narrow: Restroom door (Restroom). [EG-3] Aisle too narrow: Aisle A (between chairs). [ADA-1] Restroom too tight to turn a wheelchair: Restroom. [ADA-2] There are 2 more in the fix list."
+    "text": "I found 3 items to fix before you apply and 2 to check with the city. The space is for 15 people, which makes it Group B. Most serious first: Widen the door: Restroom door (Restroom). [EG-3] Widen the aisle: Aisle A (between chairs). [ADA-1] Widen the restroom so a wheelchair can turn: Restroom. [ADA-2] There are 2 more in the fix list."
   },
   "question": "What should I fix first?"
 }

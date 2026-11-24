@@ -62,13 +62,13 @@ def test_cafe_sheet_is_filled_from_the_audit(cafe):
     for p in cafe["permits_likely_required"]:
         assert f"- {p['name']}: {p['agency']}" in sheet
     open_items = [f for f in cafe["findings"] if f["status"] != "pass"]
-    assert f"Open problems to fix before submitting ({len(open_items)})" in sheet and len(open_items) == 13
+    assert f"To fix or check before you apply ({len(open_items)})" in sheet and len(open_items) == 13
     lines = sheet.splitlines()
     for f in open_items:
-        word = "Fix" if f["status"] == "fail" else "Confirm"
+        word = "Fix before you apply" if f["status"] == "fail" else "Check with the city"
         assert f"- {word}: {f['title']} ({f['severity']})" in lines
         assert f["detail"] not in sheet and (not f["fix"] or f["fix"] not in sheet)      # the detail and the fix stay in the report
-    assert "- Fix: Not enough exits (critical)" in lines and any(line.startswith("- Confirm: ") for line in lines)
+    assert "- Fix before you apply: Add a second exit (critical)" in lines and any(line.startswith("- Check with the city: ") for line in lines)
     assert "The pre-check report gives the fix and the code section for each of these." in lines
     assert "SBC 1010.1.1" not in sheet
     assert not any(f["title"] in sheet for f in cafe["findings"] if f["status"] == "pass" and f["title"] != "Occupancy classification")
@@ -83,8 +83,8 @@ def test_salon_sheet_differs_where_the_audit_differs(salon):
     assert rows["Type of occupancy"].startswith("Group B ") and rows["Occupant load calculations"] == "15 people (table below)"
     assert rows["Exits"] == "1 shown on the plan; the pre-check calculates 1 required"
     assert any("Salon or shop licence" in p["name"] and p["name"] in sheet for p in salon["permits_likely_required"])
-    assert "Food service" not in sheet and "Open problems to fix before submitting (5)" in sheet
-    assert "Zoning: NR3" in sheet                                    # the zoning question is an open item, not hidden
+    assert "Food service" not in sheet and "To fix or check before you apply (5)" in sheet
+    assert "Confirm the zoning: NR3" in sheet                                    # the zoning question is an open item, not hidden
 
 
 def test_fields_the_audit_cannot_fill_are_labelled_never_guessed(cafe, salon):

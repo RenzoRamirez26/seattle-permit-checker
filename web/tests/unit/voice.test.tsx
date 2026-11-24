@@ -77,9 +77,10 @@ describe("the microphone", () => {
     a.unmount();
 
     meta.value = { ...baseMeta, features: { ...baseMeta.features, speech_to_text: true } };
-    recorder.can = false;
+    recorder.can = false;                                              // the browser cannot record: a disabled mic and words
     const b = render(<Assistant />);
-    expect(screen.queryByRole("button", { name: "Speak" })).toBeNull();
+    expect((screen.getByRole("button", { name: "Speak" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Voice isn’t available in this browser. Type your question instead.")).toBeTruthy();
     b.unmount();
 
     recorder.can = true;

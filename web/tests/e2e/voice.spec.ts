@@ -136,3 +136,23 @@ test("a transcription error is said in words and the question can be typed", asy
   await expect(panel(page).getByRole("alert")).toHaveText("The recording could not be made out. Try again closer to the microphone, or type the question.");
   await expect(panel(page).getByRole("textbox", { name: "Your question" })).toBeEditable();
 });
+
+test("state: when this browser cannot record, the microphone shows as unavailable and typing still works", async ({ page }) => {
+  await withSpeechToText(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "mediaDevices", { value: undefined, configurable: true });
+    Object.defineProperty(window, "MediaRecorder", { value: undefined, configurable: true });
+  });
+  await toResults(page);
+  await page.getByRole("button", { name: "Ask", exact: true }).click();
+  await expect(panel(page).getByText("Voice isn’t available in this browser. Type your question instead.")).toBeVisible();
+  const speak = panel(page).getByRole("button", { name: "Speak" });
+  await expect(speak).toBeDisabled();
+  await expect(speak).toHaveAttribute("aria-describedby", "mic-unavailable");
+  await expect(panel(page).getByRole("textbox", { name: "Your question" })).toBeEditable();
+  for (const width of WIDTHS) {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 });
+    await expectNoAxeViolations(page, `mic unavailable at ${width}`);
+  }
+  await shoot(page, "design-v3", "state-mic-unavailable", { fullPage: false });
+});

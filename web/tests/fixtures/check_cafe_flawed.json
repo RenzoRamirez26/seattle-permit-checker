@@ -5,7 +5,7 @@
   "notices": [],
   "result": {
     "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
-    "disclaimer": "Pre-submission check only. Not a code determination; have a licensed design professional and the plan reviewer confirm.",
+    "disclaimer": "Not a code determination: have a licensed design professional and the city's plan reviewer confirm the design.",
     "extraction": {
       "accessible_seat_count": null,
       "aisles": [
@@ -149,137 +149,137 @@
     "findings": [
       {
         "citation": "SBC Table 1006.2.1 and Section 1006.3",
-        "detail": "1 exit(s) shown; 2 required for an occupant load of 106.",
-        "fix": "Add 1 exit(s), placed remotely from the existing one, or reduce the public area so the occupant load is 49 or less.",
+        "detail": "Your plan shows 1 exit. A space for 106 people needs 2.",
+        "fix": "Place it far from the one you have, or make the public area smaller so the space holds 49 people or fewer.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
         "severity": "critical",
         "status": "fail",
-        "title": "Not enough exits"
+        "title": "Add a second exit"
       },
       {
         "citation": "Seattle Mechanical Code 507 (Type I hood over grease- or smoke-producing appliances); Seattle Fire Code 904 (hood fire suppression)",
-        "detail": "Grease-producing cooking is planned but the plan shows no Type I exhaust hood with fire suppression.",
+        "detail": "Your plan doesn't show a Type I exhaust hood with fire suppression. Cooking that makes grease or smoke needs one.",
         "fix": "Add a Type I hood and suppression system over the cooking line, or limit the menu to equipment that does not need one.",
         "reviewed_by": "SDCI Mechanical review",
         "rule_id": "MECH-1",
         "severity": "critical",
         "status": "fail",
-        "title": "No Type I hood over cooking equipment"
+        "title": "Add a Type I hood over the cooking line"
       },
       {
         "citation": "SBC 903.2.1.2 (Group A-2)",
-        "detail": "Group A-2: occupant load 106 is 100 or more (threshold: 100 occupants or 5,000 sq ft).",
-        "fix": "Confirm the building is sprinklered and note it on the plan; if not, budget for a system or reduce the occupant load.",
+        "detail": "Your plan says there are no sprinklers. This Group A-2 space needs them: 106 people, which is 100 or more (limit: 100 people or 5,000 sq ft).",
+        "fix": "Ask the landlord whether the building has sprinklers and note it on the plan. If it has none, budget for a system or plan for fewer people.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-2",
         "severity": "critical",
         "status": "fail",
-        "title": "Sprinkler system required, plan says none"
+        "title": "Add a sprinkler system"
       },
       {
         "citation": "SBC 1010.1.2.1",
-        "detail": "With an occupant load of 106, exit doors must swing in the direction of egress.",
-        "fix": "Re-hang the door to swing outward (check it does not block the sidewalk or required clearances).",
+        "detail": "Your plan shows this exit door swinging inward. A space for 106 people needs exit doors that swing out, the way people leave.",
+        "fix": "Re-hang the door to swing outward. Check that it doesn't block the sidewalk or a required clear space.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-2",
         "severity": "high",
         "status": "fail",
-        "title": "Exit door swings inward: Door 1"
+        "title": "Turn the exit door to swing outward: Door 1"
       },
       {
         "citation": "SBC 1010.1.1; ADA 404.2.3",
-        "detail": "30 in. clear; minimum is 32 in.",
-        "fix": "Widen to at least 32 in. clear (a 36 in. door leaf typically provides this).",
+        "detail": "Your plan shows 30 in. clear. A door needs at least 32 in.",
+        "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "severity": "high",
         "status": "fail",
-        "title": "Door too narrow: Restroom 1 door (Restroom 1)"
+        "title": "Widen the door: Restroom 1 door (Restroom 1)"
       },
       {
         "citation": "SBC 1010.1.1; ADA 404.2.3",
-        "detail": "30 in. clear; minimum is 32 in.",
-        "fix": "Widen to at least 32 in. clear (a 36 in. door leaf typically provides this).",
+        "detail": "Your plan shows 30 in. clear. A door needs at least 32 in.",
+        "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "severity": "high",
         "status": "fail",
-        "title": "Door too narrow: Restroom 2 door (Restroom 2)"
+        "title": "Widen the door: Restroom 2 door (Restroom 2)"
       },
       {
         "citation": "SBC 1013.1",
-        "detail": "0 exit sign(s) shown; one is needed at each of the 2 required exits.",
-        "fix": "Add illuminated exit signs at every required exit.",
+        "detail": "Your plan shows no exit signs. Each of the 2 exits needs one.",
+        "fix": "Add an illuminated exit sign at each required exit.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "FS-1",
         "severity": "high",
         "status": "fail",
-        "title": "Missing exit signs"
+        "title": "Add an exit sign at each exit"
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
-        "detail": "30 in. wide; accessible routes need 36 in. minimum.",
+        "detail": "Your plan shows 30 in. A wheelchair route needs at least 36 in.",
         "fix": "Move furniture or fixtures to give 36 in. clear.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
         "severity": "high",
         "status": "fail",
-        "title": "Aisle too narrow: Aisle A (between tables)"
+        "title": "Widen the aisle: Aisle A (between tables)"
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
-        "detail": "54 in. turning circle; 60 in. required.",
+        "detail": "Your plan shows 54 in. of clear floor. A wheelchair needs 60 in. to turn.",
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
         "severity": "high",
         "status": "fail",
-        "title": "Restroom too tight to turn a wheelchair: Restroom 1"
+        "title": "Widen the restroom so a wheelchair can turn: Restroom 1"
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
-        "detail": "54 in. turning circle; 60 in. required.",
+        "detail": "Your plan shows 54 in. of clear floor. A wheelchair needs 60 in. to turn.",
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
         "severity": "high",
         "status": "fail",
-        "title": "Restroom too tight to turn a wheelchair: Restroom 2"
+        "title": "Widen the restroom so a wheelchair can turn: Restroom 2"
       },
       {
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
-        "detail": "A dedicated handwashing sink is needed where food is prepared.",
+        "detail": "Your plan doesn't show a handwashing sink in the prep area. Food prep needs its own hand sink.",
         "fix": "Add a hand sink in the prep area (separate from the dish sink).",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-1",
         "severity": "high",
         "status": "fail",
-        "title": "No handwashing sink in the food prep area"
+        "title": "Add a handwashing sink in the food prep area"
       },
       {
         "citation": "SBC Chapter 11; ADA 226.1",
-        "detail": "3 of the 56 seats should be at accessible tables.",
+        "detail": "Your plan doesn't mark accessible seats. 3 of your 56 seats need to be at accessible tables.",
         "fix": "Mark accessible tables (knee clearance, 28-34 in. surface height) on the plan.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-4",
         "severity": "medium",
         "status": "review",
-        "title": "Accessible seating not marked"
+        "title": "Mark the accessible seats"
       },
       {
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
-        "detail": "No portable fire extinguishers are shown.",
+        "detail": "Your plan doesn't show fire extinguishers.",
         "fix": "Show extinguisher locations; add a Class K unit at the cooking line.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
         "severity": "medium",
         "status": "review",
-        "title": "Fire extinguishers not shown"
+        "title": "Show the fire extinguishers"
       },
       {
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
-        "detail": "Café or restaurant with a calculated occupant load of 106: classified Group A-2.",
+        "detail": "Café or restaurant for 106 people: Group A-2.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
@@ -289,7 +289,7 @@
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "2 water closet(s) shown; 2 required for an occupant load of 106 (A-2 restaurants: 1 for men and 1 for women).",
+        "detail": "Your plan shows 2 toilets. A space for 106 people needs 2 (A-2 restaurants: 1 for men and 1 for women).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
@@ -309,7 +309,7 @@
       },
       {
         "citation": "SBC 1005.3.2",
-        "detail": "Exit doors total 36 in.; 21.2 in. required.",
+        "detail": "Your exit doors add up to 36 in. A space for 106 people needs 21.2 in.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
@@ -319,17 +319,17 @@
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "2 lavatory(ies) shown.",
+        "detail": "Your plan shows 2 restroom sinks.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
         "severity": "info",
         "status": "pass",
-        "title": "Lavatories"
+        "title": "Restroom sinks"
       },
       {
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
-        "detail": "Three-compartment sink shown.",
+        "detail": "Your plan shows a three-compartment sink.",
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-2",

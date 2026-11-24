@@ -1,0 +1,13 @@
+{
+  "_about": "Every text colour token and each background token it is used on (DESIGN.md, Colour). The build guard and tests/test_design_rules.py check each pair reaches 4.5 : 1.",
+  "minimum": 4.5,
+  "pairs": [
+    ["ink", "paper"], ["ink", "white"], ["ink", "tint"],
+    ["ink-muted", "paper"], ["ink-muted", "white"], ["ink-muted", "tint"],
+    ["blue", "paper"], ["blue", "white"], ["blue", "tint"],
+    ["fix", "paper"], ["fix", "white"], ["fix", "tint"],
+    ["white", "blue"],
+    ["hero-text", "blue"], ["hero-muted", "blue"],
+    ["band-text", "band"], ["band-muted", "band"]
+  ]
+}

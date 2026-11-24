@@ -1,5 +1,11 @@
 "use client";
-/** A group of choices on React Aria's RadioGroup: arrow keys move, the label and the circle are one target. */
+/**
+ * A group of choices on React Aria's RadioGroup: arrow keys move and select, each pill is one target.
+ * In: a label, an optional hint and error, the choices. Out: the chosen value through onChange.
+ * Every choice is a pill chip (round means you can press it, DESIGN.md Shape): 48 px tall, 1 px field border, white.
+ * The chosen one has the tint fill, blue text and a blue 2 px edge (1 px border plus a 1 px inset ring, so nothing
+ * moves when it is chosen) and Medium weight: a change of fill, edge and weight, never colour alone.
+ */
 import { FieldError, Label, Radio, RadioGroup as AriaRadioGroup, Text, type RadioGroupProps } from "react-aria-components";
 import { cn } from "@/lib/utils";
 
@@ -10,44 +16,35 @@ export function RadioGroup({ label, hint, error, choices, cards = false, orienta
   hint?: React.ReactNode;
   error?: string;
   choices: Choice[];
+  /** Larger choices in two columns (the business type on step 1). Still pills. */
   cards?: boolean;
   className?: string;
 }) {
   return (
     <AriaRadioGroup {...props} orientation={orientation} isInvalid={!!error} className={cn("flex flex-col gap-2", className)}>
-      <Label className="font-semibold">{label}</Label>
-      {hint ? <Text slot="description" className="text-small text-ink-muted">{hint}</Text> : null}
-      {error ? <FieldError className="text-fix font-semibold">{error}</FieldError> : null}
-      <div className={cn(cards ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : orientation === "horizontal" ? "flex flex-wrap gap-x-6 gap-y-1" : "flex flex-col gap-1")}>
+      <Label className="font-medium">{label}</Label>
+      {hint ? <Text slot="description" className="text-ink-muted">{hint}</Text> : null}
+      {error ? <FieldError className="text-fix font-medium">{error}</FieldError> : null}
+      <div className={cn(
+        "mt-1",
+        cards ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : orientation === "horizontal" ? "flex flex-wrap gap-2" : "flex flex-col items-start gap-2",
+      )}>
         {choices.map((c) => (
           <Radio
             key={c.value}
             value={c.value}
             className={({ isSelected }) =>
               cn(
-                "group flex cursor-pointer items-start gap-3 rounded-sm data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue",
-                // An error is said once, above the choices (and in the summary); the cards keep their usual border (F7).
-                cards ? cn("min-h-12 border p-4", isSelected ? "border-blue border-2 p-[15px] bg-white" : "border-field bg-paper data-[hovered]:bg-white") : "min-h-11 py-2",
+                "choice-pill flex min-h-12 max-w-full cursor-pointer flex-col justify-center rounded-full border px-5 py-2",
+                "data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue",
+                // An error is said once, above the choices (and in the summary); the pills keep their usual border (F7).
+                isSelected ? "border-blue bg-tint font-medium text-blue" : "border-field bg-white text-ink data-[hovered]:border-ink",
+                cards && "w-full",
               )
             }
           >
-            {({ isSelected }) => (
-              <>
-                <span
-                  aria-hidden
-                  className={cn(
-                    "mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 bg-white",
-                    isSelected ? "border-blue" : "border-field",
-                  )}
-                >
-                  {isSelected ? <span className="size-2.5 rounded-full bg-blue" /> : null}
-                </span>
-                <span className="flex flex-col">
-                  <span className={cards ? "font-semibold" : undefined}>{c.label}</span>
-                  {c.description ? <span className="text-small text-ink-muted">{c.description}</span> : null}
-                </span>
-              </>
-            )}
+            <span>{c.label}</span>
+            {c.description ? <span className="font-normal text-ink-muted">{c.description}</span> : null}
           </Radio>
         ))}
       </div>

@@ -38,8 +38,8 @@ def _text(data: bytes) -> str:
 
 
 @pytest.mark.parametrize("case, title, finding, permit", [
-    ("cafe", "Permit pre-check: Café or restaurant", "Not enough exits", "Food service plan review (before construction)"),
-    ("salon", "Permit pre-check: Salon, barbershop or spa", "Door too narrow: Restroom door (Restroom)", "Salon or shop licence"),
+    ("cafe", "Permit pre-check: Café or restaurant", "Add a second exit", "Food service plan review (before construction)"),
+    ("salon", "Permit pre-check: Salon, barbershop or spa", "Widen the door: Restroom door (Restroom)", "Salon or shop licence"),
 ])
 def test_report_pdf(case, title, finding, permit, request):
     result = request.getfixturevalue(case)
@@ -50,10 +50,14 @@ def test_report_pdf(case, title, finding, permit, request):
 
     pages, s = _pages(data), result["summary"]
     first, last, text = pages[0], pages[-1], " ".join(pages)
-    notice = result["disclaimer"]
-    assert "Pre-submission check only. Not a code determination" in notice
-    assert first.startswith(title) and first.index(notice) < first.index("Fix list")      # title, then the notice, at the top
+    note, notice = rules_engine.PRECHECK_NOTE, result["disclaimer"]
+    assert note == "A pre-check from the checks we ran, not a city approval." and "Not a code determination" in notice
+    assert first.startswith(title) and first.index(note) < first.index("Fix list")        # title, then the note beside the results
+    assert text.count(note) == 1 and text.count(notice) == 1                              # each caveat once
     assert notice in last and last.index(notice) > last.index("Code basis:")              # and the disclaimer closes the last page
+    labels = ("Fix before you apply", "Check with the city", "No issues found")
+    assert first.index(note) > max(first.index(x) for x in labels)                        # beside the three status counts
+    assert not re.search(r"\b(OK|Pass|Passed|MUST FIX|FAIL|CONFIRM)\b", text)
     assert finding in text and any(permit in p["name"] and permit in text for p in result["permits_likely_required"])
     for n, page in enumerate(pages, 1):
         assert f"Page {n} of {len(pages)}" in page
@@ -62,7 +66,7 @@ def test_report_pdf(case, title, finding, permit, request):
     assert f"{s['fails']} {s['reviews']} {s['passes']} {s['occupant_load']} Group {s['occupancy_group']}" in first
     assert f"{s['exits_shown']} shown / {s['exits_required']} required" in first
     open_items = [f for f in result["findings"] if f["status"] != "pass"]
-    positions = [text.index(f"{i}. [{rules_engine.STATUS_WORD[f['status']]} / {f['severity']}] {f['title']}")
+    positions = [text.index(f"{i}. {f['title']} {rules_engine.STATUS_WORD[f['status']]} ({f['severity']})")
                  for i, f in enumerate(open_items, 1)]
     assert positions == sorted(positions)
     for f in open_items:
@@ -77,8 +81,8 @@ def test_report_pdf(case, title, finding, permit, request):
 
 
 @pytest.mark.parametrize("case, finding, permit", [
-    ("cafe", "Not enough exits", "Food service plan review (before construction)"),
-    ("salon", "Aisle too narrow: Aisle A (between chairs)", "Salon or shop licence"),
+    ("cafe", "Add a second exit", "Food service plan review (before construction)"),
+    ("salon", "Widen the aisle: Aisle A (between chairs)", "Salon or shop licence"),
 ])
 def test_permit_sheet_pdf(case, finding, permit, request):
     result = request.getfixturevalue(case)

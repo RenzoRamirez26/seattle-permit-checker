@@ -2,10 +2,10 @@
 /**
  * "On this page": where the owner is on the results page and what is left below it.
  * In: the page's sections in order (the element that marks each one, its label, a short label, and what takes focus).
- * Out: a nav landmark that marks the current section (active tint, aria-current="location"), the sections already
- * scrolled past (a check icon and "seen" for screen readers), and the ones still to come (plain), with "2 of 5 sections
- * seen" at the top. Choosing a section jumps there and moves focus to its heading.
- * At 1024 px and wider it is a sticky rail 220 px wide, right of the results column; below that, a compact bar at the bottom left, clear of
+ * Out: a nav landmark that marks the current section (tint, blue Medium text, aria-current="location"), the sections
+ * already scrolled past (a grey check and "seen" for screen readers), and the ones still to come (a hollow dot), with
+ * "2 of 5 sections seen" at the top. Choosing a section jumps there and moves focus to its heading.
+ * At 1024 px and wider it is a sticky white panel (radius 16), 220 px wide, right of the results column; below that, a compact bar at the bottom left, clear of
  * the Ask button, that opens the same list in a popover. The position comes from IntersectionObserver. Nothing moves.
  */
 import { useEffect, useState } from "react";
@@ -69,8 +69,8 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
   return (
     <div className="flex flex-col gap-2">
       <p className="m-0 flex flex-col">
-        <span className="font-semibold">On this page</span>
-        <span className="text-small text-ink-muted nums" data-testid="sections-seen">{current} of {sections.length} sections seen</span>
+        <span className="font-medium">On this page</span>
+        <span className="text-ink-muted nums" data-testid="sections-seen">{current} of {sections.length} sections seen</span>
       </p>
       <ol className="m-0 flex list-none flex-col p-0">
         {sections.map((s, i) => {
@@ -86,12 +86,14 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
                   onJump(i);
                 }}
                 className={cn(
-                  "flex min-h-11 items-start gap-2 border-l-[3px] py-2 pr-2 pl-3 text-small no-underline hover:underline",
-                  state === "current" ? "border-blue bg-tab-tint font-semibold text-blue" : "border-transparent text-ink",
+                  "flex min-h-11 items-start gap-2 rounded-full py-2 pr-3 pl-3 no-underline hover:underline",
+                  state === "current" ? "bg-tint font-medium text-blue" : "text-ink",
                 )}
               >
-                <span className="mt-0.5 flex w-4 shrink-0 justify-center">
-                  {state === "seen" ? <Check aria-hidden size={16} strokeWidth={2.25} className="text-ink-muted" /> : null}
+                <span className="mt-1 flex w-4 shrink-0 justify-center">
+                  {state === "seen" ? <Check aria-hidden size={16} strokeWidth={2} className="text-ink-muted" />
+                    : state === "next" ? <span aria-hidden className="mt-1 block size-2.5 rounded-full border border-field" />
+                      : null}
                 </span>
                 <span className="min-w-0 break-words">
                   {s.label}
@@ -110,7 +112,7 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
 export function OnThisPageRail({ sections, current }: { sections: PageSection[]; current: number }) {
   return (
     <nav aria-label="On this page" className="results-rail hidden lg:block">
-      <div className="sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto overscroll-contain">
+      <div className="pointer-events-auto sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto overscroll-contain rounded-2xl border border-hairline bg-white p-4">
         <SectionList sections={sections} current={current} onJump={(i) => jumpTo(sections[i])} />
       </div>
     </nav>
@@ -127,12 +129,12 @@ export function OnThisPageBar({ sections, current }: { sections: PageSection[]; 
       <DialogTrigger isOpen={open} onOpenChange={setOpen}>
         <AriaButton
           aria-label={`On this page: ${words}`}
-          className="fixed bottom-4 left-4 right-24 z-30 flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-sm border border-field bg-white px-4 py-2 text-left text-small font-semibold text-ink data-[hovered]:border-ink data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue"
+          className="fixed bottom-4 left-4 right-24 z-30 flex min-h-12 cursor-pointer items-center justify-between gap-2 rounded-full border border-field bg-white px-4 py-2 text-left font-medium text-ink data-[hovered]:border-ink data-[focus-visible]:outline-3 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-blue"
         >
           <span className="nums">{words}</span>
           <ChevronUp aria-hidden size={18} className="shrink-0" />
         </AriaButton>
-        <Popover placement="top start" offset={8} className="w-[min(320px,calc(100vw-32px))] rounded-sm border border-field bg-white p-4">
+        <Popover placement="top start" offset={8} className="w-[min(320px,calc(100vw-32px))] rounded-2xl border border-hairline bg-white p-4">
           <Dialog aria-label="On this page" className="outline-none">
             <SectionList sections={sections} current={current} onJump={(i) => {
               setOpen(false);

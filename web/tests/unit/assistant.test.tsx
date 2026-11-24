@@ -76,9 +76,9 @@ describe("the assistant", () => {
     nav.params = new URLSearchParams({ check: check.id });
     fetchMock.mockImplementation(async () => json(check));
     render(<Assistant />);
-    act(() => assistant.askAbout("Tell me more about “Not enough exits”."));
+    act(() => assistant.askAbout("Tell me more about “Add a second exit”."));
     const box = await screen.findByRole("textbox", { name: "Your question" });
-    expect((box as HTMLTextAreaElement).value).toBe("Tell me more about “Not enough exits”.");
+    expect((box as HTMLTextAreaElement).value).toBe("Tell me more about “Add a second exit”.");
     await waitFor(() => expect(document.activeElement).toBe(box));
     expect(fetchMock.mock.calls.filter((c) => (c[0] as Request).method === "POST")).toHaveLength(0);
   });

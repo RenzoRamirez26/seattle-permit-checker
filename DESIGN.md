@@ -1,73 +1,118 @@
-# DESIGN.md: PermitOS website
+# DESIGN.md: PermitOS website (design v3)
 
-The design tokens for `web/`, with the reason for each. Taken from `docs/design_brief.md`; the
-research behind them is in `docs/design_research.md`, the build plan in `docs/website_plan.md`.
-If a token changes, change it here first, then in `web/src/styles/tokens.css`.
-
-**Marks:** **[changed]** means the visual direction in `docs/website_plan.md` changes the brief's
-token, with the owner's approval (the departure number is given). **[owner, 24 Nov 2026]** marks the owner's
-later layout and palette request (the PermitOS name, the results tabs and the palette below). **[added]** means the
-brief sets nothing and this file adds a value. Everything unmarked is the brief as written.
+The design tokens and components for `web/`, with the reason for each. Change a token here first, then in
+`web/src/styles/tokens.css`. The story behind them is in [`docs/design-story.md`](docs/design-story.md), the decisions
+in [`docs/decisions.md`](docs/decisions.md), the writing rules in [`CONTENT.md`](CONTENT.md), and the pass/fail
+checklist in [`docs/design_checklist.md`](docs/design_checklist.md). The earlier brief is `docs/design_brief.md`.
 
 ## Tone
 
-Calm, plain and precise, like a well-drawn floor plan: paper, dark ink, thin lines and one blue.
-The owner is deciding something about money and the law, so every task page stays quiet and every
-number is set so it can be trusted at a glance. It must never look like a City of Seattle service,
-and it never decorates a page that asks a question.
+Calm, exact and honest about what was checked. The owner is about to sign a lease. Two failures to avoid: a screen
+that looks like an approval, and a screen that looks like a wall of warnings. It never looks like a City of Seattle service.
 
-## Colour **[owner, 24 Nov 2026]**
+## Colour
 
-The palette the owner set on 24 November 2026, replacing the brief's. Contrast figures are WCAG 2 ratios, calculated
-for every text colour on every background it is used on; every text pair reaches 4.5 : 1.
+One colour family on warm neutrals. Red is the only other colour and only marks something to fix. Every text colour is
+tested against every background it is used on (`tests/test_design_rules.py` and the build guard); all reach 4.5 : 1.
 
 | Token | Hex | Contrast | Use | Reason |
 |---|---|---|---|---|
-| `paper` | `#FAF7F2` | | Page background | Warm paper: softer than white for long reading, and the drawing-sheet feel of the brief. |
-| `white` | `#FFFFFF` | | Cards and panels | Lifts a finding or a panel off the paper without a shadow. |
-| `ink` | `#1D2430` | 14.6 : 1 on paper, 15.6 on white, 13.5 on `tab-tint` | Text | Warm ink: near-black with a blue-grey cast, without the glare of pure black. |
-| `ink-muted` | `#56606C` | 6.0 : 1 on paper, 6.4 on white, 5.5 on `tab-tint` | Secondary text, hints, captions | Clearly secondary while staying well above 4.5 : 1 on every background it sits on. |
-| `blue` | `#1F4E8C` | 7.8 : 1 on paper, 8.3 on white, 7.2 on `tab-tint`; white on it 8.3 : 1 | The main action, links, the focus ring | Trust blue: the one accent, so "you can act here" always has the same colour. |
-| `tab-tint` | `#E8EFF8` | (background) | The selected tab: `blue` text and a 3 px `blue` bottom border | A pale wash of the accent marks the open tab without a second colour; the border keeps it visible without colour. |
-| `fix` on `fix-tint` | `#B3261E` on `#FBEAE7` | 6.1 : 1 on paper, 5.6 on tint | Problems only | Red is kept for problems so it keeps its force. |
-| `city` on `city-tint` | `#8A5A14` on `#FBF1E2` | 5.5 : 1 on paper, 5.3 on tint | "Check with the city", including every "Not sure" | A brown-amber that reads as "not decided" without alarm; replaces the old amber. |
-| `ok` on `ok-tint` | `#256B45` on `#E7F3EC` | 6.0 : 1 on paper, 5.6 on tint | Items that passed | A quiet green, so passing items do not compete with problems. |
-| `field` | `#8A8F96` | 3.05 : 1 on paper, 3.3 on white | Outlines of inputs, clickable cards and cards | Meets the 3 : 1 target for control outlines. |
-| `hairline` | `#E4DED3` | 1.25 : 1 | Dividers only | Decorative; never the only sign of a control. |
+| `paper` | `#FAF7F2` | | Page background, the paper zones | Warm paper: softer than white for long reading; pure white and grey feel cold. |
+| `white` | `#FFFFFF` | | The white zones, cards, panels, form cards | Lifts a group off the paper without a shadow. |
+| `ink` | `#1D2430` | 14.6 on paper, 15.6 on white, 13.5 on tint | Text | Warm ink: near-black with a blue-grey cast, without the glare of pure black. |
+| `ink-muted` | `#56606C` | 6.0 on paper, 6.4 on white, 5.5 on tint | Secondary text; the No issues found check | Clearly secondary, still well above 4.5 : 1. |
+| `blue` | `#1F4E8C` | 7.8 on paper, 8.3 on white, 7.2 on tint | Links, the main button, the focus ring, the hero, Check with the city | Trust blue: the one accent, so "you can act here" always has one colour. |
+| `tint` | `#E8EFF8` | (background) | The summary zone, the selected tab, the current rail item, "Not sure" when chosen | A pale wash of the accent marks "here" without a second colour. |
+| `fix` | `#B3261E` | 6.1 on paper, 6.5 on white, 5.6 on tint | The Fix mark, the Fix count, error borders. **Never a background** | Kept for problems only, so it keeps its force. |
+| `hairline` | `#E4DED3` | 1.25 (decorative) | Dividers between rows and zones | Thin lines, as on a drawing; never the only sign of a control. |
+| `field` | `#8A8F96` | 3.05 on paper, 3.3 on white | Field and card borders; the No issues found circle | Meets the 3 : 1 target for control outlines. |
+| `band` / `band-text` / `band-muted` | `#1D2430` / `#FFFFFF` / `#C9D3E0` | 15.6 and 10.3 | The dark records zone | A dark zone tells you this is the city's history, not your result. |
+| `hero-text` / `hero-muted` | `#FFFFFF` / `#C9D8EE` | 8.3 and 5.8 on blue | Text on the blue hero | The hero holds the title and the disclaimer; both stay readable. |
 
-Rules: a status is always icon plus word ("Fix", "Check with the city", "OK"), never colour alone; a selected
-tab also has its 3 px border. No second accent, no gradients, no dark mode in version 1. shadcn's variables map
-onto these tokens only (`background` paper, `foreground` ink, `primary` blue, `ring` blue, `border` hairline,
-`input` field, `destructive` fix; `secondary` and `accent` set to paper and ink so no new colour appears).
+Removed in v3: the amber "Check with the city" pair and the green "OK" pair (a traffic light reads as a verdict; amber
+was muddy on screen), and the red tint (red is never a background). No gradients, no dark mode in version 1.
 
 ## Type
 
-| Token | Value | Reason |
-|---|---|---|
-| `font-text` | IBM Plex Sans | Open licence, a drafting-office feel, excellent at small sizes. |
-| `font-mono` | IBM Plex Mono | Code sections, permit numbers and measurements: the same family, so it sits in a sentence without jumping. |
-| `font-heading` | IBM Plex Sans 600 | The `h1` on every task page, as the brief has it. |
-| `font-heading-start` **[changed, D2]** | IBM Plex Serif 400 (SIL Open Font License 1.1), Start page `h1` only | A quiet title-block voice on the one page that is not a question. Same family and proportions as Plex Sans. Loaded on Start only. |
-| Weights | 400 and 600 only | Hierarchy from size and space, not from many weights. The Start serif uses 400. |
-| `text-small` | 14 / 20 px | Small print, captions, the credit line. |
-| `text-body` | 18 / 24 px | Body. 133% line height; three 8 px units per line, so text and boxes share one rhythm. Also clears the 16 px minimum that stops iOS zooming into inputs. |
-| `text-section` | 24 / 32 px, 600 | Section headings. |
-| `text-page` | 32 / 40 px phones, 40 / 48 px from 1024 px | The `h1`, which is the page's question. |
-| Measure | at most about 80 characters | Comfortable reading; the 7-column question column gives about 75. |
-| Figures | `tabular-nums` wherever numbers are compared | Columns of numbers line up. |
-| Alignment | left; no centred paragraphs, no all-capitals. The one exception: the results page's step line and `h1` are centred over the results column **[owner, 24 Nov 2026]** | Easier to read and scan; the centred results heading marks the end of the flow. |
+| Token | Value | Use | Reason |
+|---|---|---|---|
+| `title` | 3rem (48 px) / 56, Plex Sans Light 300 | The page title (`h1`) | One large, light title says where you are without shouting. |
+| `heading` | 1.5rem (24 px) / 32, Plex Sans Medium 500 | Section headings, the count tiles' labels stay body size | Enough contrast with the title and the body. |
+| `body` | 1.0625rem (17 px) / 24, Plex Sans Regular 400 or Medium 500 | Everything else: text, labels, buttons, tabs, captions | One reading size keeps the page quiet; 17 px clears the iOS zoom on inputs. |
 
-## Spacing
+- **Three sizes per screen, no more.** The guard rejects any other size token and Tailwind's own size classes. The
+  count tiles' numbers use the `title` size.
+- **Fonts:** IBM Plex Sans; IBM Plex Mono for code sections and measurements (same family, no size of its own);
+  IBM Plex Serif 400 for the Start headline only.
+- **Weights:** 300, 400 and 500. No bold.
+- **No all-caps letter-spaced labels** anywhere, left-aligned text, `tabular-nums` where numbers are compared.
 
-| Token | Value | Reason |
+## Shape
+
+| Rule | Value | Reason |
 |---|---|---|
-| Unit | 8 px | Taken from the body line height (24 = 3 × 8). |
-| Allowed gaps | 4, 8, 16, 24, 32, 48, 64, 96 px | Nothing else, so every gap is a deliberate step. |
-| Control height | 48 px (inputs and the main button) | Six units; above the 44 px touch target. |
-| Focus ring | 3 px `blue`, 2 px offset **[added: offset]** | Visible on paper and on every tint. |
-| Corner radius **[added, D11]** | 2 px | Precise, not soft. |
-| Rules and borders **[added]** | 1 px hairline; 1 px field on controls | Thin lines, as on a drawing. |
-| Shadows **[added, D11]** | none | A drawing has no shadows; separation comes from hairlines and space. |
+| Round means you can press it | Buttons, tabs, links that act as buttons, radio choices, example rows, step nav, the rail items and bar: pills (`rounded-full`, radius 999) | The shape tells you what is interactive before you read. |
+| Single-line fields | Pills | They are pressable controls too. Multi-line fields use 16 px, since a pill cannot hold several lines. |
+| Grouping containers | 12 to 16 px (`rounded-xl`, `rounded-2xl`) | Groups are soft, never pill-shaped. |
+| Information | Plain: findings are rows separated by 1 px hairlines | Rows, not cards. |
+| Side strips | None, anywhere | A coloured strip down every card reads as machine-made. |
+| Shadows | None | Separation comes from zones, hairlines and space. |
+| Focus ring | 3 px `blue`, 2 px offset | Visible on paper, white, tint and blue. |
+| Spacing | 8 px unit; gaps 4, 8, 16, 24, 32, 48, 64, 96 px | Every gap is a deliberate step. |
+| Control height | 48 px | Above the 44 px touch target. |
+
+## Zones
+
+Each part of a page is a full-width band; the bands group content instead of boxes and borders. Content sits in a
+column at most 880 px wide when the rail shows (1200 px pages otherwise). Titles and the closing next step are centred;
+everything people read and compare is left-aligned.
+
+| Zone | Background | Used for | Reason |
+|---|---|---|---|
+| Hero | `blue`, white text | The results title, facts line, disclaimer and tabs; the Start form band | The place you start reading. |
+| Tint | `tint` | "In short" on results; "How it works" on Start | A calm summary before the detail. |
+| White | `white` | "Fix before you apply"; permits | The things to act on, on the plainest ground. |
+| Paper | `paper` | "Check with the city" / "No issues found"; the questions | Secondary groups, a step quieter. |
+| Dark | `band` | What Seattle's records show | Context from other businesses, set apart from your own result. |
+
+## Status icons
+
+Inline SVG components (`web/src/components/results/StatusIcon.tsx`), always beside their words:
+
+| Status | Icon | Words | Reason |
+|---|---|---|---|
+| Fix | Solid `fix` circle with a white "!" | Fix before you apply | The only red on the page, and the heaviest mark. |
+| Check with the city | Hollow `blue` circle with "?" | Check with the city | A question, not a warning. |
+| No issues found | Thin `field` circle with an `ink-muted` check | No issues found | The quietest mark; no green tick, because a tick reads as approval. |
+
+Shape, not colour, tells them apart (WCAG 1.4.1). Never "OK", "pass", "approved" or "compliant" (CONTENT.md).
+
+## Components
+
+### Header
+
+"PermitOS" with "OS" in blue, at 24 Medium; an outlined capsule step nav "1 Start · 2 Plan · 3 Answers · 4 Results"
+(current step blue Medium, done steps ink, later steps muted); Help and Start over as plain links.
+
+### Tabs
+
+React Aria `Tabs` (`TabRow.tsx`). Pill tabs on the blue hero (In short / Zoning / Downloads); underline tabs for
+"Check with the city (n)" and "No issues found (n)", each with its icon. The selected tab has the `tint` background
+and a 3 px `blue` underline. Arrow keys, Home and End move and select; each panel is labelled by its tab; the selection
+survives a refresh; a link to a finding opens its tab first. "Fix before you apply" is never a tab.
+
+### On this page
+
+`OnThisPage.tsx`, a nav landmark. From 1024 px: a white panel (radius 16) right of the results column, sticky. The
+current item has the `tint` background and blue Medium text, no side bar, and `aria-current="location"`; items already
+passed have the grey check and "(seen)" for screen readers; later items a hollow dot. "2 of 5 sections seen" at the top.
+Choosing an item jumps there and moves focus to its heading. Below 1024 px: a pill bar at the bottom left, clear of the
+Ask button, that opens the list in a popover. Position from IntersectionObserver; nothing animates.
+
+### Findings
+
+Plain rows with 1 px hairlines: the icon, an action title, the observation, the code section from the API and
+"Ask about this →". Lists longer than five show five, then "Show all N".
 
 ## Grid
 
@@ -77,67 +122,16 @@ onto these tokens only (`background` paper, `foreground` ink, `primary` blue, `r
 | 640 to 1023 px | 8 | 24 px | 32 px |
 | 1024 px and up | 12 | 24 px | centred, content at most 1200 px |
 
-Reason: the web form of Müller-Brockmann's method; one column grid per width, every block starting
-and ending on a column edge.
-
-- Question pages: one column, columns 1 to 7.
-- Assistant panel on wide screens: columns 9 to 12, so the form stays visible.
-- Check what we read: plan in 7 columns, facts in 5. Plan first on phones.
-- Results **[owner, 24 Nov 2026]**: five sections in one column at most 896 px wide: the heading and the summary
-  tabs; "Fix before you apply (n)" in full; the "Check with the city / OK" tabs; the permits; Seattle's records; then
-  the rest. The sticky summary column is gone; its three parts are tabs. From 1024 px the "On this page" rail
-  (220 px) sits to the right of that column with a 48 px gap, the two centred together (`.results-frame`). The
-  step line and `h1` use the same frame, so they are centred over the results column, not the whole page.
-- Start: text-only in version 1, in columns 1 to 7 like the question pages. **[D1, on hold]** Only if the
-  owner confirms the drawing's rights: heading and text in columns 1 to 6, the drawing in 6 to 12; under the text on phones.
-
-## Components
-
-### Tabs **[owner, 24 Nov 2026]**
-
-React Aria's `Tabs` (`web/src/components/results/TabRow.tsx`), used for the two rows on the results page:
-"In short", "Zoning", "Downloads"; and "Check with the city (n)", "OK (n)". "Fix before you apply (n)" is not a tab:
-it is its own section above them, always shown in full, or "Nothing to fix before you apply."
-
-- A row of tabs on a `hairline` bottom rule; each tab 48 px tall, Plex Sans 600, with its icon for a findings group.
-- Selected: `blue` text on `tab-tint` with a 3 px `blue` bottom border; a findings tab uses its status colour on
-  its status tint with a 3 px border in the status colour. Not selected: `ink` on paper; white on hover.
-- Arrow keys move between tabs and select them (Home and End too); the selected tab is announced; each panel is
-  labelled by its tab. Only the selected panel is in the page. Tabs wrap onto a second line on narrow screens.
-- The selected tab is kept for each check in the tab's session, so a refresh keeps it; a link to a finding opens the
-  finding's tab before scrolling to it. The second row starts on "Check with the city", unless it is empty.
-
-### On this page **[owner, 24 Nov 2026]**
-
-`web/src/components/results/OnThisPage.tsx`: where the owner is on the results page and what is left below. A nav
-landmark labelled "On this page".
-
-- It lists the five sections in order: Your pre-check results; Fix before you apply (n); Check with the city / OK;
-  Permits and approvals to expect; What Seattle's records show about businesses like yours. Above the list:
-  "On this page" and "2 of 5 sections seen".
-- The current section has the active tint: `blue` text on `tab-tint` with a 3 px `blue` left border, and
-  `aria-current="location"`. Sections already scrolled past have a small check icon (`ink-muted`) and "(seen)" for
-  screen readers. Sections still to come are plain `ink`. Each item is at least 44 px tall.
-- A section is current once its top passes a line 30% of the way down the window, or when the page is scrolled to
-  its end. The position comes from IntersectionObserver; nothing animates (see Motion).
-- Choosing an item scrolls to the section and moves focus to its heading: the `h1` "Your pre-check results" for
-  the first, and the visible `h2` of every other section, including "Check with the city / OK" above its tabs.
-- From 1024 px: a sticky vertical rail, 220 px wide, right of the results column.
-- Below 1024 px: no rail. A compact bar fixed at the bottom left, 16 px from the edges and 96 px from the right so
-  it sits clear of the Ask button: "Section 2 of 5 · Next: Check with the city / OK". It opens the full list in a React
-  Aria popover above it. The page's `scroll-padding-bottom` (96 px) keeps a focused control clear of both the bar
-  and the Ask button, and the body gets 80 px of room below the footer while the bar is shown.
+Results: the column at most 880 px with the 220 px rail to its right from 1024 px (`.results-frame`); the hero's
+title is centred over that column.
 
 ## Motion
 
-As the brief has it (D3 rejected): only the assistant panel moves. It slides in over 150 to 200 ms,
-with a CSS transition on `transform`, and appears without sliding when the reduced-motion setting is
-on. Pages, the Reading page and the results counts do not animate. The Reading page shows "Reading
-your plan" and a Cancel link, with no stage names, because the plan is read in one request (D4).
+Only the assistant panel moves: it slides in over 180 ms with a CSS transition on `transform`, and appears without
+sliding when reduced motion is on. Progress on the Checking state is an indeterminate bar that stands still when
+reduced motion is on. Nothing else animates.
 
-## Imagery **[D1, on hold]**
+## Imagery
 
-Version 1 has no images: Start is text-only until the owner confirms the drawing's rights statement.
-If it is confirmed: one public-domain measured drawing on Start only, in ink on paper, with a visible credit. No images,
-illustrations or icons as decoration on any task page. Icons appear only beside words (status, back,
-microphone).
+Start shows one of our own invented demo floor plans, as a drawing, beside the form. No other images, illustrations
+or decorative icons. Icons appear only beside words.

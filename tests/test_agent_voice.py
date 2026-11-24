@@ -16,14 +16,14 @@ def salon(rules, load):
 def test_template_answers_need_no_model(salon, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     summary = agent.answer("", salon)
-    assert summary["generated_by"] == "template" and "3 problems and 2 items to confirm" in summary["text"]
+    assert summary["generated_by"] == "template" and "3 items to fix before you apply and 2 to check with the city" in summary["text"]
     restroom = agent.answer("Is my restroom ok?", salon)
     assert {"EG-3", "ADA-2"} <= set(restroom["cited_rules"]) and "30 in. clear" in restroom["text"]
     assert "Department of Licensing" not in restroom["text"]
     permits = agent.answer("What permits do I need?", salon)
     assert "Construction permit" in permits["text"] and "more in the permit list" in permits["text"]
     exits = agent.answer("Do I have enough exits?", salon)
-    assert exits["text"].startswith("Door too narrow") or "EG-1" in exits["cited_rules"]
+    assert exits["text"].startswith("Widen the door") or "EG-1" in exits["cited_rules"]
     assert "no Seattle review data" in agent.answer("How long will review take?", salon)["text"]
     unrelated = agent.answer("Tell me about parking", salon)
     assert unrelated["text"] == agent.spoken_summary(salon)

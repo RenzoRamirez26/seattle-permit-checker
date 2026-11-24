@@ -20,7 +20,7 @@ st.caption("Source: Seattle Department of Construction and Inspections open data
 # Queried by hand on 20 November 2026 with the portal's text search for "restaurant".
 PREVIEW = pd.DataFrame({
     "What": ["Restaurant-related alteration permits that went through plan review (applied since 2019)",
-             "Passed in one round", "Needed two or more rounds",
+             "Through review in one round", "Needed two or more rounds",
              "Building-code (Ordinance) review, round 1: sent back / approved",
              "Zoning review, round 1: sent back / approved"],
     "Number": ["529", "67 (13%)", "462 (87%)", "153 / 24", "188 / 406"],
@@ -51,7 +51,7 @@ if not data:
 sm = data["summary"]
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Permits with plan review", sm["permits"])
-c2.metric("Passed in one round", f"{sm['share_one_round']:.0%}")
+c2.metric("Through review in one round", f"{sm['share_one_round']:.0%}")
 c3.metric("Median days in review", f"{sm['median_days_in_review']:g}" if sm["median_days_in_review"] is not None else "n/a")
 c4.metric("Median days out for corrections",
           f"{sm['median_days_with_applicant']:g}" if sm["median_days_with_applicant"] is not None else "n/a",

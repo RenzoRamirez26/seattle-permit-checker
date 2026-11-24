@@ -5,7 +5,7 @@
   "notices": [],
   "result": {
     "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
-    "disclaimer": "Pre-submission check only. Not a code determination; have a licensed design professional and the plan reviewer confirm.",
+    "disclaimer": "Not a code determination: have a licensed design professional and the city's plan reviewer confirm the design.",
     "extraction": {
       "accessible_seat_count": null,
       "aisles": [
@@ -112,33 +112,33 @@
     "findings": [
       {
         "citation": "SBC 1010.1.1; ADA 404.2.3",
-        "detail": "30 in. clear; minimum is 32 in.",
-        "fix": "Widen to at least 32 in. clear (a 36 in. door leaf typically provides this).",
+        "detail": "Your plan shows 30 in. clear. A door needs at least 32 in.",
+        "fix": "Widen the opening to at least 32 in. clear. A 36 in. door usually gives this.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "severity": "high",
         "status": "fail",
-        "title": "Door too narrow: Restroom door (Restroom)"
+        "title": "Widen the door: Restroom door (Restroom)"
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
-        "detail": "32 in. wide; accessible routes need 36 in. minimum.",
+        "detail": "Your plan shows 32 in. A wheelchair route needs at least 36 in.",
         "fix": "Move furniture or fixtures to give 36 in. clear.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
         "severity": "high",
         "status": "fail",
-        "title": "Aisle too narrow: Aisle A (between chairs)"
+        "title": "Widen the aisle: Aisle A (between chairs)"
       },
       {
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
-        "detail": "54 in. turning circle; 60 in. required.",
+        "detail": "Your plan shows 54 in. of clear floor. A wheelchair needs 60 in. to turn.",
         "fix": "Enlarge the room or rearrange fixtures to clear a 60 in. circle.",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
         "severity": "high",
         "status": "fail",
-        "title": "Restroom too tight to turn a wheelchair: Restroom"
+        "title": "Widen the restroom so a wheelchair can turn: Restroom"
       },
       {
         "citation": "Seattle Municipal Code Title 23 (Land Use Code); SMC 23.44.020.E (Ordinance 127376)",
@@ -148,21 +148,21 @@
         "rule_id": "ZN-1",
         "severity": "high",
         "status": "review",
-        "title": "Zoning: NR3"
+        "title": "Confirm the zoning: NR3"
       },
       {
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
-        "detail": "No portable fire extinguishers are shown.",
+        "detail": "Your plan doesn't show fire extinguishers.",
         "fix": "Show extinguisher locations.",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
         "severity": "medium",
         "status": "review",
-        "title": "Fire extinguishers not shown"
+        "title": "Show the fire extinguishers"
       },
       {
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
-        "detail": "Salon, barbershop or spa with a calculated occupant load of 15: classified Group B.",
+        "detail": "Salon, barbershop or spa for 15 people: Group B.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
@@ -172,17 +172,17 @@
       },
       {
         "citation": "SBC Table 1006.2.1 and Section 1006.3",
-        "detail": "1 exit(s) shown; 1 required for an occupant load of 15.",
+        "detail": "Your plan shows 1 exit. A space for 15 people needs 1.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
         "severity": "info",
         "status": "pass",
-        "title": "Number of exits"
+        "title": "Exits"
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "1 water closet(s) shown; 1 required for an occupant load of 15 (Business: one shared toilet room is allowed up to 25 occupants).",
+        "detail": "Your plan shows 1 toilet. A space for 15 people needs 1 (Business: one shared toilet room is allowed up to 25 occupants).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
@@ -192,7 +192,7 @@
       },
       {
         "citation": "SBC 1005.3.2",
-        "detail": "Exit doors total 34 in.; 3.0 in. required.",
+        "detail": "Your exit doors add up to 34 in. A space for 15 people needs 3.0 in.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
@@ -202,13 +202,13 @@
       },
       {
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
-        "detail": "1 lavatory(ies) shown.",
+        "detail": "Your plan shows 1 restroom sink.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
         "severity": "info",
         "status": "pass",
-        "title": "Lavatories"
+        "title": "Restroom sinks"
       }
     ],
     "fixtures_required": {

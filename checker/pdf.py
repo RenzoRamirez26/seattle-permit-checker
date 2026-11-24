@@ -2,8 +2,8 @@
 
 In:  one audit result (the same dict rules_engine.to_markdown() and permit_draft.to_markdown() take).
 Out: report_pdf(result) and permit_sheet_pdf(result) each return the bytes of a PDF: US Letter,
-     black text with borders (no colour needed), page numbers, the notice at the top and the
-     disclaimer at the end.
+     black text with borders (no colour needed), page numbers, the one-line pre-check note beside the
+     results at the top and the disclaimer at the end.
 
 This module only lays content out. It adds no rules and no numbers: the report is built from the
 audit result and the preparation sheet from permit_draft.sheet(), the same data the Markdown
@@ -164,18 +164,18 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
     heading = title or f"Permit pre-check: {s['business_label']}"
     pdf = _Doc(heading, f"{REPORT_NAME}: {s['business_label']}")
     pdf.big_title(heading)
-    pdf.box([(result["disclaimer"], True)], fill=True)                      # the notice, before anything else
-
-    pdf.grid(["Problems", "To confirm", "Checks passed", "Occupant load", "Occupancy group", "Exits"],
+    label = rules_engine.STATUS_WORD
+    pdf.grid([label["fail"], label["review"], label["pass"], "Occupant load", "Occupancy group", "Exits"],
              [[s["fails"], s["reviews"], s["passes"], s["occupant_load"], f"Group {s['occupancy_group']}",
-               f"{s['exits_shown']} shown / {s['exits_required']} required"]], [1, 1, 1.1, 1.1, 1.2, 1.6])
+               f"{s['exits_shown']} shown / {s['exits_required']} required"]], [1.2, 1.2, 1.1, 1.1, 1.2, 1.6])
+    pdf.box([(rules_engine.PRECHECK_NOTE, True)], fill=True)               # beside the results it qualifies
 
     open_items = [f for f in result["findings"] if f["status"] != "pass"]   # already sorted, most serious first
     pdf.heading(f"Fix list ({len(open_items)}, most serious first)")
     if not open_items:
-        pdf.paragraph("Nothing to fix on the items this tool checks.")
+        pdf.paragraph(rules_engine.NOTHING_OPEN)
     for i, f in enumerate(open_items, 1):
-        parts = [(f"{i}. [{rules_engine.STATUS_WORD[f['status']]} / {f['severity']}] {f['title']}", True), (f["detail"], False)]
+        parts = [(f"{i}. {f['title']}", True), (f"{label[f['status']]} ({f['severity']})", False), (f["detail"], False)]
         if f.get("fix"):
             parts.append((f"Fix: {f['fix']}", False))
         if f.get("reviewed_by"):
@@ -196,7 +196,7 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
 
     passed = [f for f in result["findings"] if f["status"] == "pass"]
     if passed:
-        pdf.heading(f"Passed ({len(passed)})")
+        pdf.heading(f"{label['pass']} ({len(passed)})")
         for f in passed:
             pdf.bullet(f"{f['title']}: {f['detail']} ({f['citation']})")
 

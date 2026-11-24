@@ -21,6 +21,8 @@ import os
 import re
 from typing import Any, Optional
 
+from .rules_engine import PRECHECK_NOTE
+
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
 
@@ -35,6 +37,9 @@ SYSTEM = (
     "agencies listed in the audit.\n"
     "- This is a pre-submission check, not a code determination. Do not tell them the plan "
     "will be approved.\n"
+    "- Name a status only with these words: \"Fix before you apply\" (status fail), \"Check with the "
+    "city\" (status review), \"No issues found\" (status pass). Never call the plan or a finding OK, "
+    "passed, approved or compliant, and do not use the words must, invalid, illegal or violation.\n"
     "- Your answer may be read aloud: two to five plain sentences, no lists, no markdown."
 )
 
@@ -83,7 +88,7 @@ def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
 # ---------------------------------------------------------------- template (no model)
 def _say(f: dict) -> str:
     fix = f" {f['fix']}" if f.get("fix") else ""
-    return f"{f['title']}: {f['detail']}{fix} [{f['rule_id']}]"
+    return f"{f['title']}. {f['detail']}{fix} [{f['rule_id']}]"
 
 
 def spoken_summary(result: dict, limit: int = 3) -> str:
@@ -91,11 +96,11 @@ def spoken_summary(result: dict, limit: int = 3) -> str:
     s = result["summary"]
     open_items = [f for f in result["findings"] if f["status"] != "pass"]
     if not open_items:
-        return (f"I checked this {s['business_label'].lower()} plan and found nothing to fix on the items I check. "
-                f"The occupant load is {s['occupant_load']}. {result['disclaimer']}")
-    head = (f"I found {s['fails']} problem{'s' if s['fails'] != 1 else ''} and {s['reviews']} "
-            f"item{'s' if s['reviews'] != 1 else ''} to confirm. The occupant load is {s['occupant_load']}, "
-            f"which makes this Group {s['occupancy_group']}. The most serious: ")
+        return (f"No issues found in the checks I ran on this {s['business_label'].lower()} plan, for "
+                f"{s['occupant_load']} people. {PRECHECK_NOTE}")
+    head = (f"I found {s['fails']} item{'s' if s['fails'] != 1 else ''} to fix before you apply and {s['reviews']} "
+            f"to check with the city. The space is for {s['occupant_load']} people, "
+            f"which makes it Group {s['occupancy_group']}. Most serious first: ")
     top = " ".join(f"{f['title']}. [{f['rule_id']}]" for f in open_items[:limit])
     more = f" There are {len(open_items) - limit} more in the fix list." if len(open_items) > limit else ""
     return head + top + more
@@ -115,7 +120,7 @@ def template_answer(question: str, result: dict) -> str:
             return (f"In Seattle's records, {sm['share_two_or_more_rounds']:.0%} of {sm['permits']} {d['category_label']} "
                     f"build-outs needed two or more review rounds, and half spent {sm['median_days_in_review']:g} "
                     f"days or more in plan review.")
-        return "I have no Seattle review data loaded, so I cannot say how long review takes. Run the data pipeline first."
+        return "I have no Seattle review data loaded, so I can't say how long review takes."
     families = [fam for fam, words in TOPICS.items() if any(w in q for w in words)]
     words = set(re.findall(r"[a-z]{4,}", q)) - _STOPWORDS
     hits = [f for f in result["findings"]
@@ -124,7 +129,7 @@ def template_answer(question: str, result: dict) -> str:
     if open_hits:
         return " ".join(_say(f) for f in open_hits[:3])
     if hits:
-        return "That part passed. " + " ".join(f"{f['title']}: {f['detail']} [{f['rule_id']}]" for f in hits[:2])
+        return "No issues found there. " + " ".join(f"{f['title']}: {f['detail']} [{f['rule_id']}]" for f in hits[:2])
     return spoken_summary(result)
 
 

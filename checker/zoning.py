@@ -130,7 +130,7 @@ def check_address(address: str, rules: dict, district_override: Optional[str] = 
     try:
         pt = geocode(address)
         if not pt:
-            return _unknown(z) | {"address": address, "detail": "Address could not be geocoded."}
+            return _unknown(z) | {"address": address, "detail": "We couldn't find this address on the map. Enter the zone by hand."}
         attrs = lookup_district(*pt, rules) or {}
         result = classify(attrs.get(lk["district_field"]), rules, business_type=business_type,
                           code=attrs.get(lk["code_field"]), area_sqft=area_sqft,
@@ -143,4 +143,4 @@ def check_address(address: str, rules: dict, district_override: Optional[str] = 
                          "source": lk["source_name"]}
     except requests.RequestException as e:
         return _unknown(z) | {"address": address,
-                              "detail": f"Zoning lookup failed ({e.__class__.__name__}). Enter the zone by hand."}
+                              "detail": f"We couldn't look up the zoning ({e.__class__.__name__}). Enter the zone by hand."}

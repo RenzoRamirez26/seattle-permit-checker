@@ -3,6 +3,9 @@
  * One thing on the plan (a door, a room, the kitchen): what was read, where it is on the plan in words,
  * and Change. Change opens a form in place; Save keeps every other fact as it was. An empty value shows
  * "Not sure" and is sent as null.
+ * In: the row's fields and values, whether the reading left one of them empty (unsure), and the callbacks.
+ * Out: the saved item through onSave. A row the reading left unsure says so beside the hollow "?" mark until
+ * the owner changes it.
  */
 import { useEffect, useId, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -11,7 +14,8 @@ import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { RadioGroup } from "@/components/ui/radio-group";
-import { NOT_SURE, type FieldSpec } from "@/content/facts";
+import { StatusIcon } from "@/components/results/StatusIcon";
+import { ANSWERS, NOT_SURE, type FieldSpec } from "@/content/facts";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { formSchema, fromFormValues, sameValue, toFormValues, type FormValues, type Item } from "./factForm";
@@ -37,9 +41,26 @@ export function displayValue(f: FieldSpec, v: unknown): { text: string; unsure: 
   }
 }
 
-export function FactRow({ rowId, title, fields, item, original, editing, onEdit, onCancel, onSave, onRemove, onProblems }: {
+/**
+ * Whether any value this row shows (its "where" included, its name not) is one the reading left empty, so it
+ * shows "Not sure". Also true for a choice the reader marked "unknown". Presentation only: nothing is decided here.
+ */
+export function leftEmpty(fields: FieldSpec[], item: Item | null | undefined): boolean {
+  return fields.some((f) => !f.isName && displayValue(f, item?.[f.key]).unsure);
+}
+
+export function FactRow({ rowId, title, fields, item, original, editing, onEdit, onCancel, onSave, onRemove, onProblems,
+  level = 3, unsure = false, context, onFocusChange }: {
   rowId: string;
   title: string;
+  /** The row title's heading level: 3 directly under a group, 4 under a sub-group. */
+  level?: 3 | 4;
+  /** The reading left one of this row's values empty: shown with the hollow "?" and a line saying so. */
+  unsure?: boolean;
+  /** A short muted line above the title naming the kind of thing ("Doors"), where the rows are not sub-grouped. */
+  context?: string;
+  /** Focus moved into the row (true) or out of it (false). */
+  onFocusChange?: (inside: boolean) => void;
   fields: FieldSpec[];
   item: Item | null;
   original: Item | null | undefined;
@@ -56,6 +77,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
   const shown = fields.filter((f) => !f.isName && !f.isWhere);
   const changed = original !== undefined && !sameValue(pick(item, fields), pick(original, fields));
   const where = whereField ? (item?.[whereField.key] as string | null) : null;
+  const Title = level === 4 ? "h4" : "h3";
 
   useEffect(() => {
     if (wasEditing.current && !editing) changeRef.current?.focus();
@@ -63,13 +85,16 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
   }, [editing]);
 
   return (
-    <li id={rowId} className="border-t border-hairline py-4" aria-labelledby={`${rowId}-title`}>
+    <li id={rowId} className="border-t border-hairline py-4" aria-labelledby={`${rowId}-title`} data-unsure={unsure || undefined}
+      onFocus={onFocusChange ? () => onFocusChange(true) : undefined}
+      onBlur={onFocusChange ? (e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onFocusChange(false); } : undefined}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <div className="min-w-0">
-          <h3 id={`${rowId}-title`} className="m-0 text-body font-semibold break-words">{title}</h3>
+          {context ? <p className="m-0 text-ink-muted">{context}</p> : null}
+          <Title id={`${rowId}-title`} className="m-0 text-body font-medium break-words">{title}</Title>
           {whereField ? (
-            <p className="m-0 text-small text-ink-muted">
-              {where ? <>Where: {where}</> : <>Where on the plan: {NOT_SURE.toLowerCase()}</>}
+            <p className="m-0 text-ink-muted">
+              {ANSWERS.where}: {where ? where : <span className="font-medium text-blue">{NOT_SURE}</span>}
             </p>
           ) : null}
         </div>
@@ -82,7 +107,12 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
       </div>
 
       {changed && !editing ? (
-        <p className="m-0 mt-2 text-small font-semibold text-blue">Changed by you. The check will use these values, not the ones read from the plan.</p>
+        <p className="m-0 mt-2 font-medium text-blue">{ANSWERS.changed}</p>
+      ) : unsure ? (
+        <p className="m-0 mt-2 flex items-start gap-2" data-testid="empty-line">
+          <StatusIcon mark="city" className="mt-0.5" />
+          {ANSWERS.emptyLine}
+        </p>
       ) : null}
 
       {editing ? (
@@ -95,7 +125,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
             return (
               <div key={f.key} className="flex items-baseline justify-between gap-4 py-1">
                 <dt className="min-w-0 text-ink-muted">{f.label}</dt>
-                <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-city font-semibold")}>{d.text}</dd>
+                <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-blue font-medium")}>{d.text}</dd>
               </div>
             );
           })}
@@ -155,7 +185,7 @@ function RowForm({ rowId, fields, item, title, onCancel, onSave, onRemove, onPro
   );
 
   return (
-    <form id={formId} noValidate className="mt-4 flex flex-col gap-6 border-l-2 border-blue pl-4"
+    <form id={formId} noValidate className="mt-4 flex flex-col gap-6 rounded-2xl border border-hairline bg-white p-4"
       aria-label={`Change ${title}`} onSubmit={(e) => { e.preventDefault(); void submit(); }}>
       {fields.map((f) => (
         <Controller key={f.key} name={f.key} control={control} render={({ field, fieldState }) => {
@@ -177,7 +207,7 @@ function RowForm({ rowId, fields, item, title, onCancel, onSave, onRemove, onPro
               <TextField
                 ref={field.ref}
                 label={f.label}
-                hint={[f.hint, f.nullable ? "Leave empty if you are not sure." : null].filter(Boolean).join(" ") || undefined}
+                hint={[f.hint, f.nullable ? ANSWERS.emptyHint : null].filter(Boolean).join(" ") || undefined}
                 error={error}
                 unit={f.unit}
                 multiline={f.kind === "lines"}
@@ -197,7 +227,7 @@ function RowForm({ rowId, fields, item, title, onCancel, onSave, onRemove, onPro
       <div className="flex flex-wrap items-center gap-4">
         <Button type="submit" variant="secondary" className="border-blue text-blue">Save changes</Button>
         <Button variant="quiet" onPress={() => { onProblems([]); onCancel(); }}>Cancel</Button>
-        {onRemove ? <Button variant="quiet" className="text-fix" onPress={() => { onProblems([]); onRemove(); }}>Remove {title}</Button> : null}
+        {onRemove ? <Button variant="quiet" className="text-ink" onPress={() => { onProblems([]); onRemove(); }}>Remove {title}</Button> : null}
       </div>
     </form>
   );

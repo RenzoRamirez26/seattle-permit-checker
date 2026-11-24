@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // The build guard (docs/website_plan.md section 5). Fails the build if web/ holds a building-code number,
-// pass/fail logic, a model call, browser speech recognition, or a way to show model output as HTML.
+// pass/fail logic, a model call, browser speech recognition, or a way to show model output as HTML; and, for the design
+// rules (DESIGN.md, CONTENT.md), a banned word in copy, a fourth type size, or a text colour below 4.5 : 1.
 //
 //   node scripts/guard.mjs src [dir]   scan the source (default web/src)
 //   node scripts/guard.mjs out [dir]   scan the built site (default web/out) for key-shaped strings
@@ -107,6 +108,56 @@ for (const file of files(target).filter((f) => wanted.test(f))) {
       if (m && !allowed(rel, c.rule, line)) problems.push(`${rel}:${i + 1}: ${c.rule}: ${c.why} (found "${m[0].trim()}")`);
     }
   });
+}
+
+// ---------------------------------------------------------------- design rules (src only; DESIGN.md, CONTENT.md)
+if (mode === "src") {
+  // 1. Banned words in copy: string literals and JSX text in .ts/.tsx, comments removed. CONTENT.md rules 3 and 11.
+  const BANNED = /\b(?:approved|compliant|invalid|illegal|please|sorry|oops)\b/i;
+  const STATUS_WORD = /\b(?:OK|Pass|Passed|PASS)\b/;      // as a status label; the API's lower-case "pass" is data
+  const copyOf = (code) => {
+    const noComments = code.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " ")).replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+    return noComments.split("\n").map((line) => {
+      const bits = [];
+      for (const m of line.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*)\1/g)) bits.push(m[2]);
+      for (const m of line.matchAll(/>([^<>{}]*[A-Za-z][^<>{}]*)</g)) bits.push(m[1]);
+      return bits.join(" | ");
+    });
+  };
+  for (const file of files(target).filter((f) => /\.(ts|tsx)$/.test(f))) {
+    const rel = relative(web, file).split(sep).join("/");
+    if (rel.endsWith("api/schema.d.ts")) continue;
+    copyOf(readFileSync(file, "utf8")).forEach((copy, i) => {
+      const m = copy.match(BANNED) ?? copy.match(STATUS_WORD);
+      if (m && !allowed(rel, "banned-word", copy)) problems.push(`${rel}:${i + 1}: banned-word: CONTENT.md bans this word in copy (found "${m[0]}")`);
+    });
+  }
+
+  // 2. Three type sizes: the size tokens in tokens.css, and no other size anywhere in src.
+  const tokens = readFileSync(join(web, "src", "styles", "tokens.css"), "utf8");
+  const sizes = [...tokens.matchAll(/--text-([a-z0-9-]+?)\s*:/g)].map((m) => m[1]).filter((n) => !n.includes("--"));
+  if (sizes.length > 3) problems.push(`src/styles/tokens.css: type-scale: ${sizes.length} type sizes (${sizes.join(", ")}); DESIGN.md allows 3`);
+  for (const file of files(target).filter((f) => /\.(ts|tsx|css)$/.test(f))) {
+    const rel = relative(web, file).split(sep).join("/");
+    readFileSync(file, "utf8").split("\n").forEach((line, i) => {
+      const m = line.match(/\btext-(?:xs|sm|base|lg|[2-9]?xl)\b|\btext-\[\d|font-size:\s*(?!var\(|100%|inherit)[\d.]+|\bfont:[^;]*?\b\d+(?:\.\d+)?(?:px|rem|em)\b/);
+      if (m) problems.push(`${rel}:${i + 1}: type-scale: a type size outside the three tokens (found "${m[0]}")`);
+    });
+  }
+
+  // 3. Contrast: every text/background token pair in contrast-pairs.json reaches the minimum (WCAG 2 ratio).
+  const colour = Object.fromEntries([...tokens.matchAll(/--color-([a-z-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]));
+  const lum = (hex) => {
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const pairs = JSON.parse(readFileSync(join(web, "src", "styles", "contrast-pairs.json"), "utf8"));
+  for (const [fg, bg] of pairs.pairs) {
+    if (!colour[fg] || !colour[bg]) { problems.push(`src/styles/contrast-pairs.json: contrast: no colour token "${!colour[fg] ? fg : bg}"`); continue; }
+    const [a, b] = [lum(colour[fg]), lum(colour[bg])];
+    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    if (ratio < pairs.minimum) problems.push(`src/styles/contrast-pairs.json: contrast: ${fg} on ${bg} is ${ratio.toFixed(2)} : 1, below ${pairs.minimum}`);
+  }
 }
 
 if (problems.length) {
