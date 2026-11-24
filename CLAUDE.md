@@ -36,6 +36,15 @@ python -m evaluation.evaluate_extraction --vision  # score the vision model on t
 - `docs/`: rulebook status, data sources, demo script
 - `tests/`: one file per part
 
+## Rules
+
+- No building-code numbers and no pass/fail logic in the front end. It only displays what the backend returns.
+- Every model call goes through the backend. The API key never reaches the browser.
+- Unknown never becomes a pass.
+- Front-end work follows `docs/design_brief.md`, `DESIGN.md` (once it exists) and Vercel's Web Interface
+  Guidelines: <https://vercel.com/design/guidelines> (source: <https://github.com/vercel-labs/web-interface-guidelines>).
+- Run `python -m pytest` before finishing any task. Work on a branch, never on `main`.
+
 ## The rule everything else follows
 
     floor plan -> extract.py (model: facts only) -> rules_engine.py (code: decisions) -> agent.py (explains)
