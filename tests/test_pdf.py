@@ -239,6 +239,7 @@ def test_the_sheet_uses_the_engine_s_words_for_unverified_rules():
     assert permit_draft.SOME_UNVERIFIED == rules_engine.SOME_UNVERIFIED
     assert permit_draft.UNVERIFIED_FACTORS == rules_engine.UNVERIFIED_FACTORS
     assert permit_draft.UNVERIFIED_PERMIT == rules_engine.UNVERIFIED_PERMIT
+    assert permit_draft.UNVERIFIED_ENTRY == rules_engine.UNVERIFIED_ENTRY
 
 
 def test_the_report_marks_the_figures_and_the_assembly_permit_beside_them(cafe):

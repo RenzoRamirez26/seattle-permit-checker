@@ -22,6 +22,7 @@ SOME_UNVERIFIED = "Some rule values are still being checked against the code."
 UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
 UNVERIFIED_VALUE = "Still being checked against the code."
 UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code."
+UNVERIFIED_ENTRY = "This permit entry is still being checked against the agency's own rules."
 
 NOTICE = ("This is a preparation aid, not the City of Seattle's official form. It gathers, in one place, what the "
           "city's published pages say you will be asked for. You apply in the Seattle Services Portal.")
@@ -177,7 +178,8 @@ def to_markdown(result: dict) -> str:
     out += [f"- [ ] {item} ({source})" for item, source in d["uploads"]]
 
     out += ["", f"## {SECTIONS[3]}", "", f"**{PERMITS_HEADING}**", ""]
-    out += [f"- {p['name']}{'' if p.get('rule_verified', True) else '. ' + UNVERIFIED_PERMIT}: {p['agency']}" for p in d["permits"]]
+    out += [f"- {p['name']}{'' if p.get('rule_verified', True) else '. ' + UNVERIFIED_PERMIT}"
+            f"{'' if p.get('entry_verified', True) else '. ' + UNVERIFIED_ENTRY}: {p['agency']}" for p in d["permits"]]
     out += ["", f"**{OPEN_HEADING} ({len(d['open_items'])})**", ""]
     out += [f"- {line}" for line in d["open_items"]] or [f"- {d['nothing_open']}"]
     if d["open_items"]:

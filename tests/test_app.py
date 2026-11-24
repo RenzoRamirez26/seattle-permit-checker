@@ -415,3 +415,14 @@ def test_pages_with_the_seattle_database(monkeypatch, tmp_path):
     assert any("Paraphrased for the test" in x.value for x in at.markdown)       # a reviewer comment is shown
     at.selectbox[0].set_value("salon").run()
     assert not at.exception and _metrics(at)["Permits with plan review"] == "1"
+
+
+def test_the_about_text_says_who_coded_the_rules_and_how_many_are_checked():
+    from app import app_common
+
+    text = " ".join(app_common.about_note().split())        # the Markdown wraps lines
+    counts = rules_engine.rule_counts(rules_engine.load_rules())
+    assert "rules our team coded from Seattle's building codes and other city requirements" in text
+    assert rules_engine.rules_checked_sentence(counts) in text and "{checked}" not in text
+    assert rules_engine.rules_checked_sentence({"rules": 21, "rules_unverified": 21}) == "None of the 21 rules is checked against the code text yet."
+    assert rules_engine.rules_checked_sentence({"rules": 21, "rules_unverified": 3}) == "3 of the 21 rules aren't checked against the code text yet."

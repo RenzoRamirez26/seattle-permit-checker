@@ -219,7 +219,8 @@ def permit_name(p: dict) -> str:
     """A permit's name, with the rules engine's "May be needed" sentence when it depends on an answer left as Not sure,
     and the unchecked note when it is listed because of a value still being checked against the code."""
     name = f"{p['name']}. {p['may_be_needed']}" if p.get("may_be_needed") else p["name"]
-    return name if p.get("rule_verified", True) else f"{name}. {rules_engine.UNVERIFIED_PERMIT}"
+    name = name if p.get("rule_verified", True) else f"{name}. {rules_engine.UNVERIFIED_PERMIT}"
+    return name if p.get("entry_verified", True) else f"{name}. {rules_engine.UNVERIFIED_ENTRY}"
 
 
 def figures_unverified(result: dict) -> bool:
