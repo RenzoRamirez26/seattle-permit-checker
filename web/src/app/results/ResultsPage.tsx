@@ -195,8 +195,9 @@ export function Results({ check }: { check: Check }) {
       <section id="section-fix" aria-labelledby="fix-heading" className="bg-white">
         <Band className="flex flex-col gap-4 py-12">
           <h2 id="fix-heading" tabIndex={-1} className="m-0 flex items-center gap-3 text-section-heading">
-            <StatusIcon mark={look(FIX).mark} size={24} />
-            <span>{look(FIX).group} <span className="text-fix nums">({counts[FIX]})</span></span>
+            {/* red only marks something to fix: with nothing to fix, the heading uses the quiet "no issues" mark */}
+            <StatusIcon mark={counts[FIX] ? look(FIX).mark : look(TAB_GROUPS[1]).mark} size={24} />
+            <span>{look(FIX).group} <span className={cn("nums", counts[FIX] > 0 && "text-fix")}>({counts[FIX]})</span></span>
           </h2>
           {counts[FIX] ? <p className="m-0">These are likely to stop a permit review.</p> : null}
           <FindingRows status={FIX} items={byStatus[FIX]} expanded={expanded.has(FIX)} onShowAll={() => showAll(FIX)} />
@@ -340,8 +341,8 @@ function InShort({ check }: { check: Check }) {
       <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-3" aria-label="Counts">
         {tiles.map(([st, n, label]) => (
           <li key={st} className="flex flex-col items-start gap-2 rounded-2xl bg-white p-6">
-            <StatusIcon mark={look(st).mark} size={24} />
-            <span className={cn("text-page-heading nums", look(st).text)}>{formatNumber(n)}</span>
+            <StatusIcon mark={st === FIX && !n ? look(TAB_GROUPS[1]).mark : look(st).mark} size={24} />
+            <span className={cn("text-page-heading nums", !(st === FIX && !n) && look(st).text)}>{formatNumber(n)}</span>
             <span>{label}</span>
           </li>
         ))}

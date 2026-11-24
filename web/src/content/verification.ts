@@ -19,13 +19,21 @@ export const DECIDE = "Rules based on Seattle's code decide";
 export const DECIDE_UNVERIFIED = "Rules based on Seattle's code decide (some values still being checked)";
 export const DECIDE_TEXT_UNVERIFIED = "Some of their values are still being checked against the code.";
 /** Start's step 4: who wrote the rules, and how many are checked against the code text, from /api/meta's counts. */
-export const DECIDE_TEXT = "Our team coded these rules from Seattle's building codes and other city requirements. They list what to fix, what to check with the city and the permits to expect.";
+export const DECIDE_TEXT = "Our team coded these rules from Seattle's building and plumbing codes, the federal accessibility standards, and the King County and Washington State food codes. They list what to fix, what to check with the city and the permits to expect.";
 export function rulesCheckedWords(meta: Meta | null | undefined): string {
   if (!meta) return DECIDE_TEXT_UNVERIFIED;
   const { rules: n, rules_unverified: u } = meta.rulebook;
   if (u === n) return `None of the ${formatNumber(n)} rules is checked against the code text yet.`;
   if (u) return `${formatNumber(u)} of the ${formatNumber(n)} rules aren't checked against the code text yet.`;
   return `All ${formatNumber(n)} rules are checked against the code text.`;
+}
+
+/** The strip's last step, saying the same as step 4: none checked, some still being checked, or plain. */
+export function decideStrip(meta: Meta | null | undefined): string {
+  if (!meta) return DECIDE_UNVERIFIED;
+  const { rules: n, rules_unverified: u } = meta.rulebook;
+  if (u === n) return `${DECIDE} (none checked against the code text yet)`;
+  return u ? DECIDE_UNVERIFIED : DECIDE;
 }
 
 export const ruleUnverified = (f: Pick<Finding, "rule_verified">) => f.rule_verified !== true;

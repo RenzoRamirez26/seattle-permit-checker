@@ -1,5 +1,5 @@
 /**
- * The Answers page (step 3, design v3): "Check these first", "Also used in the check", "About your business",
+ * The Answers page (step 3, design v3): "Check these first", "Also read from your plan", "About your business",
  * the Yes / No / Not sure pills, the caption over the plan, and the status while the check runs.
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -12,11 +12,12 @@ const WHITE = "rgb(255, 255, 255)";
 
 /** The rows the café reading left empty: restroom rooms and the corridor (no area), restroom doors (swing unknown),
  *  the kitchen (grease interceptor), fire safety (emergency lighting) and the seats (accessible seats). */
-const UNSURE = ["Restroom 1", "Restroom 2", "Corridor", "Restroom 1 door", "Restroom 2 door",
-  "Kitchen and food preparation", "Fire safety on the plan", "Customer seating"];
+// Only rows with an empty value a rule reads (#24): the restroom and corridor areas, the grease interceptor and
+// emergency lighting are recorded but not checked, so their rows are not asked about first.
+const UNSURE = ["Restroom 1 door", "Restroom 2 door", "Customer seating"];
 
 const checkFirst = (page: Page) => page.getByRole("region", { name: "Check these first" });
-const alsoUsed = (page: Page) => page.getByRole("region", { name: "Also used in the check" });
+const alsoUsed = (page: Page) => page.getByRole("region", { name: "Also read from your plan" });
 const rowsOf = (region: ReturnType<typeof checkFirst>) => region.locator("li[id]");
 
 async function axeBoth(page: Page, label: string) {
@@ -47,7 +48,7 @@ test("Check these first lists the rows the reading left empty, first, with the l
   }
   await expect(first.getByText(fixture("reading_cafe_flawed").facts.uncertainties[0])).toBeVisible();
   // It comes before every other row: the first Change on the page is in it.
-  await expect(page.getByRole("button", { name: /^Change / }).first()).toHaveAccessibleName("Change Restroom 1");
+  await expect(page.getByRole("button", { name: /^Change / }).first()).toHaveAccessibleName("Change Restroom 1 door");
   const [a, b] = await Promise.all([first.boundingBox(), alsoUsed(page).boundingBox()]);
   expect(a!.y).toBeLessThan(b!.y);
 });
@@ -205,6 +206,18 @@ test("a reading with nothing left empty and no notes has no Check these first gr
   await page.goto("/check/");
   await expect(page.getByRole("button", { name: "Run the check" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Check these first" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Used in the check", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Read from your plan", level: 2 })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Change / }).first()).toHaveAccessibleName("Change The whole space");
+});
+
+test("values no rule reads say not checked and are never asked about first (#24)", async ({ page }) => {
+  await seed(page, { caseId: "cafe_flawed" });
+  await page.goto("/check/");
+  const kitchen = alsoUsed(page).getByRole("listitem", { name: "Kitchen and food preparation" });
+  await expect(kitchen.locator("dt").filter({ hasText: /^Grease interceptor/ })).toContainText("not checked");
+  await expect(kitchen.locator("dt").filter({ hasText: /^Exhaust hood/ })).not.toContainText("not checked");
+  await expect(kitchen.getByText("We couldn't read this from your plan.")).toHaveCount(0);
+  const restroom = alsoUsed(page).getByRole("listitem", { name: "Restroom 1", exact: true });
+  await expect(restroom.locator("dt").filter({ hasText: /^Floor area/ })).toContainText("not checked");
+  await expect(page.getByText("Values marked not checked are kept with your check, but no rule reads them.")).toBeVisible();
 });

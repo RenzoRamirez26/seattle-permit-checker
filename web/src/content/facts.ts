@@ -3,7 +3,7 @@
  * values, no limits, no judgement of what is enough. The fields mirror Facts in src/api/schema.d.ts
  * (a test checks every field has a label here).
  */
-import type { Facts } from "@/api/client";
+import type { Facts, Meta } from "@/api/client";
 
 export type Kind = "number" | "integer" | "text" | "yesno" | "choice" | "lines";
 
@@ -174,11 +174,11 @@ export const ANSWERS = {
    */
   emptyLine: "We couldn't read this from your plan.",
   notes: "Noted while reading your plan",
-  alsoUsed: "Also used in the check",
+  alsoUsed: "Also read from your plan",
   /** Manual entry: nothing was read, so there is nothing to check first. */
   used: "Your measurements",
   /** A reading with nothing left empty: one group. */
-  usedAll: "Used in the check",
+  usedAll: "Read from your plan",
   allAbove: "Listed above, under Check these first.",
   noneRead: "None read from your plan.",
   noneEntered: "None added yet.",
@@ -197,10 +197,26 @@ export const ANSWERS = {
   changeLabel: "Change your answers about your business",
   noBusiness: "You haven't answered the questions about your business yet.",
   answerThem: "Answer them",
-  runNote: "The check uses these values, including your changes.",
+  runNote: "The check uses these values, including your changes. Values marked not checked are kept with your check, but no rule reads them.",
+  /** Beside a value no rule reads (/api/meta facts_checked). */
+  notChecked: "not checked",
   run: "Run the check",
   running: "Running the check…",
   runningStatus: "Running the rules on your readings…",
   needBusiness: "Answer what kind of business it is first.",
   saveFirst: "Save or cancel your change first.",
 };
+
+/**
+ * Whether a rule reads this value, from /api/meta: facts_checked lists them as "field" or "group.field", and a room
+ * whose use is in room_uses_without_load (restrooms, corridors) has no size a rule reads. Names and "where" words are
+ * descriptions, not values. Before /api/meta loads, every value counts as read, so nothing is marked.
+ */
+export function readByRules(meta: Meta | null | undefined, g: GroupSpec, f: FieldSpec, item: Record<string, unknown> | null | undefined): boolean {
+  if (!meta) return !f.isName && !f.isWhere;
+  if (f.isName || f.isWhere) return false;
+  const path = g.kind === "top" ? f.key : `${g.key}.${f.key}`;
+  if (!meta.facts_checked.includes(path)) return false;
+  const sized = g.kind === "list" && g.key === "spaces" && ["area_sqft", "width_ft", "length_ft"].includes(f.key);
+  return !(sized && typeof item?.use === "string" && meta.room_uses_without_load.includes(item.use));
+}

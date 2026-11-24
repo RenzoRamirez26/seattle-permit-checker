@@ -24,7 +24,7 @@ test("Start: the headline, the steps in one line, the example drawing, the step 
   // The four steps as one short line, directly under the intro sentence and above the form (checklist L2).
   const strip = page.getByRole("list", { name: "How it works, in short" });
   await expect(strip.getByRole("listitem")).toHaveText([
-    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Rules based on Seattle's code decide \(some values still being checked\)$/,
+    /You upload your plan$/, /The model reads it$/, /You confirm$/, /Rules based on Seattle's code decide \(none checked against the code text yet\)$/,
   ]);
   await expect(page.locator("p:has-text('A pre-check, not a city approval.') + ol")).toHaveAccessibleName("How it works, in short");
   const stripBox = (await strip.boundingBox())!;

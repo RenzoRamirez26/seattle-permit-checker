@@ -172,7 +172,11 @@ test("Not sure answers show as Check with the city and May be needed permits", a
   await page.route(`**/api/checks/${check.id}`, (route) => route.fulfill({ json: check, headers: { "access-control-allow-origin": "*" } }));
   await page.goto(`/results/?check=${check.id}`);
   await expect(page.getByText("May be needed", { exact: true })).toHaveCount(3);
-  await expect(page.getByRole("tab", { name: "Check with the city (3)" })).toBeVisible();
+  // the count is the API's: a finding with the same status either way is not turned into Check with the city (#22)
+  await expect(page.getByRole("tab", { name: `Check with the city (${check.result.summary.reviews})` })).toBeVisible();
+  // "May be needed" is said once per permit: the tag, then only the reason (#26)
+  await expect(page.getByText(/May be needed:/)).toHaveCount(0);
+  await expect(page.getByText(/^Check with the city\. It depends on whether alcohol will be served/)).toBeVisible();
   await axeBoth(page, "not sure");
 });
 
@@ -220,7 +224,14 @@ test("state: nothing to fix shows one line with the No issues found mark", async
   await runExample(page, "Café with no issues found");
   const fix = page.getByRole("region", { name: "Fix before you apply (0)" });
   await expect(fix.getByText("Nothing to fix before you apply.")).toBeVisible();
-  await expect(fix.locator("[data-mark=none]")).toHaveCount(1);
+  // no red when there is nothing to fix (#25): no "!" mark, and the "(0)" and the 0 tile in ink
+  await expect(fix.locator("[data-mark=fix]")).toHaveCount(0);
+  await expect(fix.locator("[data-mark=none]").first()).toBeVisible();
+  const ink = await page.evaluate(() => getComputedStyle(document.body).color);
+  expect(await fix.locator("h2 .nums").evaluate((el) => getComputedStyle(el).color)).toBe(ink);
+  const tile = page.getByRole("list", { name: "Counts" }).getByRole("listitem").first();
+  await expect(tile.locator("[data-mark=fix]")).toHaveCount(0);
+  expect(await tile.locator(".nums").evaluate((el) => getComputedStyle(el).color)).toBe(ink);
   await expect(fix.locator("article")).toHaveCount(0);
   await expect(fix.getByText("These are likely to stop a permit review.")).toHaveCount(0);
   await axeBoth(page, "nothing to fix");

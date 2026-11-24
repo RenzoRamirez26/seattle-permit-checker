@@ -11,7 +11,7 @@ import { RadioGroup } from "@/components/ui/radio-group";
 import { FactsEditor, type SelectedRow } from "@/components/plan/FactGroup";
 import { leftEmpty } from "@/components/plan/FactRow";
 import { selectedWords } from "@/components/plan/PlanViewer";
-import { ANSWERS, GROUPS } from "@/content/facts";
+import { ANSWERS, GROUPS, readByRules } from "@/content/facts";
 import { emptyFacts, type Business } from "@/state/flow";
 import { fixture } from "./fixtures";
 
@@ -164,5 +164,19 @@ describe("pill choices", () => {
     const other = screen.getByRole("radio", { name: "Yes" }).closest("label")!;
     expect(other.className).toMatch(/\bbg-white\b/);
     expect(other.className).toMatch(/\bborder-field\b/);
+  });
+});
+
+describe("values no rule reads (#24)", () => {
+  const meta = fixture<Meta>("meta");
+  const kitchen = GROUPS.find((g) => g.id === "kitchen")!;
+  const rooms = GROUPS.find((g) => g.id === "rooms")!;
+  const field = (g: typeof kitchen, key: string) => g.fields.find((f) => f.key === key)!;
+  it("follows /api/meta: the grease interceptor and a restroom's area are not read; the hood and a dining room's area are", () => {
+    expect(readByRules(meta, kitchen, field(kitchen, "grease_interceptor_shown"), {})).toBe(false);
+    expect(readByRules(meta, kitchen, field(kitchen, "type1_hood_shown"), {})).toBe(true);
+    expect(readByRules(meta, rooms, field(rooms, "area_sqft"), { use: "restroom" })).toBe(false);
+    expect(readByRules(meta, rooms, field(rooms, "area_sqft"), { use: "dining" })).toBe(true);
+    expect(readByRules(null, kitchen, field(kitchen, "grease_interceptor_shown"), {})).toBe(true);   // before meta loads
   });
 });
