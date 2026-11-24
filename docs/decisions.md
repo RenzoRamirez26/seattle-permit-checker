@@ -6,6 +6,27 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Rooms of unknown use; cooking and patio permits; who wrote the rules
+
+- **Rooms:**
+  - A room marked "Other", or with no use chosen, makes the occupant load unknown. It used to count as no people.
+  - Every rule that depends on the number of people then becomes Check with the city, unless a Fix holds regardless,
+    and the assembly and sprinkler permits become May be needed.
+  - "Add a room" starts with no use chosen and asks "What is this room used for?". "Other" stays available.
+  - The unknown-input test treats "other" as unknown for room use.
+- **Permits:**
+  - With grease cooking unknown, the mechanical and hood-suppression permits are May be needed, whatever the cooking
+    answer.
+  - With outdoor seating not shown either way, the patio permit is May be needed. The test found this case once it
+    also checked permits.
+- **Salon licence:** a permit whose own entry is unchecked now says "This permit entry is still being checked against
+  the agency's own rules." (`entry_verified`), not that a value put it on the list.
+- **Words:**
+  - Help says the check looks for a kitchen hood but not ventilation rates.
+  - Start step 4 and the Streamlit About say our team coded the rules from Seattle's building codes and other city
+    requirements, with how many are checked against the code text, counted by the API (`/api/meta`) or the rulebook.
+- **Who:** owner (scope); team (how).
+
 ## 2026-11-24 · What the fourth independent scoring found, fixed
 
 - **Urinals:** a count left as Not sure (the field present and empty) is unknown, not 0. Left out of the reading

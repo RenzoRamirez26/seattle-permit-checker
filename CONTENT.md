@@ -65,6 +65,8 @@ The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unver
 | Exit signs: Your plan shows 3 exit signs. | Your plan shows 3 exit signs. Each of the 2 exits needs one. | 2: every No issues found row says what the plan shows and what it meets |
 | Checked by: SDCI Ordinance review | Who to ask: SDCI Ordinance review | claims no larger than the evidence: the city has not checked anything |
 | Your plan doesn't show fire extinguishers. | Your plan doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel. | 2: Check with the city rows state the requirement too |
+| Rules we coded from Seattle's building codes list what to fix… | Our team coded these rules from Seattle's building codes and other city requirements. … None of the 21 rules is checked against the code text yet. | claims no larger than the evidence (the count comes from the API) |
+| It does not look at … ventilation | It checks for a kitchen exhaust hood where there is cooking, but not ventilation rates … | say what is checked |
 | Seattle's rules decide | Rules based on Seattle's code decide | claims no larger than the evidence: the rules are our coding of the code, not the city's own |
 | Run Seattle's rules (Checking) | Run the rules | the same |
 | Read by the vision model. Check every value against your plan. | The model read your plan. Check each value against the drawing. | 6, 10 |
