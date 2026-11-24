@@ -26,6 +26,7 @@
 - [What Seattle's data showed](#what-seattles-data-showed)
 - [Build phases](#build-phases)
 - [Working in this repo](#working-in-this-repo)
+- [Before launch](#before-launch)
 - [Limits](#limits)
 - [Troubleshooting](#troubleshooting)
 - [Team](#team)
@@ -46,7 +47,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 
 | Part | File | Now | Still to do |
 | --- | --- | --- | --- |
-| Rulebook | `checker/rules/seattle.json` | **Real.** Six business types. Most numbers checked against the 2021 Seattle Building Code PDFs | Check the items listed in [docs/rulebook.md](docs/rulebook.md) |
+| Rulebook | `checker/rules/seattle.json` | **Real.** Six business types, 21 rules. Most numbers were read from the 2021 Seattle Building Code PDFs, but **all 21 rules are still `unchecked`**: none is yet transcribed (compared and signed by a person) or reviewed by an expert ([docs/verifying-rules.md](docs/verifying-rules.md)) | Transcribe the foundation rules (OL-0, OCC-1, EG-1), then the rest; record an expert review |
 | Rules engine | `checker/rules_engine.py` | **Real and tested** on three demo plans and on each business type | More checks (travel distance, parking, signage) |
 | Zoning | `checker/zoning.py` | Logic tested; the live lookup is tested with the network mocked | Run one real address |
 | Plan reading | `checker/extract.py` | **The real model has read the three demo plans** (21 November 2026, one run): 103 of 107 facts read correctly. The demo plans are fictional and drawn to be easy to read | **Read a real floor plan** (with permission); accuracy on real drawings is unknown |
@@ -235,12 +236,25 @@ Phase 4 is the evidence judges will ask for. If time runs short, cut from the bo
 - **Any number you report says what data it came from.**
 - **No real floor plans or personal data in the repository.** The demo plans are invented.
 
+## Before launch
+
+Open items that must be done before real owners use the site. Each is a GitHub issue labelled
+[before launch](https://github.com/RenzoRamirez26/seattle-permit-checker/issues?q=label%3A%22before+launch%22):
+
+- [ ] Real-key test: a real plan, a real Seattle address, and the assistant by typing and by voice in Chrome and Safari (#31).
+- [ ] Transcribe the foundation rules (OL-0, OCC-1, EG-1), then the other 18 ([docs/verifying-rules.md](docs/verifying-rules.md)) (#32).
+- [ ] An expert review, recorded as `reviewed` (#33).
+- [ ] A usability test with five owners (#34).
+- [ ] A trademark check on "PermitOS" (#35).
+- [ ] Export Figma v1 to v3 to `docs/screenshots/figma/` (#36).
+- [ ] Check whether "Nothing to fix before you apply" appears twice on a results page (#37).
+
 ## Limits
 
 - **Not a code determination.** A licensed design professional and the plan reviewer decide what complies.
 - **A short list of checks.** Occupant load, exits, doors, aisles, restrooms, sprinklers, kitchen hood and sinks, zoning. A real review covers far more.
 - **Seattle only**, 2021 Seattle codes. The 2024 editions arrive no sooner than May 2027.
-- **Part of the rulebook is unverified.** See [docs/rulebook.md](docs/rulebook.md).
+- **No rule is checked against the code text by a person yet.** Every rule has a level (unchecked, transcribed, reviewed); all 21 are unchecked. See [docs/verifying-rules.md](docs/verifying-rules.md).
 - **Demo plans are fictional** and drawn to be easy to read. Real drawings are harder, and reading accuracy on them is unknown.
 - **The permit categories are keyword matches** on the city's descriptions, so some permits are missed or mislabelled.
 - **Reviewer names are in the city's data and are not stored.**

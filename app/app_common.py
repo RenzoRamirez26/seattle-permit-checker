@@ -167,8 +167,9 @@ LIMITS_NOTE = """
   correct it before the check runs.
 - **The demo plans are fictional**, drawn with printed dimensions so they are easy to read. Real
   drawings are harder.
-- **Part of the rulebook is unverified.** `docs/rulebook.md` lists which numbers were checked against
-  Seattle's code and which were entered from memory.
+- **Each rule has a check level:** unchecked, transcribed (checked against the code text by our
+  team) or reviewed (by an expert). The About section says how many rules are at each level. `docs/verifying-rules.md`
+  lists every rule's level and how a rule moves up.
 - **Seattle only.** Other cities have different codes, zones and agencies.
 - **Not affiliated with the City of Seattle** or any agency named here.
 """

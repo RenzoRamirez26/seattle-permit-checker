@@ -28,24 +28,26 @@ Words the tests reject in interface copy and the PDF templates: *approved, compl
 oops*, and *pass* or *OK* used as a status label. The API's own status values (`pass`, `fail`, `review`) are data, not
 copy, and stay as they are.
 
-## Values still being checked
+## How far a rule is checked
 
-Say what is not yet checked, once, next to what it affects (rules 4 and 11):
-- under a finding whose rule value is not yet read from the code: "This rule's value is still being checked against
-  the code."
-- once beside the results and on the first page of each PDF: "Some rule values are still being checked against the
-  code."
-- on Start's strip, saying the same as step 4: "Rules based on Seattle's code decide (none checked against the code text
-  yet)" while no rule is checked, "(some values still being checked)" while some are.
+Every rule has a level, and the API says which (`check_level` on each finding, counts in `/api/meta`). Say it once,
+next to what it affects (rules 4 and 11), in muted body text with no icon or colour of its own:
+- under each finding, after its code section, one of:
+  - "This rule's value is still being checked against the code." (unchecked)
+  - "Checked against the code text by our team." (transcribed)
+  - "Reviewed by {reviewed_by}, {reviewed_on}." (reviewed: name and role, then the date)
+- once beside the results (In short), on the first page of each PDF, in the Markdown report, Streamlit and the
+  assistant's summary: the counts, e.g. "None of the 21 rules is checked against the code text yet; none reviewed by
+  an expert." Never "some values are still being checked": give the numbers.
+- on Start's strip, the same counts in short: "Rules based on Seattle's code decide (none of 21 checked or reviewed
+  yet)", or "(6 of 21 checked, 2 reviewed)" once some are. Step 4 beside it gives the full sentence.
 - beside the occupant load, the occupancy group and the exits required in the PDFs, and beside a permit listed because
   of the number of people (website and PDFs): "Listed because of a value still being checked against the code."
 - under the occupant-load table in the PDFs: "Some of these square-feet-per-person values are still being checked
   against the code."
 
-A rule that uses another rule's result (the occupant load, the occupancy group) counts as checked only when that rule
-is checked too.
-
-The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unverified`); the pages only show the words.
+A finding takes the lowest level of the rules it uses (the occupant load, the occupancy group). Unknown never claims
+more: a missing level is unchecked, and counts not yet loaded say nothing.
 
 ## Before and after
 

@@ -643,39 +643,56 @@ def test_the_fixture_clip_with_the_real_model(api, monkeypatch):
     assert "second exit" in words and "caf" in words
 
 
-def test_meta_counts_the_rules_still_being_checked(api, monkeypatch):
-    """The Start page reads how many rules are unverified from /api/meta; nothing is counted in the browser."""
+def test_meta_counts_the_rules_at_each_check_level(api, monkeypatch):
+    """The Start page and Help read how many rules are at each level from /api/meta; nothing is counted in the browser."""
     entries = {k: v for k, v in api_main.rules()["rules"].items() if not k.startswith("_")}
     rulebook = api.get("/api/meta").json()["rulebook"]
-    assert rulebook["rules"] == len(entries) > 0
-    assert rulebook["rules_unverified"] == sum(not rules_engine.rule_checked(api_main.rules(), k) for k in entries) > 0
-    assert rulebook["rules_unverified"] > sum(not v["verified"] for v in entries.values())   # dependencies count too
+    assert rulebook["rules"] == len(entries) == 21
+    assert (rulebook["unchecked"], rulebook["transcribed"], rulebook["reviewed"]) == (21, 0, 0)
+    assert "rules_unverified" not in rulebook
     checked = json.loads(json.dumps(api_main.rules()))
     for k in entries:
-        checked["rules"][k]["verified"] = True
+        checked["rules"][k] |= {"check_level": "reviewed", "transcribed_by": "A. Person", "transcribed_on": "2026-12-01",
+                                "reviewed_by": {"name": "B. Expert", "role": "architect"}, "reviewed_on": "2026-12-02"}
+    checked["rules"]["OL-0"]["check_level"] = "transcribed"          # holds down every rule that uses the occupant load
     monkeypatch.setattr(api_main, "rules", lambda: checked)
-    assert api.get("/api/meta").json()["rulebook"]["rules_unverified"] == 0
+    rulebook = api.get("/api/meta").json()["rulebook"]
+    held = 1 + sum("OL-0" in v.get("depends_on", []) for v in entries.values())
+    held += sum(1 for v in entries.values() if "OL-0" not in v.get("depends_on", [])
+                and any("OL-0" in entries[d].get("depends_on", []) for d in v.get("depends_on", [])))
+    assert (rulebook["unchecked"], rulebook["transcribed"], rulebook["reviewed"]) == (0, held, 21 - held)
     spec = api.get("/openapi.json").json()["components"]["schemas"]
-    assert {"rules", "rules_unverified"} <= set(spec["Rulebook"]["required"])
+    assert {"rules", "unchecked", "transcribed", "reviewed"} <= set(spec["Rulebook"]["required"])
 
 
-def test_each_finding_says_whether_its_rule_was_checked_and_where_it_comes_from(api):
+def test_each_finding_gives_its_check_level_and_where_it_comes_from(api, monkeypatch):
     check = _new_check(api, "cafe")
     entries = api_main.rules()["rules"]
     findings = check["result"]["findings"]
     assert findings
     for f in findings:
-        assert f["rule_verified"] is rules_engine.rule_checked(api_main.rules(), f["rule_id"])
+        assert f["check_level"] == rules_engine.rule_level(api_main.rules(), f["rule_id"])
         assert f["rule_source"] == entries[f["rule_id"]]["source"]
-    assert {f["rule_verified"] for f in findings} == {False}           # no rule counts as checked yet (EG-3's ADA section)
-    assembly = [p for p in check["result"]["permits_likely_required"] if not p["rule_verified"]]
+        assert "rule_verified" not in f and "rule_reviewed_by" not in f and "rule_reviewed_on" not in f
+    assert {f["check_level"] for f in findings} == {"unchecked"}       # no rule is transcribed yet
+    assembly = [p for p in check["result"]["permits_likely_required"] if p.get("check_level") == "unchecked"]
     assert {p["id"] for p in assembly} == {"assembly", "sprinkler"}    # listed because of the number of people
+    assert all("check_level" not in p for p in check["result"]["permits_likely_required"] if p not in assembly)
+    assert check["result"]["rule_levels"] == {"rules": 21, "unchecked": 21, "transcribed": 0, "reviewed": 0}
     again = api.get(f"/api/checks/{check['id']}").json()                         # stored and read back unchanged
-    assert [(f["rule_verified"], f["rule_source"]) for f in again["result"]["findings"]] == \
-           [(f["rule_verified"], f["rule_source"]) for f in findings]
-    assert check["result"]["occupant_load"]["rule_verified"] is False
+    assert [(f["check_level"], f["rule_source"]) for f in again["result"]["findings"]] == \
+           [(f["check_level"], f["rule_source"]) for f in findings]
+    assert check["result"]["occupant_load"]["check_level"] == "unchecked"
     props = api.get("/openapi.json").json()["components"]["schemas"]["Finding"]["properties"]
-    assert props["rule_verified"]["type"] == "boolean" and props["rule_verified"]["default"] is False
+    assert props["check_level"]["enum"] == ["unchecked", "transcribed", "reviewed"] and props["check_level"]["default"] == "unchecked"
+    assert "rule_verified" not in props and {"rule_reviewed_by", "rule_reviewed_on"} <= set(props)
+    # A reviewed rule reaches the API with its reviewer and date.
+    reviewed = json.loads(json.dumps(api_main.rules()))
+    reviewed["rules"]["EG-3"] |= {"check_level": "reviewed", "transcribed_by": "A. Person", "transcribed_on": "2026-12-01",
+                                  "reviewed_by": {"name": "B. Expert", "role": "architect"}, "reviewed_on": "2026-12-02"}
+    monkeypatch.setattr(rules_engine, "load_rules", lambda name="seattle": reviewed)
+    door = next(f for f in _new_check(api, "cafe")["result"]["findings"] if f["rule_id"] == "EG-3")
+    assert (door["check_level"], door["rule_reviewed_by"], door["rule_reviewed_on"]) == ("reviewed", "B. Expert, architect", "2026-12-02")
     assert props["rule_source"]["type"] == "string"
 
 

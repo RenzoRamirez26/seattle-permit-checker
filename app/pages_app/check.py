@@ -302,8 +302,7 @@ if result:
         m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks where we found no issue.")
         st.caption(f"Occupant load {s['occupant_load']} · Group {s['occupancy_group']} · "
                    f"Exits: {s['exits_shown']} shown, {s['exits_required']} required")
-        if any(not f.get("rule_verified") for f in result["findings"]):
-            st.caption(rules_engine.SOME_UNVERIFIED)
+        st.caption(rules_engine.result_counts_sentence(result))
 
         open_items = [f for f in result["findings"] if f["status"] != "pass"]
         fix_col, side_col = st.columns([7, 5])
@@ -319,21 +318,20 @@ if result:
                     if f["fix"]:
                         st.markdown(f"**Fix:** {f['fix']}")
                     st.caption(f"Who to ask: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
-                    if not f.get("rule_verified"):
-                        st.caption(rules_engine.UNVERIFIED_NOTE)
+                    st.caption(rules_engine.level_words(f))
 
             with st.expander(f"No issues found ({s['passes']})"):
                 for f in result["findings"]:
                     if f["status"] == "pass":
                         st.markdown(f"{ICON['pass']} {STATUS_LABEL['pass']} &nbsp; **{f['title']}**: {f['detail']}  \n"
                                     f":gray[{f['citation']}]"
-                                    + ("" if f.get("rule_verified") else f"  \n:gray[{rules_engine.UNVERIFIED_NOTE}]"))
+                                    + f"  \n:gray[{rules_engine.level_words(f)}]")
 
         with side_col:
             st.markdown("**Permits and approvals you will likely need**")
             permits = pd.DataFrame([{"name": p["name"], "agency": p["agency"],
                                      "note": " ".join(([rules_engine.may_be_needed_words(p)] if p.get("may_be_needed") else [])
-                                                      + ([rules_engine.UNVERIFIED_PERMIT] if p.get("rule_verified") is False else [])
+                                                      + ([rules_engine.UNVERIFIED_PERMIT] if "check_level" in p and rules_engine.is_unchecked(p) else [])
                                                       + ([rules_engine.UNVERIFIED_ENTRY] if p.get("entry_verified") is False else []))}
                                     for p in result["permits_likely_required"]])
             st.table(permits.rename(columns={"name": "Permit or approval", "agency": "Who issues it", "note": "Note"})
@@ -358,7 +356,7 @@ if result:
                 st.dataframe(pd.DataFrame(result["occupant_load"]["by_space"])[["space", "use", "area_sqft", "factor", "load"]]
                              .rename(columns={"space": "Room", "use": "Use", "area_sqft": "Area (sq ft)",
                                               "factor": "Sq ft per person", "load": "People"}), hide_index=True, width="stretch")
-                if not result["occupant_load"].get("rule_verified"):
+                if rules_engine.is_unchecked(result["occupant_load"]):
                     st.caption(rules_engine.UNVERIFIED_FACTORS)
                 st.caption(result["code_basis"])
 

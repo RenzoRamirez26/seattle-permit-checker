@@ -2,8 +2,7 @@
 /**
  * Start (step 1): who the pre-check is for, the four steps as one short line under the intro, an invented example plan
  * as a drawing, the step 1 form (BusinessForm) on a white card in the blue band, and "How it works" in four steps. The
- * last step says some values are still being checked while /api/meta counts any unverified rule (and before /api/meta
- * loads). The serif headline is Start's alone (D2). In: /api/meta, /demo/plans.json for the drawing's file and size,
+ * last step gives /api/meta's counts: how many rules are checked against the code text and how many reviewed. The serif headline is Start's alone (D2). In: /api/meta, /demo/plans.json for the drawing's file and size,
  * "?deleted=1" after a check was deleted.  Out: the step 1 answers, saved by BusinessForm, then /plan/.
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -18,13 +17,13 @@ import { DECIDE, DECIDE_TEXT, decideStrip, rulesCheckedWords } from "@/content/v
 const EXAMPLE_PLAN = "cafe_flawed";
 
 
-/** The four steps. The last one says some values are still being checked while /api/meta counts any unverified rule. */
+/** The four steps. The last one gives /api/meta's counts of rules checked against the code text and reviewed. */
 function howSteps(strip: string, checked: string) {
   return [
     { title: "You upload your plan", strip: "You upload your plan", text: "A PDF or a photo of the floor plan. The file is deleted as soon as it is read." },
     { title: "The model reads it", strip: "The model reads it", text: "It notes the rooms, doors, exits and fixtures it can see. It decides nothing." },
     { title: "You confirm", strip: "You confirm", text: "You check each reading against your plan and correct anything that is wrong." },
-    { title: DECIDE, strip, text: `${DECIDE_TEXT} ${checked}` },
+    { title: DECIDE, strip, text: `${DECIDE_TEXT} ${checked}`.trim() },
   ];
 }
 

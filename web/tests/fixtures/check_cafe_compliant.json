@@ -164,205 +164,205 @@
     },
     "findings": [
       {
+        "check_level": "unchecked",
         "citation": "SBC 303.1.1 (assembly use with occupant load under 50 is classified Group B); SBC Chapter 3 for Groups A-2, A-3, B and M",
         "detail": "Your plan holds 106 people. The building code puts a café or restaurant that size in Group A-2.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 3 Occupancy",
         "rule_id": "OCC-1",
         "rule_source": "SBC 2021 303.1.1; SBC 2021 Chapter 3",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Occupancy classification"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Table 1006.2.1 and Section 1006.3",
         "detail": "Your plan shows 3 exits. A space for 106 people needs 2.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-1",
         "rule_source": "SBC 2021 Table 1006.2.1; SBC 2021 1006.3",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exits"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 1013.1",
         "detail": "Your plan shows 3 exit signs. Each of the 2 exits needs one.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "FS-1",
         "rule_source": "SBC 2021 1013.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit signs"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
         "detail": "Your plan shows 2 toilets. A space for 106 people needs 2 (A-2 restaurants: 1 for men and 1 for women).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-1",
         "rule_source": "SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Toilet count"
       },
       {
+        "check_level": "unchecked",
         "citation": "Seattle Municipal Code Title 23 (Land Use Code); SMC 23.47A",
         "detail": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft. A restaurant is generally allowed. This plan is 2,400 sq ft, within the 25,000 sq ft limit. Confirm overlays, pedestrian-street rules and any change-of-use requirement.",
         "fix": "",
         "reviewed_by": "SDCI Zoning review",
         "rule_id": "ZN-1",
         "rule_source": "SMC Title 23",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Zoning: NC2-55 (M)"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 1010.1.2.1",
         "detail": "Every exit door on your plan swings outward. A space for 50 or more people needs exit doors that swing out.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-2",
         "rule_source": "SBC 2021 1010.1.2.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit door swing"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 1010.1.1; ADA 404.2.3",
         "detail": "All 5 doors on your plan are at least 32 in. clear. Each door needs 32 in.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-3",
         "rule_source": "SBC 2021 1010.1.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Door widths"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 1005.3.2",
         "detail": "Your exit doors add up to 108 in. A space for 106 people needs 21.2 in. (106 x 0.2 in.).",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 10 Means of Egress",
         "rule_id": "EG-4",
         "rule_source": "SBC 2021 1005.3.2",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Exit capacity"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 403.5.1",
         "detail": "Every route width on your plan is at least 36 in. An accessible route needs 36 in.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-1",
         "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Aisle and route widths"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
         "detail": "Each restroom on your plan shows a 60 in. turning circle. A wheelchair needs 60 in. to turn.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-2",
         "rule_source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Restroom turning space"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Chapter 11; ADA 226.1",
         "detail": "Your plan marks 12 of 56 seats as accessible. At least 5% of seats need to be.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 11 Accessibility",
         "rule_id": "ADA-4",
         "rule_source": "SBC 2021 Chapter 11; 2010 ADA 226.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Accessible seating"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)",
         "detail": "Your plan shows 2 restroom sinks. This space needs at least 2, one in each toilet room.",
         "fix": "",
         "reviewed_by": "SDCI Ordinance (building code) review, SBC Ch. 29 Plumbing Systems",
         "rule_id": "PL-2",
         "rule_source": "SBC 2021 Table 2902.1",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Restroom sinks"
       },
       {
+        "check_level": "unchecked",
         "citation": "Seattle Mechanical Code 507 (Type I hood over grease- or smoke-producing appliances); Seattle Fire Code 904 (hood fire suppression)",
         "detail": "Your plan shows a Type I hood with fire suppression over the cooking line. Cooking that makes grease or smoke needs one.",
         "fix": "",
         "reviewed_by": "SDCI Mechanical review",
         "rule_id": "MECH-1",
         "rule_source": "SMC 2021 507; SFC 2021 904",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Kitchen hood"
       },
       {
+        "check_level": "unchecked",
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
         "detail": "Your plan shows a hand sink in the food prep area. Food prep needs its own hand sink.",
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-1",
         "rule_source": "King County Board of Health Code Title 5; WAC 246-215",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Handwashing sink"
       },
       {
+        "check_level": "unchecked",
         "citation": "King County Board of Health Code Titles 5 and R5; Washington State Retail Food Code (chapter 246-215 WAC). Plan review by Public Health - Seattle & King County.",
         "detail": "Your plan shows a three-compartment sink. Washing dishes needs one, or a dish machine that Public Health accepts.",
         "fix": "",
         "reviewed_by": "Public Health - Seattle & King County food plan review (separate from SDCI)",
         "rule_id": "HLTH-2",
         "rule_source": "King County Board of Health Code Title 5; WAC 246-215",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Warewashing"
       },
       {
+        "check_level": "unchecked",
         "citation": "SBC 903.2.1.2 (Group A-2)",
         "detail": "Your plan shows sprinklers. This Group A-2 space needs them.",
         "fix": "",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-2",
         "rule_source": "SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Sprinklers"
       },
       {
+        "check_level": "unchecked",
         "citation": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
         "detail": "Your plan shows 3 fire extinguishers. Each floor needs at least one within 75 ft of travel, which this check doesn't measure.",
         "fix": "",
         "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
         "rule_id": "FS-3",
         "rule_source": "SFC 2021 906.1; SFC 2021 906.4",
-        "rule_verified": false,
         "severity": "info",
         "status": "pass",
         "title": "Fire extinguishers"
@@ -423,10 +423,10 @@
         }
       ],
       "calculated_dining_load": 102,
+      "check_level": "unchecked",
       "missing_area": [],
       "missing_use": [],
       "rule_source": "SBC 2021 Table 1004.5",
-      "rule_verified": false,
       "seat_count": 56,
       "total": 106
     },
@@ -435,87 +435,83 @@
         "agency": "Seattle Department of Construction and Inspections (SDCI), Seattle Services Portal",
         "entry_verified": true,
         "id": "building",
-        "name": "Construction permit (addition/alteration; also establishes the use of the space)",
-        "rule_verified": true
+        "name": "Construction permit (addition/alteration; also establishes the use of the space)"
       },
       {
         "agency": "SDCI, issued after the final inspection",
         "entry_verified": true,
         "id": "co",
-        "name": "Certificate of Occupancy",
-        "rule_verified": true
+        "name": "Certificate of Occupancy"
       },
       {
         "agency": "SDCI",
         "entry_verified": true,
         "id": "electrical",
-        "name": "Electrical permit",
-        "rule_verified": true
+        "name": "Electrical permit"
       },
       {
         "agency": "Public Health - Seattle & King County",
         "entry_verified": true,
         "id": "plumbing",
-        "name": "Plumbing, gas and backflow permits",
-        "rule_verified": true
+        "name": "Plumbing, gas and backflow permits"
       },
       {
         "agency": "SDCI",
         "entry_verified": true,
         "id": "mechanical",
-        "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)",
-        "rule_verified": true
+        "name": "Mechanical and refrigeration permits (HVAC, kitchen hood and exhaust)"
       },
       {
         "agency": "Seattle Fire Department",
         "entry_verified": true,
         "id": "hood_fire",
-        "name": "Range-hood fire suppression inspection",
-        "rule_verified": true
+        "name": "Range-hood fire suppression inspection"
       },
       {
         "agency": "Seattle Fire Department",
+        "check_level": "unchecked",
         "entry_verified": true,
         "id": "assembly",
-        "name": "Assembly permit (spaces holding 100 or more people)",
-        "rule_verified": false
+        "name": "Assembly permit (spaces holding 100 or more people)"
       },
       {
         "agency": "SDCI with Seattle Fire Department plan review; Seattle Public Utilities for water availability",
+        "check_level": "unchecked",
         "entry_verified": true,
         "id": "sprinkler",
-        "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate",
-        "rule_verified": false
+        "name": "Sprinkler and fire alarm permits, plus a Water Availability Certificate"
       },
       {
         "agency": "Public Health - Seattle & King County",
         "entry_verified": true,
         "id": "health",
-        "name": "Food service plan review (before construction) and annual food business permit",
-        "rule_verified": true
+        "name": "Food service plan review (before construction) and annual food business permit"
       },
       {
         "agency": "Seattle Public Utilities",
         "entry_verified": true,
         "id": "grease",
-        "name": "Grease trap or interceptor approval (fats, oils and grease program)",
-        "rule_verified": true
+        "name": "Grease trap or interceptor approval (fats, oils and grease program)"
       },
       {
         "agency": "Washington Business Licensing Service; City of Seattle",
         "entry_verified": true,
         "id": "business",
-        "name": "Washington State business license and Seattle business license",
-        "rule_verified": true
+        "name": "Washington State business license and Seattle business license"
       },
       {
         "agency": "SDCI; Seattle Department of Transportation (SDOT) for Street Use",
         "entry_verified": true,
         "id": "sign",
-        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)",
-        "rule_verified": true
+        "name": "Sign permit (and a Street Use permit first if the sign or awning hangs over the sidewalk)"
       }
     ],
+    "rule_levels": {
+      "reviewed": 0,
+      "rules": 21,
+      "transcribed": 0,
+      "unchecked": 21
+    },
     "summary": {
       "business_label": "Café or restaurant",
       "business_type": "cafe_restaurant",

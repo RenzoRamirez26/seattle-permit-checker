@@ -234,32 +234,38 @@ def test_voice_evaluation_scores_and_reports(salon):
 
 
 def test_template_answers_say_when_a_rule_value_is_still_being_checked(salon):
-    """The assistant's template answers claim no more than the pages: every path names an unverified rule's note."""
-    assert any(not f["rule_verified"] for f in salon["findings"])
-    assert agent.spoken_summary(salon).endswith(rules_engine.SOME_UNVERIFIED)
+    """The assistant's template answers claim no more than the pages: every path gives a finding's level, and the
+    summary ends with the rulebook's counts."""
+    assert all(f["check_level"] == "unchecked" for f in salon["findings"])
+    assert agent.spoken_summary(salon).endswith(rules_engine.result_counts_sentence(salon))
+    assert "Some rule values" not in agent.spoken_summary(salon)
     open_hit = agent.template_answer("What about the aisle?", salon)
     assert rules_engine.UNVERIFIED_NOTE in open_hit
     none_open = salon | {"findings": [f for f in salon["findings"] if f["status"] == "pass"]}
     passed = agent.template_answer("Tell me about the toilets and restrooms", none_open)
     hits = [f for f in none_open["findings"] if f["rule_id"].startswith("PL")]
     assert hits and passed.startswith("No issues found there.")
-    assert passed.count(rules_engine.UNVERIFIED_NOTE) == sum(not f["rule_verified"] for f in hits[:2]) > 0
-    checked = salon | {"findings": [f | {"rule_verified": True} for f in salon["findings"]]}
-    assert rules_engine.SOME_UNVERIFIED not in agent.spoken_summary(checked)
-    assert rules_engine.UNVERIFIED_NOTE not in agent.template_answer("What about the aisle?", checked)
-    assert '"rule_verified"' in agent.build_context(salon)
+    assert passed.count(rules_engine.UNVERIFIED_NOTE) == len(hits[:2]) > 0
+    checked = salon | {"findings": [f | {"check_level": "transcribed"} for f in salon["findings"]]}
+    answer = agent.template_answer("What about the aisle?", checked)
+    assert rules_engine.UNVERIFIED_NOTE not in answer and rules_engine.TRANSCRIBED_NOTE in answer
+    reviewed = salon | {"findings": [f | {"check_level": "reviewed", "rule_reviewed_by": "B. Expert, architect",
+                                          "rule_reviewed_on": "2026-12-02"} for f in salon["findings"]]}
+    assert "Reviewed by B. Expert, architect, 2026-12-02." in agent.template_answer("What about the aisle?", reviewed)
+    assert '"check_level"' in agent.build_context(salon) and '"rule_levels"' in agent.build_context(salon)
+    assert agent.check_grounded(agent.template_answer("What about the aisle?", reviewed), reviewed) == []
 
 
 def test_the_permit_answer_carries_may_be_needed_and_the_unchecked_note(rules, load):
     """The template answer names a permit the way the pages do: with May be needed, and with the unchecked note when it
     is listed because of a value still being checked."""
     cafe = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": None}, rules)
-    permits = [p for p in cafe["permits_likely_required"] if p.get("may_be_needed") or p["rule_verified"] is False]
+    permits = [p for p in cafe["permits_likely_required"] if p.get("may_be_needed") or p.get("check_level") == "unchecked"]
     assert permits
     first = cafe | {"permits_likely_required": permits}
     answer = agent.template_answer("Which permits will I need?", first)
     for p in permits[:5]:
         assert p["name"] in answer
     assert answer.count("listed because of a value still being checked against the code") == \
-        sum(p["rule_verified"] is False for p in permits[:5])
+        sum(p.get("check_level") == "unchecked" for p in permits[:5])
     assert answer.count("may be needed: check with the city") == sum(bool(p.get("may_be_needed")) for p in permits[:5])

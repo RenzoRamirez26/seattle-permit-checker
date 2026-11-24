@@ -7,8 +7,13 @@ export type HelpTopic = { id: string; question: string; answer: string; words: s
 export const HELP: HelpTopic[] = [
   {
     id: "what", question: "What does the pre-check look at?",
-    answer: "It reads your floor plan for rooms and their sizes, doors and exits, aisles, restrooms, the kitchen and fire safety, then checks those facts against rules we coded from Seattle's building and plumbing codes, the federal accessibility standards and, for food businesses, King County's food code. Each result says which rules' values are still being checked against the code. It also lists the permits a business like yours usually needs and, when you give an address or a zone, screens the zoning. It checks for a kitchen exhaust hood where there is cooking, but not ventilation rates, structure, energy, electrical or anything outside your space.",
+    answer: "It reads your floor plan for rooms and their sizes, doors and exits, aisles, restrooms, the kitchen and fire safety, then checks those facts against rules we coded from Seattle's building and plumbing codes, the federal accessibility standards and, for food businesses, King County's food code. Each result says how far each rule is checked against the code. It also lists the permits a business like yours usually needs and, when you give an address or a zone, screens the zoning. It checks for a kitchen exhaust hood where there is cooking, but not ventilation rates, structure, energy, electrical or anything outside your space.",
     words: ["look", "check", "what does", "cover", "rules", "codes"],
+  },
+  {
+    id: "rule-levels", question: "How do you check your rules?",
+    answer: "Every rule has one of three levels: still being checked (coded from the code but not yet compared with the code text), checked against the code text by our team, or reviewed by an expert, with their name, role and the date. A finding takes the lowest level of the rules it uses. The level never changes a result. Help lists how many rules are at each level today, and each finding on your results says its level.",
+    words: ["how do you check", "verified", "accurate", "expert", "reviewed", "transcribed", "trust the rules", "check level"],
   },
   {
     id: "city", question: "Is this a City of Seattle service?",

@@ -52,41 +52,44 @@ Check each of these before presenting it as authoritative.
 
 ## Which rules are checked against the code
 
-`seattle.json` has a `rules` section: one entry per rule id the checker reports, with `verified` (true or false),
-`source` (code edition and section) and the `evidence` for that choice. A rule is `verified: true` only when every value
-it uses is listed under "Checked against Seattle's published text" above; every other rule is false. Each finding
-carries `rule_verified` and `rule_source`; the website, both PDFs, the Streamlit demo and the assistant say "This rule's
-value is still being checked against the code." beside a finding whose rule is false. `verified` never changes a
-finding's status. `tests/test_rules.py` fails if a rule lacks either field, or if a verified rule names a section that
-is not listed as checked.
+`seattle.json` has a `rules` section: one entry per rule id the checker reports, with `check_level` (`unchecked`,
+`transcribed` or `reviewed`), `source` (code edition and section) and the `evidence`. **All 21 rules are
+`unchecked`; none is reviewed.** How a rule moves up, and the table of every rule with its level and dependencies, is
+in [`verifying-rules.md`](verifying-rules.md). The sections already located in the code PDFs are recorded in
+`_meta.sections_read`; a transcribed rule may only name sections in that record. Each finding carries `check_level`,
+`rule_source` and, when reviewed, `rule_reviewed_by` and `rule_reviewed_on`. The level never changes a finding's
+status.
 
-| Rule | Own values verified | Depends on | Counts as checked | Source | Evidence |
+The table below keeps the evidence for each rule's values. "Read from the PDF" means an automated session found the
+section, not that a person compared and signed it.
+
+| Rule | Values read from the code PDF | Depends on | Level | Source | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| OL-0 | no | - | no | SBC 2021 Table 1004.5 | Table 1004.5 was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources), but the 15 sq ft per person used for waiting areas is from memory (_meta.verify). |
-| OCC-1 | no | OL-0 | no | SBC 2021 303.1.1; SBC 2021 Chapter 3 | The occupancy group for each business type is from memory (_meta.verify). Group B under 50 occupants comes from an SDCI review comment, not the code text. |
-| EG-1 | no | OL-0 | no | SBC 2021 Table 1006.2.1; SBC 2021 1006.3 | One exit up to 49 occupants was read from Table 1006.2.1, but three exits above 500 occupants is from memory (_meta.verify). |
-| EG-2 | yes | OL-0 | no | SBC 2021 1010.1.2.1 | Door swing at 50 occupants was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). |
-| EG-3 | no | - | no | SBC 2021 1010.1.1 | The 32 in. door clear width was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources), but its citation also names ADA 404.2.3, which was entered from memory. Unchecked until someone reads that section. |
-| EG-4 | yes | OL-0 | no | SBC 2021 1005.3.2 | 0.2 in. of exit width per occupant was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). |
-| FS-1 | yes | EG-1 | no | SBC 2021 1013.1 | Exit signs not required where only one exit is required (1013.1 exception 1) was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). |
-| FS-2 | yes | OL-0, OCC-1 | no | SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7 | The A-2, A-3 and M sprinkler triggers were read from the SBC Chapter 9 PDF (_meta.checked_against_city_sources). |
-| FS-3 | no | - | no | SFC 2021 906.1; SFC 2021 906.4 | The fire extinguisher section numbers are from memory (_meta.verify). |
-| ADA-1 | no | - | no | SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1 | The 36 in. accessible route and the ADA section numbers are from memory, and the A117.1 edition was not confirmed (_meta.verify). |
-| ADA-2 | no | - | no | SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1 | The 60 in. turning circle and the ADA section numbers are from memory (_meta.verify). |
-| ADA-3 | no | - | no | SBC 2021 1010.1.1 | Uses the 32 in. door clear width read from the SBC Chapter 10 PDF, but cites the same ADA 404.2.3, entered from memory. Unchecked until someone reads that section. |
-| ADA-4 | no | - | no | SBC 2021 Chapter 11; 2010 ADA 226.1 | The 5% accessible seating and the ADA section number are from memory (_meta.verify). |
-| PL-1 | no | OL-0, OCC-1 | no | SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2 | Read from the SBC Chapter 29 PDF, but the business and mercantile rows of Table 2902.1 were garbled in the extract and still need a person to re-read them (docs/rulebook.md). |
-| PL-2 | no | OL-0, OCC-1 | no | SBC 2021 Table 2902.1 | Lavatory ratios come from the same table; the business and mercantile rows still need re-reading (docs/rulebook.md). |
-| PL-3 | no | OCC-1 | no | SBC 2021 Table 2902.1 | The service sink is struck out of Seattle's table, so this rule does not run in Seattle; nothing confirms the row's other uses. |
-| MECH-1 | no | - | no | SMC 2021 507; SFC 2021 904 | The kitchen hood section numbers are from memory (_meta.verify). |
-| HLTH-1 | no | - | no | King County Board of Health Code Title 5; WAC 246-215 | The food code citation for sinks is from memory (_meta.verify). |
-| HLTH-2 | no | - | no | King County Board of Health Code Title 5; WAC 246-215 | The food code citation for sinks is from memory (_meta.verify). |
-| HLTH-3 | no | - | no | King County Board of Health Code Title 5; WAC 246-215 | The food code citation for sinks is from memory (_meta.verify). |
-| ZN-1 | no | - | no | SMC Title 23 | Neighborhood Residential limits were read from SMC 23.44.020.E, but the status of most other zones and of bars and gyms in each zone is from memory (_meta.verify). |
+| OL-0 | no | - | unchecked | SBC 2021 Table 1004.5 | Table 1004.5 was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources), but the 15 sq ft per person used for waiting areas is from memory (_meta.verify). |
+| OCC-1 | no | OL-0 | unchecked | SBC 2021 303.1.1; SBC 2021 Chapter 3 | The occupancy group for each business type is from memory (_meta.verify). Group B under 50 occupants comes from an SDCI review comment, not the code text. |
+| EG-1 | no | OL-0 | unchecked | SBC 2021 Table 1006.2.1; SBC 2021 1006.3 | One exit up to 49 occupants was read from Table 1006.2.1, but three exits above 500 occupants is from memory (_meta.verify). |
+| EG-2 | yes | OL-0 | unchecked | SBC 2021 1010.1.2.1 | Door swing at 50 occupants was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). |
+| EG-3 | no | - | unchecked | SBC 2021 1010.1.1 | The 32 in. door clear width was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources), but its citation also names ADA 404.2.3, which was entered from memory. Unchecked until someone reads that section. |
+| EG-4 | yes | OL-0 | unchecked | SBC 2021 1005.3.2 | 0.2 in. of exit width per occupant was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). |
+| FS-1 | yes | EG-1 | unchecked | SBC 2021 1013.1 | Exit signs not required where only one exit is required (1013.1 exception 1) was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). |
+| FS-2 | yes | OL-0, OCC-1 | unchecked | SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7 | The A-2, A-3 and M sprinkler triggers were read from the SBC Chapter 9 PDF (_meta.checked_against_city_sources). |
+| FS-3 | no | - | unchecked | SFC 2021 906.1; SFC 2021 906.4 | The fire extinguisher section numbers are from memory (_meta.verify). |
+| ADA-1 | no | - | unchecked | SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1 | The 36 in. accessible route and the ADA section numbers are from memory, and the A117.1 edition was not confirmed (_meta.verify). |
+| ADA-2 | no | - | unchecked | SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1 | The 60 in. turning circle and the ADA section numbers are from memory (_meta.verify). |
+| ADA-3 | no | - | unchecked | SBC 2021 1010.1.1 | Uses the 32 in. door clear width read from the SBC Chapter 10 PDF, but cites the same ADA 404.2.3, entered from memory. Unchecked until someone reads that section. |
+| ADA-4 | no | - | unchecked | SBC 2021 Chapter 11; 2010 ADA 226.1 | The 5% accessible seating and the ADA section number are from memory (_meta.verify). |
+| PL-1 | no | OL-0, OCC-1 | unchecked | SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2 | Read from the SBC Chapter 29 PDF, but the business and mercantile rows of Table 2902.1 were garbled in the extract and still need a person to re-read them (docs/rulebook.md). |
+| PL-2 | no | OL-0, OCC-1 | unchecked | SBC 2021 Table 2902.1 | Lavatory ratios come from the same table; the business and mercantile rows still need re-reading (docs/rulebook.md). |
+| PL-3 | no | OCC-1 | unchecked | SBC 2021 Table 2902.1 | The service sink is struck out of Seattle's table, so this rule does not run in Seattle; nothing confirms the row's other uses. |
+| MECH-1 | no | - | unchecked | SMC 2021 507; SFC 2021 904 | The kitchen hood section numbers are from memory (_meta.verify). |
+| HLTH-1 | no | - | unchecked | King County Board of Health Code Title 5; WAC 246-215 | The food code citation for sinks is from memory (_meta.verify). |
+| HLTH-2 | no | - | unchecked | King County Board of Health Code Title 5; WAC 246-215 | The food code citation for sinks is from memory (_meta.verify). |
+| HLTH-3 | no | - | unchecked | King County Board of Health Code Title 5; WAC 246-215 | The food code citation for sinks is from memory (_meta.verify). |
+| ZN-1 | no | - | unchecked | SMC Title 23 | Neighborhood Residential limits were read from SMC 23.44.020.E, but the status of most other zones and of bars and gyms in each zone is from memory (_meta.verify). |
 
-`depends_on` names the rules whose results a rule uses. A finding counts as checked only when its own rule and every
-rule it depends on are verified, so a sprinkler finding built on an occupant load with an unverified factor says its
-value is still being checked. The occupant-load table in the PDFs carries the same mark (OL-0).
+`depends_on` names the rules whose results a rule uses. A finding's level is the lowest of its own rule and every
+rule it depends on, so a sprinkler finding built on an unchecked occupant
+load says its value is still being checked. The occupant-load table in the PDFs carries the same mark (OL-0).
 
 ## Values used only in fix text
 
@@ -109,5 +112,6 @@ Travel distance and common path, corridor ratings, stairs, structural, energy, v
 
 1. Change the number in `seattle.json`, not in Python.
 2. Add where it came from to `_meta.checked_against_city_sources`, or leave it under `_meta.verify`.
-3. Update the table above, and the rule's `verified`, `source` and `evidence` in the `rules` section.
+3. Update the table above, and the rule's `source` and `evidence` in the `rules` section. Its `check_level` only goes
+   up by the procedure in [`verifying-rules.md`](verifying-rules.md).
 4. Run `python -m pytest`. If a test fails, the test was pinning the old number: change it on purpose, in the same pull request.
