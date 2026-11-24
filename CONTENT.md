@@ -36,6 +36,11 @@ Say what is not yet checked, once, next to what it affects (rules 4 and 11):
 - once beside the results and on the first page of each PDF: "Some rule values are still being checked against the
   code."
 - on Start, while any rule is unverified: "Seattle's rules decide (some values still being checked)".
+- under the occupant-load table in the PDFs: "Some of these square-feet-per-person values are still being checked
+  against the code."
+
+A rule that uses another rule's result (the occupant load, the occupancy group) counts as checked only when that rule
+is checked too.
 
 The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unverified`); the pages only show the words.
 
@@ -59,3 +64,5 @@ The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unver
 | You are entering the measurements yourself. Leave anything you are not sure of empty. | You're entering the measurements yourself. Leave anything you're not sure of empty. | 10 |
 | No plan has been read in this browser tab yet. | We haven't read a plan in this browser tab yet. | 6 |
 | We're not sure we read this right. (under every empty reading) | We couldn't read this from your plan. | 2 |
+| These would stop a permit review. | These are likely to stop a permit review. | claims no larger than the evidence |
+| Anything left as Not sure is listed under Check with the city. | A value left as Not sure is never counted as meeting a rule. | claims no larger than the evidence |

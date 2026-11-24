@@ -12,14 +12,19 @@ and the empty-reading line on Answers). This re-score was done by the agent that
 rechecked L2, F2, S1, V1, V3 and L3 against the new screenshots and tests and carried the other items over. Result:
 24 of 26 pass. Two remain: T5 and L4, which both wait on a backend field for unverified rule values.
 
+**Rule verification (branch rule-verification), 24 November 2026.** After the backend field was added, a separate
+reviewing agent that had not built it re-scored all 26 items from the screenshots, the code, both generated PDFs and
+the assistant's template answers: **23 of 26 passed; T4, T5 and L4 failed.** The fixes made after that scoring are
+noted in each row; they were not re-scored by a separate agent. Standing now: T5 fixed; T4 and L4 still open.
+
 | # | Item | Source | design-v3 |
 |---|---|---|---|
 | **Trust** | | | |
 | T1 | No approval wording and no green tick anywhere | CONTENT.md rule 11; test (banned words) | Fail at scoring: the demo plan "Café that passes" and the zoning word "Likely allowed here" with a tick. Fixed after: "Café with no issues found", "No zoning issue found" |
 | T2 | The disclaimer sits beside every result and in the PDF | decisions.md (disclaimer beside results) | Pass |
 | T3 | "Check with the city" has its own calm treatment, distinct from Fix and from No issues found | decisions.md (shape-coded icons) | Pass |
-| T4 | Each finding shows the measurement, the rule and the code section | CLAUDE.md (every finding has a citation) | Pass |
-| T5 | Rules not yet checked against the code are marked as such | CLAUDE.md (`_meta.verify`) | **Fail**: the site, API and PDF do not yet say which rule values are unverified (`_meta.verify`); TODO in decisions.md |
+| T4 | Each finding shows the measurement, the rule and the code section | CLAUDE.md (every finding has a citation) | **Fail** at the rule-verification scoring: several No issues found rows give only the observation, not the requirement ("Your plan shows 3 exit signs."), and the Zoning tab had no code section. Fixed after: the Zoning tab shows its code section. Still open: the No issues found wording comes from the engine's pass details |
+| T5 | Rules not yet checked against the code are marked as such | CLAUDE.md (`_meta.verify`) | Fail at the rule-verification scoring: rules marked checked still rested on unchecked inputs (FS-2 on the occupant load), and the Zoning tab, the occupant-load table and the assistant's template answers had no mark. Fixed after: `depends_on` in the rulebook, the note on the Zoning tab, the occupant-load table in the PDFs and Markdown, and every template answer. Tests: test_rules.py, test_pdf.py, test_agent_voice.py, rule-verification.spec.ts |
 | T6 | Nothing looks official: no seals, stamps or city colours | design brief section 1 | Pass |
 | **Flow** | | | |
 | F1 | Upload, a few questions, confirm, results | design brief | Pass |
@@ -44,4 +49,4 @@ rechecked L2, F2, S1, V1, V3 and L3 against the new screenshots and tests and ca
 | L1 | Says who it is for, what it does, and that it is a pre-check | CONTENT.md | Pass |
 | L2 | "How it works" is high on the page | design brief | Fail at scoring: "How it works" sat below the form, in the order the v3 spec set. Fixed after: the four steps as one line directly under the intro sentence; the full section stays below the form. Test: flow.spec.ts (Start) |
 | L3 | No copy slop (em-dash chains, "leverage", marketese) | plain-language guides | Pass |
-| L4 | Claims no larger than the evidence | decisions.md (proof figures) | **Fail**: "Seattle's rules decide" was larger than the evidence while values are unverified (T5). Softened after: "Some of their values are still being checked against the code." |
+| L4 | Claims no larger than the evidence | decisions.md (proof figures) | **Fail** at the rule-verification scoring. Fixed after: "These would stop a permit review." is now "These are likely to stop a permit review."; the Answers intro no longer says every Not sure value is listed under Check with the city; Help says each result names the rules still being checked; FS-2 and the other load-based findings are marked. Still open: "We couldn't read this from your plan." sits on groups that were mostly read, and "Seattle's rules decide" / "Run Seattle's rules" credit the city with the team's coding (wording the owner chose) |

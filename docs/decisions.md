@@ -11,7 +11,10 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 - **Decision:** The rulebook gives every rule id a `verified` (true or false) and a `source` (code edition and
   section), plus the `evidence` for the choice. A rule is true only when every value it uses is listed in
   `_meta.checked_against_city_sources`: EG-2, EG-3, EG-4, FS-1, FS-2 and ADA-3 (6 of 21). The other 15 are false.
-  Each finding carries `rule_verified` and `rule_source` from the engine through the API. Where `rule_verified` is
+  `depends_on` names the rules whose results a rule uses (the occupant load OL-0, the occupancy group OCC-1, the exit
+  count EG-1). A finding counts as checked only when its rule and every rule it depends on are verified
+  (`rules_engine.rule_checked`). Today that leaves EG-3 and ADA-3, the door widths. Each finding carries
+  `rule_verified` and `rule_source` from the engine through the API, and the occupant-load table carries its own. Where `rule_verified` is
   false, the website shows "This rule's value is still being checked against the code." after the code section, in
   muted body text with no new colour or icon. The PDFs, the Streamlit demo and the assistant's answers say it too.
   The In short band and the first page of each PDF say "Some rule values are still being checked against the code."
@@ -27,6 +30,10 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
   - A new colour or icon, which would add a fourth status look.
   - Letting `verified` lower a finding to "Check with the city". The status comes from the plan and the rule; whether
     the rule was read from the code is a separate fact.
+- **Corrected after the independent re-score:** the first version flagged rules on their own values only. FS-2
+  ("Add a sprinkler system") showed no note although the 106-person load behind it uses a factor from memory; without
+  the counter's 16 people the load is 90, under the trigger. Dependencies now count, the Zoning tab and the
+  assistant's template answers carry the note, and the PDFs mark the occupant-load table.
 - **Unknown is careful:** a finding without the field, a rulebook with no `rules` section, or a Start page whose
   `/api/meta` has not loaded all get the "still being checked" wording.
 - **Source:** design checklist (T5, L4); CLAUDE.md (`_meta.verify`); `docs/rulebook.md`.
