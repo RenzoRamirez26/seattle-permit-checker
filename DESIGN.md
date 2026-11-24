@@ -55,7 +55,7 @@ onto these tokens only (`background` paper, `foreground` ink, `primary` blue, `r
 | `text-page` | 32 / 40 px phones, 40 / 48 px from 1024 px | The `h1`, which is the page's question. |
 | Measure | at most about 80 characters | Comfortable reading; the 7-column question column gives about 75. |
 | Figures | `tabular-nums` wherever numbers are compared | Columns of numbers line up. |
-| Alignment | left; no centred paragraphs, no all-capitals. The one exception: the results page's step line and `h1` are centred **[owner, 24 Nov 2026]** | Easier to read and scan; the centred results heading marks the end of the flow. |
+| Alignment | left; no centred paragraphs, no all-capitals. The one exception: the results page's step line and `h1` are centred over the results column **[owner, 24 Nov 2026]** | Easier to read and scan; the centred results heading marks the end of the flow. |
 
 ## Spacing
 
@@ -86,7 +86,8 @@ and ending on a column edge.
 - Results **[owner, 24 Nov 2026]**: five sections in one column at most 896 px wide: the heading and the summary
   tabs; "Fix before you apply (n)" in full; the "Check with the city / OK" tabs; the permits; Seattle's records; then
   the rest. The sticky summary column is gone; its three parts are tabs. From 1024 px the "On this page" rail
-  (220 px) sits to the left of that column with a 48 px gap, the two centred together.
+  (220 px) sits to the right of that column with a 48 px gap, the two centred together (`.results-frame`). The
+  step line and `h1` use the same frame, so they are centred over the results column, not the whole page.
 - Start: text-only in version 1, in columns 1 to 7 like the question pages. **[D1, on hold]** Only if the
   owner confirms the drawing's rights: heading and text in columns 1 to 6, the drawing in 6 to 12; under the text on phones.
 
@@ -119,9 +120,9 @@ landmark labelled "On this page".
   screen readers. Sections still to come are plain `ink`. Each item is at least 44 px tall.
 - A section is current once its top passes a line 30% of the way down the window, or when the page is scrolled to
   its end. The position comes from IntersectionObserver; nothing animates (see Motion).
-- Choosing an item scrolls to the section and moves focus to its heading (the `h1` for the first; for the tabs
-  section, its selected tab, since that section's heading is for screen readers only).
-- From 1024 px: a sticky vertical rail, 220 px wide, left of the results column.
+- Choosing an item scrolls to the section and moves focus to its heading: the `h1` "Your pre-check results" for
+  the first, and the visible `h2` of every other section, including "Check with the city / OK" above its tabs.
+- From 1024 px: a sticky vertical rail, 220 px wide, right of the results column.
 - Below 1024 px: no rail. A compact bar fixed at the bottom left, 16 px from the edges and 96 px from the right so
   it sits clear of the Ask button: "Section 2 of 5 · Next: Check with the city / OK". It opens the full list in a React
   Aria popover above it. The page's `scroll-padding-bottom` (96 px) keeps a focused control clear of both the bar

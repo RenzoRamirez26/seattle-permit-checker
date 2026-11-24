@@ -227,6 +227,16 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   const rail = page.getByRole("navigation", { name: "On this page" });
   await expect(rail).toBeVisible();
   expect((await rail.boundingBox())!.width).toBe(220);
+  for (const width of [1024, 1280, 1600]) {
+    // The rail sits right of the results column, and the heading is centred over that column.
+    await page.setViewportSize({ width, height: 900 });
+    const column = (await page.locator("#section-results").boundingBox())!;
+    const railBox = (await rail.boundingBox())!;
+    const heading = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+    expect(railBox.x, `rail right of the column at ${width}`).toBeGreaterThanOrEqual(column.x + column.width + 47);
+    expect(Math.abs(heading.x + heading.width / 2 - (column.x + column.width / 2)), `heading centred on the column at ${width}`).toBeLessThanOrEqual(1);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.getByRole("button", { name: /^On this page:/ })).toBeHidden();        // the compact bar is for phones
   await expect(rail.getByTestId("sections-seen")).toHaveText("0 of 5 sections seen");
   expect((await railStates(page))[0]).toEqual(["Your pre-check results", "current", "location", false, false]);
@@ -255,7 +265,7 @@ test("On this page at 1280 px: marks the current section and the ones seen, jump
   await expect(rail.getByTestId("sections-seen")).toHaveText("1 of 5 sections seen");
 
   await rail.getByRole("link", { name: "Check with the city / OK" }).click();
-  await expect(page.getByRole("tab", { name: "Check with the city (2)" })).toBeFocused();
+  await expect(page.getByRole("heading", { level: 2, name: "Check with the city / OK" })).toBeFocused();
   await rail.getByRole("link", { name: "Your pre-check results" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toBeFocused();
   await expect(rail.getByTestId("sections-seen")).toHaveText("0 of 5 sections seen");

@@ -9,17 +9,26 @@ export function PageShell({ step, back, title, children, wide = false, center = 
   title: React.ReactNode;
   children?: React.ReactNode;
   wide?: boolean;
-  /** The step line and the h1 centred (the results page only). */
+  /** The step line and the h1 centred over the results column (the results page only; see .results-frame). */
   center?: boolean;
 }) {
   return (
     <div className="page-grid pt-6">
       <div className={wide ? "col-span-full min-w-0" : "col-question"}>
         {back ? <BackLink href={back} /> : null}
-        <div className={center ? "mt-6 flex flex-col items-center gap-2 text-center" : "mt-6 flex flex-col gap-2"}>
-          {step ? <StepLine step={step} /> : null}
-          <PageHeading>{title}</PageHeading>
-        </div>
+        {center ? (
+          <div className="results-frame mt-6">
+            <div className="results-column flex flex-col items-center gap-2 text-center">
+              {step ? <StepLine step={step} /> : null}
+              <PageHeading>{title}</PageHeading>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 flex flex-col gap-2">
+            {step ? <StepLine step={step} /> : null}
+            <PageHeading>{title}</PageHeading>
+          </div>
+        )}
       </div>
       <div className={wide ? "col-span-full mt-8 min-w-0" : "col-question mt-8"}>{children}</div>
     </div>

@@ -150,6 +150,15 @@
     text-wrap: balance;
   }
   .measure { max-width: 80ch; }
+  /* The results page: the results column (at most 896 px) and, from 1024 px, the 220 px "On this page" rail to its
+     right with a 48 px gap. The page heading uses the same frame, so it is centred over the results column. */
+  .results-frame { width: 100%; max-width: calc(56rem + 48px + 220px); margin-inline: auto; min-width: 0; }
+  .results-column { width: 100%; max-width: 56rem; margin-inline: auto; min-width: 0; }
+  @media (min-width: 64rem) {
+    .results-frame { display: grid; grid-template-columns: minmax(0, 1fr) 220px; column-gap: 48px; }
+    .results-frame > .results-column { grid-column: 1; grid-row: 1; }
+    .results-frame > .results-rail { grid-column: 2; grid-row: 1; }
+  }
   .nums { font-variant-numeric: tabular-nums; }
 }
 

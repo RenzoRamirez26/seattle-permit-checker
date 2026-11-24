@@ -5,7 +5,7 @@
  * Out: a nav landmark that marks the current section (active tint, aria-current="location"), the sections already
  * scrolled past (a check icon and "seen" for screen readers), and the ones still to come (plain), with "2 of 5 sections
  * seen" at the top. Choosing a section jumps there and moves focus to its heading.
- * At 1024 px and wider it is a sticky rail about 220 px wide; below that, a compact bar at the bottom left, clear of
+ * At 1024 px and wider it is a sticky rail 220 px wide, right of the results column; below that, a compact bar at the bottom left, clear of
  * the Ask button, that opens the same list in a popover. The position comes from IntersectionObserver. Nothing moves.
  */
 import { useEffect, useState } from "react";
@@ -109,7 +109,7 @@ function SectionList({ sections, current, onJump }: { sections: PageSection[]; c
 /** The rail beside the results (1024 px and up). */
 export function OnThisPageRail({ sections, current }: { sections: PageSection[]; current: number }) {
   return (
-    <nav aria-label="On this page" className="hidden lg:block">
+    <nav aria-label="On this page" className="results-rail hidden lg:block">
       <div className="sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto overscroll-contain">
         <SectionList sections={sections} current={current} onJump={(i) => jumpTo(sections[i])} />
       </div>

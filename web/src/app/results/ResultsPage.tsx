@@ -132,8 +132,7 @@ export function Results({ check }: { check: Check }) {
   const sections: PageSection[] = [
     { id: "section-results", label: "Your pre-check results", short: "Your pre-check results", target: () => document.getElementById("page-heading") },
     { id: "section-fix", label: `${look(FIX).group} (${counts[FIX]})`, short: look(FIX).group, target: () => document.getElementById("fix-heading") },
-    { id: "section-tabs", label: TABS_LABEL, short: TABS_LABEL,
-      target: () => document.querySelector<HTMLElement>("#section-tabs [role=tab][aria-selected=true]") },
+    { id: "section-tabs", label: TABS_LABEL, short: TABS_LABEL, target: () => document.getElementById("tabs-heading") },
     { id: "section-permits", label: "Permits and approvals to expect", short: "Permits and approvals", target: () => document.getElementById("permits") },
     { id: "section-records", label: "What Seattle\u2019s records show about businesses like yours", short: "Seattle\u2019s records",
       target: () => document.getElementById("records") },
@@ -141,10 +140,10 @@ export function Results({ check }: { check: Check }) {
   const current = useCurrentSection(sections.map((x) => x.id), "results-end");
 
   return (
-    <div className="mx-auto w-full max-w-[calc(220px+48px+56rem)] min-w-0 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12">
-      <OnThisPageRail sections={sections} current={current} />
+    <div className="results-frame">
       <OnThisPageBar sections={sections} current={current} />
-    <div className="flex w-full max-w-4xl min-w-0 flex-col gap-12">
+      <OnThisPageRail sections={sections} current={current} />
+    <div className="results-column flex min-w-0 flex-col gap-12">
       <section id="section-results" aria-labelledby="summary-tabs" className="flex flex-col">
         <h2 id="summary-tabs" className="sr-only">Summary</h2>
         <TabRow label="Summary" selected={summaryTab} onSelect={setSummaryTab} items={[
@@ -161,8 +160,8 @@ export function Results({ check }: { check: Check }) {
         <FindingList items={byStatus[FIX]} empty={look(FIX).empty} />
       </section>
 
-      <section id="section-tabs" aria-labelledby="tabs-heading" className="flex flex-col">
-        <h2 id="tabs-heading" className="sr-only">{TABS_LABEL}</h2>
+      <section id="section-tabs" aria-labelledby="tabs-heading" className="flex flex-col gap-4">
+        <h2 id="tabs-heading" tabIndex={-1} className="m-0 text-section-heading">{TABS_LABEL}</h2>
         <TabRow label={TABS_LABEL} selected={findingsTab} onSelect={(k) => setFindingsTab(k as Status)}
           items={TAB_GROUPS.map((st) => ({
             id: st, status: st, label: `${look(st).group} (${counts[st]})`,

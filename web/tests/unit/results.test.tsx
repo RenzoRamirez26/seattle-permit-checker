@@ -74,11 +74,13 @@ describe("the results page", () => {
   it("lists the five sections in order in the On this page landmark", () => {
     render(<Results check={flawed()} />);
     const navs = screen.getAllByRole("navigation", { name: "On this page" });
-    const items = within(navs[0]).getAllByRole("link").map((a) => a.textContent);
+    expect(navs).toHaveLength(2);                                     // the compact bar (phones) and the rail (wide)
+    const rail = navs.find((n) => within(n).queryAllByRole("link").length)!;
+    const items = within(rail).getAllByRole("link").map((a) => a.textContent);
     expect(items).toEqual(["Your pre-check results", "Fix before you apply (11)", "Check with the city / OK",
       "Permits and approvals to expect", "What Seattle’s records show about businesses like yours"]);
-    expect(within(navs[0]).getAllByRole("link")[0].getAttribute("aria-current")).toBe("location");
-    expect(within(navs[0]).getByText("0 of 5 sections seen")).toBeTruthy();
+    expect(within(rail).getAllByRole("link")[0].getAttribute("aria-current")).toBe("location");
+    expect(within(rail).getByText("0 of 5 sections seen")).toBeTruthy();
   });
 
   it("keeps the selected tabs for this check across a refresh", () => {
