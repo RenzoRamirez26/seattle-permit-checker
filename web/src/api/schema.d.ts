@@ -730,8 +730,13 @@ export interface components {
             /** Code Basis */
             code_basis: string;
             /**
+             * Code Edition
+             * @description The code edition the rules follow, in a few words, for the site's footer (_meta.code_edition), e.g. "2021 Seattle Building Code".
+             */
+            code_edition: string;
+            /**
              * Edition Date
-             * @description The rulebook's edition date (_meta.edition_date), for the site's footer. null while the rulebook still holds the placeholder.
+             * @description The date the code edition the rulebook follows took effect in Seattle (_meta.edition_date, YYYY-MM-DD), for the site's footer. null while the rulebook still holds the placeholder.
              */
             edition_date: string | null;
             /**

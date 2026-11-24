@@ -82,20 +82,26 @@ def test_meta_lists_what_the_form_needs(api):
                               "max_history_turns": 6, "check_days": 30, "max_audio_mb": 2, "max_audio_seconds": 30}
 
 
-def test_meta_gives_the_rulebook_edition_date_only_once_the_owner_has_set_it(api, monkeypatch):
-    """Q2: the footer's date comes from _meta.edition_date. While it is the placeholder the API sends null, never "TODO"."""
-    assert api_main.rules()["_meta"]["edition_date"].startswith("TODO")
+def test_meta_gives_the_rulebook_edition_and_the_date_it_took_effect(api):
+    """Q2, #29: the footer reads the edition and its effective date from _meta. SDCI: the 2021 Seattle codes took effect
+    on November 15, 2024 (docs/rulebook.md, Edition date)."""
+    meta = api_main.rules()["_meta"]
+    assert meta["edition_date"] == "2024-11-15" and meta["code_edition"] == "2021 Seattle Building Code"
+    assert any("November 15, 2024" in s and "2021-seattle-code-adoption" in s for s in meta["checked_against_city_sources"])
     rulebook = api.get("/api/meta").json()["rulebook"]
-    assert rulebook == {"edition_date": None, "code_basis": api_main.rules()["_meta"]["code_basis"],
-                        **api_main.rule_counts(api_main.rules())}
-    assert "TODO" not in api.get("/api/meta").text
-
-    dated = json.loads(json.dumps(api_main.rules()))
-    dated["_meta"]["edition_date"] = "2026-11-01"
-    monkeypatch.setattr(api_main, "rules", lambda: dated)
-    assert api.get("/api/meta").json()["rulebook"]["edition_date"] == "2026-11-01"
+    assert rulebook == {"edition_date": "2024-11-15", "code_edition": "2021 Seattle Building Code",
+                        "code_basis": meta["code_basis"], **api_main.rule_counts(api_main.rules())}
     spec = api.get("/openapi.json").json()["components"]["schemas"]
-    assert "edition_date" in spec["Rulebook"]["properties"] and "rulebook" in spec["Meta"]["required"]
+    assert {"edition_date", "code_edition"} <= set(spec["Rulebook"]["properties"]) and "rulebook" in spec["Meta"]["required"]
+
+
+def test_meta_sends_no_edition_date_while_the_rulebook_holds_the_placeholder(api, monkeypatch):
+    """Q2: a placeholder date gives null, so the word TODO never reaches a page."""
+    placeholder = json.loads(json.dumps(api_main.rules()))
+    placeholder["_meta"]["edition_date"] = "TODO: the owner sets this date"
+    monkeypatch.setattr(api_main, "rules", lambda: placeholder)
+    assert api.get("/api/meta").json()["rulebook"]["edition_date"] is None
+    assert "TODO" not in api.get("/api/meta").text
 
 
 def test_docs_page_and_contract(api):

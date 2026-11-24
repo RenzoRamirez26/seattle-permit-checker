@@ -29,10 +29,21 @@ for (const [path, heading] of ROUTES) {
   });
 }
 
-test("the footer shows the rulebook's basis from /api/meta and no date while it is the placeholder", async ({ page }) => {
+test("the footer shows the code edition and the date it took effect, both from /api/meta (#29)", async ({ page }) => {
   await page.goto("/");
   const footer = page.getByRole("contentinfo");
-  await expect(footer).toContainText("2021 Seattle Building Code");
+  await expect(footer).toContainText("Rules based on the 2021 Seattle Building Code, effective November 15, 2024.");
+  await expect(footer.locator("time")).toHaveAttribute("datetime", "2024-11-15");
+});
+
+test("the footer shows no date while the rulebook holds the placeholder", async ({ page }) => {
+  await page.route("**/api/meta", async (route) => {
+    const meta = await (await route.fetch()).json();
+    await route.fulfill({ json: { ...meta, rulebook: { ...meta.rulebook, edition_date: null } } });
+  });
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+  await expect(footer).toContainText("Rules based on the 2021 Seattle Building Code.");
   await expect(footer.locator("time")).toHaveCount(0);
 });
 

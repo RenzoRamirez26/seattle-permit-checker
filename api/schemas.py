@@ -132,8 +132,11 @@ class Limits(BaseModel):
 
 
 class Rulebook(BaseModel):
-    edition_date: Optional[str] = Field(description="The rulebook's edition date (_meta.edition_date), for the site's footer. "
+    edition_date: Optional[str] = Field(description="The date the code edition the rulebook follows took effect in Seattle "
+                                                    "(_meta.edition_date, YYYY-MM-DD), for the site's footer. "
                                                     "null while the rulebook still holds the placeholder.")
+    code_edition: str = Field(description="The code edition the rules follow, in a few words, for the site's footer "
+                                          "(_meta.code_edition), e.g. \"2021 Seattle Building Code\".")
     code_basis: str
     rules: int = Field(description="How many rules the rulebook lists (rulebook: rules).")
     unchecked: int = Field(description="How many rules are unchecked: a value, or a rule they depend on, is not yet "
