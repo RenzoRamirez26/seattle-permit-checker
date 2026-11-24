@@ -23,7 +23,7 @@ test("results: each finding on an unverified rule says so after its code section
   await page.getByRole("button", { name: "Run the check" }).click();
   await expect(page.getByTestId("counts")).toBeVisible();
   const id = new URL(page.url()).searchParams.get("check")!;
-  const findings: { rule_verified: boolean; citation: string; status: string }[] =
+  const findings: { rule_id: string; rule_verified: boolean; citation: string; status: string }[] =
     (await (await request.get(`${API}/api/checks/${id}`)).json()).result.findings;
   expect(findings.some((f) => f.rule_verified) && findings.some((f) => !f.rule_verified)).toBe(true);
 
@@ -51,6 +51,14 @@ test("results: each finding on an unverified rule says so after its code section
   // Fix stays Fix: the statuses on the page are the API's
   await expect(page.getByRole("region", { name: `Fix before you apply (${findings.filter((f) => f.status === "fail").length})` })).toBeVisible();
   await axeBoth(page, "results with unverified rules");
+
+  // The Zoning tab shows the zoning finding's code section and, its rule being unverified, the same line.
+  const zoning = findings.find((f) => f.rule_id === "ZN-1")!;
+  expect(zoning.rule_verified).toBe(false);
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  const panel = page.getByTestId("zoning");
+  await expect(panel.getByText(zoning.citation, { exact: true })).toBeVisible();
+  await expect(panel.getByText(NOTE, { exact: true })).toBeVisible();
 });
 
 test("results: with every rule checked, neither line appears", async ({ page }) => {
@@ -60,6 +68,9 @@ test("results: with every rule checked, neither line appears", async ({ page }) 
   await page.goto(`/results/?check=${check.id}`);
   await expect(page.getByTestId("counts")).toBeVisible();
   await expect(page.getByText(SOME)).toHaveCount(0);
+  await expect(page.getByText(NOTE)).toHaveCount(0);
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  await expect(page.getByTestId("zoning")).toBeVisible();
   await expect(page.getByText(NOTE)).toHaveCount(0);
 });
 

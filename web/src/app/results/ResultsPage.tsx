@@ -7,14 +7,14 @@
  * dark zone; then the notes, how long the check is kept, and one next step. "On this page" shows where the owner is.
  * The selected tabs survive a refresh, and a link to a finding opens its tab first. Everything shown is the API's.
  */
-import { SOME_UNVERIFIED, usesUnverifiedRule } from "@/content/verification";
+import { ruleUnverified, SOME_UNVERIFIED, UNVERIFIED_FINDING, usesUnverifiedRule, ZONING_RULE } from "@/content/verification";
 import { Fragment, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Dialog, Heading, Modal, ModalOverlay, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
 import { Download, MessageCircleQuestion, Trash2 } from "lucide-react";
 import { assistant } from "@/state/assistant";
-import { api, ApiProblem, call, forgetCheck, loadCheck, reportUrl, sheetUrl, type Check, type ZoningResponse } from "@/api/client";
+import { api, ApiProblem, call, forgetCheck, loadCheck, reportUrl, sheetUrl, type Check, type Finding, type ZoningResponse } from "@/api/client";
 import { LazyPlaceMap } from "@/components/map/LazyPlaceMap";
 import { errorWords } from "@/api/errors";
 import { PageShell } from "@/components/flow/PageShell";
@@ -198,7 +198,7 @@ export function Results({ check }: { check: Check }) {
             <StatusIcon mark={look(FIX).mark} size={24} />
             <span>{look(FIX).group} <span className="text-fix nums">({counts[FIX]})</span></span>
           </h2>
-          {counts[FIX] ? <p className="m-0">These would stop a permit review.</p> : null}
+          {counts[FIX] ? <p className="m-0">These are likely to stop a permit review.</p> : null}
           <FindingRows status={FIX} items={byStatus[FIX]} expanded={expanded.has(FIX)} onShowAll={() => showAll(FIX)} />
         </Band>
       </section>
@@ -369,10 +369,15 @@ function ZoningPanel({ check }: { check: Check }) {
   const zw = z ? ZONING_WORDS[z.status] : null;
   const notFound = !z || !zw || (z.status === UNKNOWN_ZONING && !z.district);
   if (notFound) return <NoZoning check={check} />;
-  return <ZoningFound z={z!} businessType={check.result.summary.business_type} />;
+  const finding = check.result.findings.find((f) => f.rule_id === ZONING_RULE);
+  return <ZoningFound z={z!} businessType={check.result.summary.business_type} finding={finding} />;
 }
 
-function ZoningFound({ z, businessType, again }: { z: NonNullable<Check["result"]["zoning"]>; businessType: string; again?: boolean }) {
+/**
+ * The zoning screen. With its finding from the result: the code section, and the "still being checked" line when its
+ * rule is unverified. A zoning found again (not in the result yet) has no finding, so it gets the careful line.
+ */
+function ZoningFound({ z, businessType, again, finding }: { z: NonNullable<Check["result"]["zoning"]>; businessType: string; again?: boolean; finding?: Finding }) {
   const zw = ZONING_WORDS[z.status];
   return (
     <div className="flex flex-col items-start gap-2" data-testid="zoning">
@@ -386,6 +391,8 @@ function ZoningFound({ z, businessType, again }: { z: NonNullable<Check["result"
         <p className="m-0 break-words"><span className="text-ink-muted">Overlays: </span>{overlayWords(z.overlays).join(", ")}</p>
       ) : null}
       {typeof z.fix === "string" && z.fix ? <p className="m-0 break-words measure"><span className="font-medium">What to do: </span>{z.fix}</p> : null}
+      {finding ? <p className="m-0 font-mono text-ink-muted break-words" translate="no">{finding.citation}</p> : null}
+      {!finding || ruleUnverified(finding) ? <p className="m-0 measure text-body text-ink-muted">{UNVERIFIED_FINDING}</p> : null}
     </div>
   );
 }

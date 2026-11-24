@@ -18,3 +18,6 @@ export const ruleUnverified = (f: Pick<Finding, "rule_verified">) => f.rule_veri
 export const usesUnverifiedRule = (findings: Pick<Finding, "rule_verified">[]) => findings.some(ruleUnverified);
 /** True until the API says every rule is checked: before meta loads, and if it never does. */
 export const rulebookUnverified = (meta: Meta | null | undefined) => !meta || meta.rulebook.rules_unverified > 0;
+
+/** The rule id of the zoning screen, to find its finding for the Zoning tab. An id, not a rule: nothing is decided here. */
+export const ZONING_RULE = "ZN-1";

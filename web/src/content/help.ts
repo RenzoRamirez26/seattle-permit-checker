@@ -7,7 +7,7 @@ export type HelpTopic = { id: string; question: string; answer: string; words: s
 export const HELP: HelpTopic[] = [
   {
     id: "what", question: "What does the pre-check look at?",
-    answer: "It reads your floor plan for rooms and their sizes, doors and exits, aisles, restrooms, the kitchen and fire safety, then checks those facts against rules taken from Seattle's building, plumbing and accessibility codes. It also lists the permits a business like yours usually needs and, when you give an address or a zone, screens the zoning. It does not look at structure, energy, electrical, ventilation or anything outside your space.",
+    answer: "It reads your floor plan for rooms and their sizes, doors and exits, aisles, restrooms, the kitchen and fire safety, then checks those facts against rules we coded from Seattle's building, plumbing and accessibility codes. Each result says which rules' values are still being checked against the code. It also lists the permits a business like yours usually needs and, when you give an address or a zone, screens the zoning. It does not look at structure, energy, electrical, ventilation or anything outside your space.",
     words: ["look", "check", "what does", "cover", "rules", "codes"],
   },
   {
