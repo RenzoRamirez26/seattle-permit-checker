@@ -7,7 +7,7 @@
     ],
     "generated_by": "template",
     "problems": [],
-    "text": "I found 11 problems and 2 items to confirm. The occupant load is 106, which makes this Group A-2. The most serious: Not enough exits. [EG-1] No Type I hood over cooking equipment. [MECH-1] Sprinkler system required, plan says none. [FS-2] There are 10 more in the fix list."
+    "text": "I found 11 items to fix before you apply and 2 to check with the city. The space is for 106 people, which makes it Group A-2. Most serious first: Add a second exit. [EG-1] Add a Type I hood over the cooking line. [MECH-1] Add a sprinkler system. [FS-2] There are 10 more in the fix list."
   },
   "question": "What should I fix first?"
 }

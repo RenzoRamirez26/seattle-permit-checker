@@ -69,7 +69,7 @@ def test_command_line_writes_both_reports(tmp_path, capsys):
     out = tmp_path / "report"
     code = audit_mod.main(["--extraction", str(ROOT / "demo/flawed_extraction.json"), "--business", "cafe_restaurant",
                            "--cooking", "--zoning", "NC2-55 (M)", "--db", str(tmp_path / "none.sqlite"), "--out", str(out)])
-    assert code == 0 and "11 problems, 2 items to confirm, 6 checks passed" in capsys.readouterr().out
+    assert code == 0 and "Fix before you apply: 11  |  Check with the city: 2  |  No issues found: 6" in capsys.readouterr().out
     assert out.with_suffix(".json").exists() and "Fix list" in out.with_suffix(".md").read_text(encoding="utf-8")
 
 
@@ -107,7 +107,7 @@ def test_misreadings_are_counted_and_traced_to_problems():
                      "Aisle A (between tables): width (in.)", "area of Dining Room", "fire_safety: exit_signs_shown"}
     assert r["correct"] == 33 and r["accuracy"] == round(33 / 38, 3)
     assert r["problems"]["caught"] == 8 and len(r["problems"]["missed"]) == 3 and r["problems"]["to_confirm"] == []
-    assert "Missing exit signs" in r["problems"]["missed"] and "Door too narrow: Restroom 1 door (Restroom 1)" in r["problems"]["missed"]
+    assert "Add an exit sign at each exit" in r["problems"]["missed"] and "Widen the door: Restroom 1 door (Restroom 1)" in r["problems"]["missed"]
     md = ev.to_markdown([r], "test")
     assert "| Café with planted problems | 38 | 33 | 87% | 11 | 8 | 0 | 3 | 0 |" in md and "Misread area of Dining Room: read 1500, should be 1280" in md
 
@@ -117,7 +117,7 @@ def test_an_invented_problem_is_a_false_alarm():
     pred = copy.deepcopy(ev.load_truth(case))
     pred["restrooms"][0]["turning_circle_diameter_in"] = 54
     p = ev.evaluate_case(case, pred)["problems"]
-    assert p["real_problems"] == 0 and p["false_alarms"] == ["Restroom too tight to turn a wheelchair: Restroom 1"]
+    assert p["real_problems"] == 0 and p["false_alarms"] == ["Widen the restroom so a wheelchair can turn: Restroom 1"]
 
 
 def test_items_are_matched_by_number_then_words_then_order():
@@ -169,7 +169,7 @@ def test_a_fuller_label_is_not_a_misreading_but_a_wrong_value_still_is():
 
     pred["doors"][0]["swing"] = "outward"                                   # same fuller label, now with a wrong value
     r = ev.evaluate_case(case, pred)
-    assert [w["field"] for w in r["wrong"]] == ["Door 1: swing"] and r["problems"]["missed"] == ["Exit door swings inward: Door 1"]
+    assert [w["field"] for w in r["wrong"]] == ["Door 1: swing"] and r["problems"]["missed"] == ["Turn the exit door to swing outward: Door 1"]
 
 
 def test_outcomes_are_counted_four_ways():
@@ -188,10 +188,10 @@ def test_outcomes_are_counted_four_ways():
     r = ev.evaluate_case(case, pred)
     p = r["problems"]
     assert p["real_problems"] == 11 and p["caught"] == 7
-    assert p["to_confirm"] == ["Door too narrow: Restroom 2 door (Restroom 2)", "Missing exit signs",
-                               "No handwashing sink in the food prep area"]
-    assert p["missed"] == ["Door too narrow: Restroom 1 door (Restroom 1)"]
-    assert p["false_alarms"] == ["Aisle too narrow: Corridor to restrooms"]
+    assert p["to_confirm"] == ["Add a handwashing sink in the food prep area", "Add an exit sign at each exit",
+                               "Widen the door: Restroom 2 door (Restroom 2)"]
+    assert p["missed"] == ["Widen the door: Restroom 1 door (Restroom 1)"]
+    assert p["false_alarms"] == ["Widen the aisle: Corridor to restrooms"]
     assert p["caught"] + len(p["to_confirm"]) + len(p["missed"]) == p["real_problems"]
     # at the fact level, 0 read as "not stated" is a misread, like any other wrong value
     wrong = {w["field"]: (w["pred"], w["truth"]) for w in r["wrong"]}
@@ -200,7 +200,7 @@ def test_outcomes_are_counted_four_ways():
     md = ev.to_markdown([r], "test")
     assert "| Real problems | Caught as a problem | Flagged to confirm | Missed | False alarms |" in md
     assert "| Café with planted problems | 38 | 31 | 82% | 11 | 7 | 3 | 1 | 1 |" in md
-    assert "- Flagged to confirm, not as a problem: Missing exit signs" in md and "- False alarm: Aisle too narrow: Corridor to restrooms" in md
+    assert "- Flagged to confirm, not as a problem: Add an exit sign at each exit" in md and "- False alarm: Widen the aisle: Corridor to restrooms" in md
     assert "Misread fire_safety: exit_signs_shown: read None, should be 0" in md
 
 

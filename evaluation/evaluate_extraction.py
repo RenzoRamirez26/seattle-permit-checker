@@ -117,7 +117,7 @@ _LISTS = (("spaces", "name"), ("doors", "label"), ("aisles", "label"), ("restroo
 def align(pred: dict, truth: dict) -> tuple[dict, dict[str, list]]:
     """The model's reading with each paired item renamed to the ground truth's label, and the pairings made.
 
-    Findings carry item labels in their titles ("Door too narrow: Restroom door (Restroom)"), so without
+    Findings carry item labels in their titles ("Widen the door: Restroom door (Restroom)"), so without
     this a correctly read item under a fuller label would count as one missed problem and one false alarm.
     Only labels change; no value is touched.
     """
@@ -198,7 +198,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
 
 
 def _subject(title: str) -> str:
-    """What a finding is about: 'Door too narrow: Restroom door (Restroom)' -> 'restroom door (restroom)'; '' if general."""
+    """What a finding is about: 'Widen the door: Restroom door (Restroom)' -> 'restroom door (restroom)'; '' if general."""
     return title.split(": ", 1)[1].lower() if ": " in title else ""
 
 
@@ -218,21 +218,23 @@ def findings_agreement(pred: dict, truth: dict, case: dict, rules: Optional[dict
         z = zoning.classify(case.get("zoning"), rules, business_type=bt, area_sqft=extraction.get("gross_area_sqft"))
         return rules_engine.run_checks(extraction, case["intake"], rules, z)["findings"]
 
+    # A problem is a rule on an item, not its exact title: a title can carry a count ("Add a second exit", "Add 2 exits").
     real = [(f["rule_id"], f["title"]) for f in findings(truth) if f["status"] == "fail"]
     got = findings(aligned)
-    got_fail = {(f["rule_id"], f["title"]) for f in got if f["status"] == "fail"}
+    got_fail = {(f["rule_id"], _subject(f["title"])): f["title"] for f in got if f["status"] == "fail"}
     got_review = [(f["rule_id"], _subject(f["title"])) for f in got if f["status"] == "review"]
     caught, to_confirm, missed = [], [], []
     for rule_id, title in real:
-        if (rule_id, title) in got_fail:
+        if (rule_id, _subject(title)) in got_fail:
             caught.append(title)
         elif (rule_id, _subject(title)) in got_review:
             got_review.remove((rule_id, _subject(title)))
             to_confirm.append(title)
         else:
             missed.append(title)
+    real_keys = {(rule_id, _subject(title)) for rule_id, title in real}
     return {"real_problems": len(real), "caught": len(caught), "to_confirm": sorted(to_confirm), "missed": sorted(missed),
-            "false_alarms": sorted(t for _, t in got_fail - set(real))}
+            "false_alarms": sorted(t for key, t in got_fail.items() if key not in real_keys)}
 
 
 def evaluate_case(case: dict, pred: dict) -> dict[str, Any]:

@@ -5,7 +5,7 @@
     ],
     "generated_by": "template",
     "problems": [],
-    "text": "That part passed. Occupancy classification: Salon, barbershop or spa with a calculated occupant load of 15: classified Group B. [OCC-1]"
+    "text": "No issues found there. Occupancy classification: Salon, barbershop or spa for 15 people: Group B. [OCC-1]"
   },
   "question": "Why is the occupant load what it is?"
 }

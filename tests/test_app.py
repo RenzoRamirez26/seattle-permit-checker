@@ -50,7 +50,7 @@ def test_cafe_flow(app):
     m = _metrics(at)
     assert (m["Fix"], m["Check with the city"], m["OK"], m["Occupant load"]) == ("11", "2", "6", "106")
     text = " ".join(x.value for x in at.markdown)
-    assert "Not enough exits" in text and "No Type I hood over cooking equipment" in text
+    assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
     assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
     assert any("review records are not downloaded yet" in c.value for c in at.caption)
 
@@ -73,7 +73,7 @@ def test_salon_flow_and_questions(app):
     assert "You will likely need: Construction permit" in at.chat_message[1].markdown[0].value
     assert "fixed template" in at.chat_message[1].caption[0].value
     _click(at, "Read my results aloud")
-    assert "I found 3 problems and 2 items to confirm" in at.chat_message[2].markdown[0].value
+    assert "I found 3 items to fix before you apply and 2 to check with the city" in at.chat_message[2].markdown[0].value
 
     # changing the business clears the old result (and the chat) instead of showing it under the wrong heading,
     # and keeps the reading of the plan, so the check can be run again without reading the plan a second time
