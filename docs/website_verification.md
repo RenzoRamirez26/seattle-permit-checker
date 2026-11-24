@@ -199,7 +199,7 @@ Findings, against brief §12 and the Vercel Web Interface Guidelines:
 | F1 | A focused control could sit partly (up to 62%) under the fixed Ask button. WCAG 2.4.11 (AA) still passed because nothing was fully hidden; Vercel "nothing fixed covers focus" and WCAG 2.4.12 (AAA) did not. | `/check` at 375 and 1280; `/plan` and `/results` at 375 | Accessibility | **Fixed** (`751bbff`) |
 | D1 | **A value breaks in the middle of a word**: "Ye / s" for "Cooking that makes grease or smoke (fryer, grill, range)". In `FactRow.tsx:96–98` both `<dt>` and `<dd>` are `min-w-0` with `break-words`, so a long label squeezes the value narrower than one word. | `/check`, kitchen row, 1280 (and any long label) | Layout defect | **Fixed** (`afc5528`) |
 | D2 | **"Enter the measurements yourself" can open someone else's facts.** If an example plan was read earlier in the tab, then the owner uploads their own plan and the upload fails, "Enter the measurements yourself" opens `/check` with the *example café's* facts. They are still labelled "The saved reading for this example plan", not an empty form. `CheckPage.tsx:35–37` only starts empty when nothing is stored. Running the check would check the café's plan, not the owner's. | step 2 → `/check/?enter=yourself` | Flow defect | **Fixed** (`16d6307`) |
-| F2 | An example plan chosen on step 2 replaces the owner's step-1 answers with the example's own (`ReadingPage.tsx:26–27`), with no message. Also, on a server with no key, step 2's "try an example plan" link goes back to Start rather than listing the examples. | step 2 | Design | **Partly fixed** (`366379b`): the notice. The no-key link to Start is unchanged |
+| F2 | An example plan chosen on step 2 replaces the owner's step-1 answers with the example's own (`ReadingPage.tsx:26–27`), with no message. Also, on a server with no key, step 2's "try an example plan" link goes back to Start rather than listing the examples. | step 2 | Design | **Fixed** (`366379b` the notice, `5d15e1c` the no-key list) |
 | F3 | No favicon: every first page load logs a 404 for `/favicon.ico`. | all pages | Polish | **Fixed** (`74e3f13`) |
 | F4 | The not-found page's `<title>` is just "Seattle Permit Pre-Check"; Vercel asks for a title per page. | 404 | Polish | **Fixed** (`9fbdcb3`) |
 | F5 | The plan `<img>` on step 3 has no `width`/`height`, so the layout can shift when the image arrives. | `/check` | Polish | **Fixed** (`47155a5`) |
@@ -226,8 +226,7 @@ No test failures, no axe errors, and no rule numbers, model calls or keys needed
 
 *Written before the fixes. Items 1 to 6 have since been done as listed in
 [Fixes after the report](#fixes-after-the-report), with two exceptions: item 1's second change (clearing the stored
-reading when a new file is chosen) was not made, since the first fixes D2 on its own; and the second half of item 3
-(step 2's no-key link) is unchanged. Item 7 is still open.*
+reading when a new file is chosen) was not made, since the first fixes D2 on its own. Item 7 is still open.*
 
 Recommendations, in order:
 
@@ -263,6 +262,7 @@ and F4 (404 title) assert something that did not exist before.
 | `9fbdcb3` | F4 | `not-found.tsx` exports its title: "There is no page at this address \| Seattle Permit Pre-Check". | e2e "F4": status 404, h1, title. |
 | `47155a5` | F5 | `copy-demo.mjs` writes each example plan's pixel size into `public/demo/plans.json` (from the PNG header); an uploaded picture is decoded first. The `<img>` always has `width` and `height`. | e2e "F5": example and uploaded picture: attributes equal the natural size. |
 | `fb30fcf` | F6 | No page requested the `-dev` bundles. They were copied because Turbopack follows MapLibre's own worker lookup (a `new URL()` built from a template path) and copies every `.mjs` file it could match. MapLibre's production `maplibre-gl.mjs` is now copied into `public/` beside its worker and imported from `/maplibre-gl.mjs`, outside the bundle. `out/` falls from 14 MB to 6.8 MB. | e2e "F6": the map draws from `/maplibre-gl.mjs`, nothing with `-dev` is requested, `out/` holds only the two production MapLibre files. |
+| `5d15e1c` | F2 | On a server with no key, step 2's notice no longer links to Start: it lists "Enter the measurements yourself" and every example plan from `/api/meta` on step 2 itself, the same list the failed-upload state shows (one shared component in `PlanPage.tsx`). | e2e "with no key, step 2 lists the example plans itself": the list, each link's address, no link to Start, axe, touch targets, and the café example opens step 3 (fails on the old page). "with a key": no notice and no list. |
 | `27605fa` | F7 | As recommended: the cards keep their usual border; the message above the group and the summary still say what is missing. Screenshots: [375](screenshots/verify/business-errors-fixed-375.png), [1280](screenshots/verify/business-errors-fixed-1280.png). | e2e "F7": the message appears once in the group, the six card borders do not change, axe passes. |
 
 **Suites after the fixes** (macOS, Node 22.23.5, Playwright's Chromium headless shell):
@@ -271,7 +271,7 @@ and F4 (404 title) assert something that did not exist before.
 |---|---|
 | `python -m pytest` | 154 passed, 1 skipped |
 | `npm test` (Vitest) | 45 passed (38 + 7) |
-| `npm run e2e` | 68 passed (57 + 11) |
+| `npm run e2e` | 70 passed (57 + 13) |
 | `npm run lint`, `npm run typecheck` | clean |
 | guard on `src/` and `out/` (part of the build) | clean |
 
@@ -279,8 +279,7 @@ On the first, baseline run on this Mac, 4 voice tests failed: pressing Speak nev
 `getUserMedia` call with Chromium's fake-microphone flags hung. That points at the macOS microphone permission for the
 test browser, not the code. The same 4 tests passed in the full run after the fixes, with no change to voice code.
 
-**Still open:** step 2's "try an example plan" link on a server with no key still goes to Start (the second half of
-F2), the real-model check (check 7), and voice with a real microphone in Chrome and Safari.
+**Still open:** the real-model check (check 7), and voice with a real microphone in Chrome and Safari.
 
 ## Reproducing
 
