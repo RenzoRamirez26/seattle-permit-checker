@@ -6,6 +6,41 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Rule correctness and copy (issues #19 to #26)
+
+- **Exit door swing (#19):** a swing is described only when the plan shows it. A sliding, or any non-swinging, exit
+  door is Check with the city, with the requirement. "Every exit door on your plan swings outward" appears only when
+  every exit door does.
+- **Unknown exit status (#20):**
+  - An unmarked door makes the exit count unknown, so the result is Check with the city.
+  - If the space is short even counting every unmarked door as an exit, the Fix stays, stated as the minimum
+    ("Add at least 1 more exit"), never "Add 2 exits".
+  - The exit-width row stays: Check with the city when unmarked doors could make up the width, or when no door is
+    marked an exit.
+- **Urinals (#21):**
+  - The rulebook now has `plumbing.urinal_substitution`: urinals may stand in for up to 67% of the toilets required for
+    men in assembly spaces and 50% in others (SBC 2902.1.1). It was entered from memory, so it is marked
+    `"verified": false` and listed in `_meta.verify`.
+  - While unchecked, a count that passes only by counting urinals is Check with the city. A count that fails even with
+    every urinal stays a Fix.
+  - Once checked, the share decides.
+- **A Fix that holds either way (#22):**
+  - In the Not sure merge, a finding with the same status whatever the answer keeps that status, worded as with the
+    answer "no", and doesn't name the question.
+  - Only a finding whose status changes with the answer becomes Check with the city and names it. Before, any
+    wording difference counted.
+- **Copy:**
+  - **#23:** Start step 4 and the Streamlit About name Seattle's building and plumbing codes, the federal
+    accessibility standards, and the King County and Washington State food codes. Start's strip says the same as step
+    4: "(none checked against the code text yet)" while no rule is checked.
+  - **#24:** the API lists the values the rules read (`/api/meta` `facts_checked`, `room_uses_without_load`). A test
+    proves that changing any other value changes no finding and no permit. Answers marks the others "not checked",
+    never asks about them under "Check these first", and the headings say "read from your plan".
+  - **#25:** with nothing to fix, the Fix heading and its In short tile use the quiet mark and ink, with no red.
+  - **#26:** the engine's may-be-needed sentence gives only the reason. The website's tag says "May be needed"; the
+    PDFs, Streamlit and the assistant add the label once (`rules_engine.may_be_needed_words`).
+- **Who:** owner (scope, labels); team (how). Choices made without asking are listed in PR "Decisions I made".
+
 ## 2026-11-24 · Rooms of unknown use; cooking and patio permits; who wrote the rules
 
 - **Rooms:**
