@@ -64,7 +64,7 @@ describe("step 2 file check, before anything is sent", () => {
   });
 
   it("refuses a type the API does not accept, in the brief's words", () => {
-    expect(fileProblem(file("plan.gif", 1), meta)).toBe("The file must be a PDF, PNG or JPG.");
+    expect(fileProblem(file("plan.gif", 1), meta)).toBe("We can’t read this kind of file. Upload a PDF, PNG or JPG.");
     expect(fileProblem(file("PLAN.JPEG", 1), meta)).toBeNull();
     expect(fileProblem(file("plan.png", 0), meta)).toMatch(/The file is empty/);
   });

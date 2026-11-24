@@ -10,7 +10,7 @@ export const ERROR_WORDS: Record<string, string> = {
   demo_case_not_found: "That example plan isn't on this server. Choose another example plan on step 2.",
   plan_reading_failed: "We couldn't read this plan. Upload a clearer scan or photo, or enter the readings by hand.",
   no_model_key: "This server can't read uploaded plans yet. Try an example plan, or enter the measurements yourself.",
-  unsupported_file_type: "The file must be a PDF, PNG or JPG.",
+  unsupported_file_type: "We can’t read this kind of file. Upload a PDF, PNG or JPG.",
   empty_file: "The file is empty. Choose it again, or choose another copy of the plan.",
   file_too_large: "The file is over the upload limit. Upload a smaller copy, for example a photo instead of a scan.",
   check_not_found: "This check is no longer kept. It was deleted or it expired. Start a new check.",

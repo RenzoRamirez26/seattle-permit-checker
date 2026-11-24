@@ -27,6 +27,7 @@ import { ANSWERS, NOT_SURE, SOURCE_WORDS } from "@/content/facts";
 import { checkRequest } from "@/state/request";
 import { emptyFacts, flow, sameBusiness, type Answer, type Business, type Reading } from "@/state/flow";
 import { useHydrated } from "@/lib/hydrated";
+import { CheckingBar, CheckingSteps } from "@/components/flow/CheckingSteps";
 import { cn } from "@/lib/utils";
 
 export function CheckPage() {
@@ -155,6 +156,12 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
               </Button>
               {/* Said while the API runs the rules. Always in the page (empty when idle) so it is announced. */}
               <p role="status" className="m-0 not-empty:mt-4">{running ? ANSWERS.runningStatus : null}</p>
+              {running ? (
+                <div className="mt-4 flex flex-col gap-4" data-testid="checking">
+                  <CheckingSteps current={3} />
+                  <CheckingBar label="Running Seattle's rules" />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
