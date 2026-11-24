@@ -9,6 +9,8 @@ No model is involved here. Every number comes from checker/rules/seattle.json, s
 finding can always be traced to one line of the rulebook.
 
 Every finding has status "pass", "fail" or "review" (not enough on the plan to decide).
+Every finding also says whether its rule's values were checked against the code text (rule_verified) and
+where the rule comes from (rule_source). Neither changes a finding's status.
 """
 from __future__ import annotations
 
@@ -39,6 +41,8 @@ class Finding:
     citation: str
     fix: str = ""
     reviewed_by: str = ""  # who checks this in Seattle's plan review (rulebook: review_routing)
+    rule_verified: bool = False  # the rule's values were read from the code text (rulebook: rules); never changes status
+    rule_source: str = ""        # the code edition and section the rule comes from (rulebook: rules)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -535,6 +539,12 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
         route = routing.get(f.rule_id) or routing.get(f.rule_id.split("-")[0]) or {}   # exact rule, then its family
         f.reviewed_by = route.get("label", "")
 
+    checked = rules.get("rules") or {}
+    for f in F:
+        entry = checked.get(f.rule_id) or {}   # a rule missing from the rulebook counts as unverified
+        f.rule_verified = entry.get("verified") is True
+        f.rule_source = entry.get("source", "")
+
     F.sort(key=lambda f: ({"fail": 0, "review": 1, "pass": 2}[f.status], SEVERITY_ORDER[f.severity]))
 
     # --- permits
@@ -572,6 +582,9 @@ def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[di
 # The three status names a person reads (CONTENT.md rule 11). The API's values stay "fail", "review", "pass".
 STATUS_WORD = {"fail": "Fix before you apply", "review": "Check with the city", "pass": "No issues found"}
 NOTHING_OPEN = "No issues found in the checks we ran."
+# Beside a finding whose rule values were not yet read from the code text, and once on a report that uses one.
+UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
+SOME_UNVERIFIED = "Some rule values are still being checked against the code."
 
 
 def to_markdown(result: dict, title: Optional[str] = None) -> str:
@@ -582,6 +595,7 @@ def to_markdown(result: dict, title: Optional[str] = None) -> str:
            f"**{STATUS_WORD['fail']}: {s['fails']}  |  {STATUS_WORD['review']}: {s['reviews']}  |  "
            f"{STATUS_WORD['pass']}: {s['passes']}**", "",
            f"_{PRECHECK_NOTE}_", "",
+           *([f"_{SOME_UNVERIFIED}_", ""] if any(not f.get("rule_verified") for f in result["findings"]) else []),
            "## Fix list", ""]
     for f in result["findings"]:
         if f["status"] == "pass":
@@ -592,6 +606,8 @@ def to_markdown(result: dict, title: Optional[str] = None) -> str:
         if f.get("reviewed_by"):
             out.append(f"  Checked by: {f['reviewed_by']}  ")
         out.append(f"  Code: {f['citation']}")
+        if not f.get("rule_verified"):
+            out.append(f"  {UNVERIFIED_NOTE}")
     if not (s["fails"] or s["reviews"]):
         out.append(NOTHING_OPEN)
     out += ["", f"## {STATUS_WORD['pass']}", ""]

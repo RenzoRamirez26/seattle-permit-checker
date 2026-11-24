@@ -1,5 +1,6 @@
 """The rules engine: occupant load, exits, accessibility, plumbing, fire, permits, for each business type."""
 import json
+import re
 
 import pytest
 
@@ -245,3 +246,73 @@ def test_the_command_line_audit_is_unchanged(tmp_path, capsys):
     result = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
     assert (result["summary"]["fails"], result["summary"]["reviews"], result["summary"]["passes"]) == (11, 2, 6)
     assert "Not sure" not in capsys.readouterr().out and "may_be_needed" not in json.dumps(result)
+
+
+# ---------------------------------------------------------------- rule verification (rulebook: rules)
+ENGINE_RULE_IDS = set(re.findall(r'"([A-Z]+-\d+)"', (ROOT / "checker" / "rules_engine.py").read_text(encoding="utf-8")))
+SECTION = re.compile(r"\b(\d{3,4}(?:\.\d+)+)\b")        # 1010.1.2.1, 903.2.7; not an edition year
+
+
+def _rule_entries(rules):
+    return {k: v for k, v in rules["rules"].items() if not k.startswith("_")}
+
+
+def test_every_rule_has_verified_and_source(rules):
+    """Every rule in the rulebook says whether its values were checked against the code text, and where it comes from."""
+    entries = _rule_entries(rules)
+    for rule_id, entry in entries.items():
+        assert isinstance(entry.get("verified"), bool), f"{rule_id} has no verified true/false"
+        assert isinstance(entry.get("source"), str) and entry["source"].strip(), f"{rule_id} has no source"
+    assert ENGINE_RULE_IDS <= set(entries), f"rules missing from the rulebook: {sorted(ENGINE_RULE_IDS - set(entries))}"
+
+
+def test_a_rule_is_verified_only_with_evidence_in_the_rulebook(rules):
+    """verified: true needs every section it names to be listed under _meta.checked_against_city_sources."""
+    checked = " ".join(rules["_meta"]["checked_against_city_sources"])
+    verified = {k: v for k, v in _rule_entries(rules).items() if v["verified"]}
+    assert verified, "no rule is verified: the test would prove nothing"
+    for rule_id, entry in verified.items():
+        sections = SECTION.findall(entry["source"])
+        assert sections, f"{rule_id} is verified but names no section"
+        for s in sections:
+            assert s in checked, f"{rule_id} is verified but {s} is not in _meta.checked_against_city_sources"
+    # The rules _meta.verify names as from memory stay unverified.
+    for rule_id in ("OCC-1", "EG-1", "FS-3", "ADA-1", "ADA-2", "ADA-4", "MECH-1", "HLTH-1", "ZN-1", "PL-1"):
+        assert _rule_entries(rules)[rule_id]["verified"] is False
+
+
+def test_findings_carry_the_rule_verification_and_source(rules, load):
+    entries = _rule_entries(rules)
+    for business, facts in _cases(load):
+        for f in rules_engine.run_checks(facts, {"business_type": business, "cooking_on_site": True}, rules)["findings"]:
+            assert f["rule_verified"] is entries[f["rule_id"]]["verified"]
+            assert f["rule_source"] == entries[f["rule_id"]]["source"]
+
+
+def test_verification_never_changes_a_finding(rules, load):
+    """Fix stays Fix, Check with the city stays as it is, and nothing unknown becomes No issues found."""
+    def strip(result):
+        return [{k: v for k, v in f.items() if k not in ("rule_verified", "rule_source")} for f in result["findings"]]
+    all_true = json.loads(json.dumps(rules))
+    all_false = json.loads(json.dumps(rules))
+    for k in _rule_entries(rules):
+        all_true["rules"][k]["verified"] = True
+        all_false["rules"][k]["verified"] = False
+    no_section = {k: v for k, v in rules.items() if k != "rules"}
+    for business, facts in _cases(load):
+        intake = {"business_type": business, "cooking_on_site": True, "serves_alcohol": None}
+        base = rules_engine.run_checks(facts, intake, rules)
+        for other in (all_true, all_false, no_section):
+            r = rules_engine.run_checks(facts, intake, other)
+            assert strip(r) == strip(base) and r["summary"] == base["summary"]
+    # With no rules section at all, every finding counts as unverified.
+    r = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant"}, no_section)
+    assert all(f["rule_verified"] is False and f["rule_source"] == "" for f in r["findings"])
+
+
+def test_report_markdown_marks_unverified_rules(rules, load):
+    result = rules_engine.run_checks(load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    md = rules_engine.to_markdown(result)
+    assert rules_engine.SOME_UNVERIFIED in md
+    unverified_open = [f for f in result["findings"] if f["status"] != "pass" and not f["rule_verified"]]
+    assert unverified_open and md.count(rules_engine.UNVERIFIED_NOTE) == len(unverified_open)
