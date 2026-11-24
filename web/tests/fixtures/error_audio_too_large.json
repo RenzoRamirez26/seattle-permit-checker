@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "audio_too_large",
+      "message": "The recording is larger than the 0.0499992 MB limit. Ask a shorter question."
+    }
+  },
+  "status": 413
+}

@@ -126,6 +126,8 @@ class Limits(BaseModel):
     max_question_chars: int
     max_history_turns: int
     check_days: float = Field(description="A stored check is deleted after this many days.")
+    max_audio_mb: float = Field(description="The largest recording /api/transcribe accepts.")
+    max_audio_seconds: int = Field(description="The browser stops recording a spoken question at this length.")
 
 
 class Rulebook(BaseModel):
@@ -322,6 +324,11 @@ class Answer(BaseModel):
     cited_rules: list[str]
     generated_by: str = Field(description='The model\'s name, or "template" when no model was used or its answer was not grounded in the result.')
     problems: list[str] = []
+
+
+# ---------------------------------------------------------------- /transcribe
+class Transcript(BaseModel):
+    text: str = Field(description="The words heard. The owner checks and can correct them before sending the question.")
 
 
 # ---------------------------------------------------------------- errors

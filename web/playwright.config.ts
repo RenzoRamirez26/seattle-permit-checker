@@ -27,7 +27,12 @@ export default defineConfig({
   use: {
     baseURL: WEB,
     trace: "off",
-    launchOptions: existsSync(chromium) ? { executablePath: chromium } : {},
+    // A fake microphone fed with tests/fixtures/question.wav (an invented question in a machine voice), allowed without a prompt.
+    launchOptions: {
+      ...(existsSync(chromium) ? { executablePath: chromium } : {}),
+      args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
+        `--use-file-for-fake-audio-capture=${join(root, "tests", "fixtures", "question.wav")}`],
+    },
   },
   webServer: [
     {

@@ -76,7 +76,7 @@ def test_meta_lists_what_the_form_needs(api):
     assert "salon_flawed" in cases
     assert meta["features"] == {"model_api_key": False, "seattle_database": False, "speech_to_text": False, "kokoro_voice": False}
     assert meta["limits"] == {"upload_types": [".jpeg", ".jpg", ".pdf", ".png"], "max_upload_mb": 10, "max_question_chars": 500,
-                              "max_history_turns": 6, "check_days": 30}
+                              "max_history_turns": 6, "check_days": 30, "max_audio_mb": 2, "max_audio_seconds": 30}
 
 
 def test_meta_gives_the_rulebook_edition_date_only_once_the_owner_has_set_it(api, monkeypatch):
@@ -99,7 +99,7 @@ def test_docs_page_and_contract(api):
     spec = api.get("/openapi.json").json()
     assert set(spec["paths"]) == {"/api/meta", "/api/plans/read", "/api/zoning", "/api/checks", "/api/checks/{check_id}",
                                   "/api/checks/{check_id}/report.pdf", "/api/checks/{check_id}/preparation-sheet.pdf",
-                                  "/api/checks/{check_id}/ask"}
+                                  "/api/checks/{check_id}/ask", "/api/transcribe"}
     assert set(spec["paths"]["/api/checks/{check_id}"]) == {"get", "delete"}
     models = spec["components"]["schemas"]
     assert {"Facts", "Intake", "CheckRequest", "Check", "Result", "Finding", "ZoningRequest", "ZoningResponse", "Question",
@@ -534,3 +534,109 @@ def test_a_not_sure_answer_is_sent_as_null_and_never_becomes_a_pass(api):
     spec = api.get("/openapi.json").json()["components"]["schemas"]
     assert {"type": "null"} in spec["Intake"]["properties"]["cooking_on_site"]["anyOf"]
     assert "may_be_needed" in spec["Permit"]["properties"]
+
+
+# ---------------------------------------------------------------- /transcribe: spoken questions
+QUESTION_WAV = FIXTURES / "question.wav"
+
+
+@pytest.fixture
+def stt(monkeypatch):
+    """Speech to text "installed", with transcribe() replaced: no model is downloaded and faster-whisper need not exist."""
+    from checker import voice
+
+    heard = []
+    monkeypatch.setattr(voice, "stt_available", lambda: True)
+    monkeypatch.setattr(voice, "transcribe", lambda audio, **k: heard.append(audio) or "Why do I need a second exit for my cafe?")
+    return heard
+
+
+def _say(api, data: bytes, name="question.wav", kind="audio/wav"):
+    return api.post("/api/transcribe", files={"audio": (name, data, kind)})
+
+
+def test_a_spoken_question_reaches_transcribe_unchanged_and_its_words_come_back(api, stt):
+    clip = QUESTION_WAV.read_bytes()
+    assert 0 < len(clip) < 200 * 1024 and clip[:4] == b"RIFF" and clip[8:12] == b"WAVE"
+    r = _say(api, clip)
+    assert r.status_code == 200, r.text
+    assert r.json() == {"text": "Why do I need a second exit for my cafe?"}
+    assert stt == [clip]                                                 # the very bytes sent, once
+
+
+def test_transcribe_errors(api, stt, monkeypatch):
+    from checker import voice
+
+    _is_error(_say(api, b""), 400, "audio_needed")
+    _is_error(api.post("/api/transcribe", files={"other": ("x.wav", QUESTION_WAV.read_bytes(), "audio/wav")}), 400, "audio_needed")
+    _is_error(api.post("/api/transcribe", content=b"not a form", headers={"content-type": "text/plain"}), 400, "audio_needed")
+    _is_error(_say(api, _png(), "q.png", "image/png"), 415, "audio_not_wav")
+    monkeypatch.setenv("PERMIT_MAX_AUDIO_MB", "0.05")                    # about 50 KB: the 100 KB fixture is too large
+    _is_error(_say(api, QUESTION_WAV.read_bytes()), 413, "audio_too_large")
+    monkeypatch.delenv("PERMIT_MAX_AUDIO_MB")
+    for heard in (None, "", "   "):
+        monkeypatch.setattr(voice, "transcribe", lambda audio, h=heard, **k: h)
+        _is_error(_say(api, QUESTION_WAV.read_bytes()), 422, "speech_not_understood")
+    assert stt == []                                                     # no rejected clip reached transcribe()
+    monkeypatch.setattr(voice, "stt_available", lambda: False)
+    assert "Type the question" in _is_error(_say(api, QUESTION_WAV.read_bytes()), 503, "no_speech_to_text")["message"]
+
+
+def test_without_faster_whisper_the_route_says_so(api):
+    """The test app sets PERMIT_STT=off, as a server without faster-whisper would be."""
+    assert api.get("/api/meta").json()["features"]["speech_to_text"] is False
+    _is_error(_say(api, QUESTION_WAV.read_bytes()), 503, "no_speech_to_text")
+
+
+def test_a_spoken_question_is_never_written_to_disk(api, stt, monkeypatch):
+    import builtins
+    import tempfile
+
+    written = []
+    real_open = builtins.open
+
+    def watch_open(file, mode="r", *a, **k):
+        if any(c in str(mode) for c in "wax+"):
+            written.append(str(file))
+        return real_open(file, mode, *a, **k)
+
+    def refuse(*a, **k):
+        raise AssertionError("a temporary file was made while transcribing")
+
+    clip = QUESTION_WAV.read_bytes()
+    big = clip + b"\0" * (1_500_000 - len(clip))           # larger than Starlette's 1 MB in-memory limit for uploads
+    monkeypatch.setattr(builtins, "open", watch_open)
+    for name in ("SpooledTemporaryFile", "NamedTemporaryFile", "TemporaryFile", "mkstemp"):
+        monkeypatch.setattr(tempfile, name, refuse)
+    for data in (clip, big):
+        assert _say(api, data).status_code == 200
+    assert written == [] and stt == [clip, big]
+
+
+def test_meta_reports_the_audio_limits(api, monkeypatch):
+    monkeypatch.setenv("PERMIT_MAX_AUDIO_MB", "3")
+    limits = api.get("/api/meta").json()["limits"]
+    assert limits["max_audio_mb"] == 3 and limits["max_audio_seconds"] == 30
+    spec = api.get("/openapi.json").json()
+    body = spec["paths"]["/api/transcribe"]["post"]["requestBody"]["content"]["multipart/form-data"]["schema"]
+    assert body["required"] == ["audio"] and "Transcript" in spec["components"]["schemas"]
+
+
+def _whisper_model_present() -> bool:
+    try:
+        import faster_whisper  # noqa: F401
+        from huggingface_hub import try_to_load_from_cache
+    except ImportError:
+        return False
+    from checker import voice
+    return isinstance(try_to_load_from_cache(f"Systran/faster-whisper-{voice.STT_MODEL}", "model.bin"), str)
+
+
+@pytest.mark.skipif(not _whisper_model_present(), reason="faster-whisper and its model are not on this machine (never in CI)")
+def test_the_fixture_clip_with_the_real_model(api, monkeypatch):
+    """Runs on a laptop that already has faster-whisper and the base.en model; downloads nothing."""
+    monkeypatch.setenv("PERMIT_STT", "faster-whisper")
+    r = _say(api, QUESTION_WAV.read_bytes())
+    assert r.status_code == 200, r.text
+    words = r.json()["text"].lower()
+    assert "second exit" in words and "caf" in words

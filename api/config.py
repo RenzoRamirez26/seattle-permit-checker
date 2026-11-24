@@ -39,6 +39,14 @@ def max_upload_bytes() -> int:
     return int(_number("PERMIT_MAX_UPLOAD_MB", 10) * 1024 * 1024)
 
 
+MAX_AUDIO_SECONDS = 30          # the browser stops recording a spoken question at this length
+
+
+def max_audio_bytes() -> int:
+    """The largest spoken question accepted: 2 MB by default, about a minute of 16 kHz mono WAV."""
+    return int(_number("PERMIT_MAX_AUDIO_MB", 2) * 1024 * 1024)
+
+
 def check_days() -> float:
     """How long a stored check is kept before it is deleted."""
     return _number("PERMIT_CHECK_DAYS", 30)

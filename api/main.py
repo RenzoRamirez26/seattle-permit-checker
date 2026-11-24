@@ -14,7 +14,8 @@ In:  HTTP requests from the front end.  Out: JSON (or a PDF) built by calling ch
   the internet it needs authentication and a rate limit.
 
 STATUS: tested with the model and the network mocked. Reading an uploaded plan with the real
-model, and a real address through /api/zoning, have NOT been run from this code yet.
+model, a real address through /api/zoning, and /api/transcribe with faster-whisper installed have
+NOT been run from this code yet.
 """
 from __future__ import annotations
 
@@ -24,7 +25,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, FastAPI, File, Form, Response, UploadFile
+from email.parser import BytesParser
+from email.policy import HTTP
+
+from fastapi import APIRouter, Depends, FastAPI, File, Form, Request, Response, UploadFile
+from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
@@ -99,7 +104,8 @@ def get_meta() -> dict:
                      "speech_to_text": voice.stt_available(), "kokoro_voice": voice.tts_backend() == "kokoro"},
         "limits": {"upload_types": sorted(config.UPLOAD_TYPES), "max_upload_mb": config.max_upload_bytes() / 1024 / 1024,
                    "max_question_chars": config.MAX_QUESTION_CHARS, "max_history_turns": config.MAX_HISTORY_TURNS,
-                   "check_days": config.check_days()},
+                   "check_days": config.check_days(), "max_audio_mb": config.max_audio_bytes() / 1024 / 1024,
+                   "max_audio_seconds": config.MAX_AUDIO_SECONDS},
         "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"]},
     }
 
@@ -214,6 +220,52 @@ def ask(check_id: str, q: schemas.Question, client: Any = Depends(model_client))
     result = stored(check_id)["result"]
     history = [{"role": t.role, "content": t.content[:config.MAX_HISTORY_TURN_CHARS]} for t in q.history[-config.MAX_HISTORY_TURNS:]]
     return agent.answer(q.question, result, client=client, history=history)      # includes the grounding check
+
+
+# ---------------------------------------------------------------- spoken questions
+_AUDIO_BODY = {"requestBody": {"required": True, "content": {"multipart/form-data": {"schema": {
+    "type": "object", "required": ["audio"],
+    "properties": {"audio": {"type": "string", "format": "binary", "description": "One recorded question as 16 kHz mono WAV."}}}}}}}
+_MULTIPART_OVERHEAD = 16 * 1024     # the form's boundaries and headers around the clip
+
+
+def _audio_from_form(content_type: str, body: bytes) -> Optional[bytes]:
+    """The bytes of the form field "audio", parsed in memory (nothing is written to disk), or None."""
+    if not content_type.lower().startswith("multipart/form-data"):
+        return None
+    message = BytesParser(policy=HTTP).parsebytes(b"Content-Type: " + content_type.encode("latin-1") + b"\r\n\r\n" + body)
+    for part in message.iter_parts() if message.is_multipart() else []:
+        if part.get_param("name", header="content-disposition") == "audio":
+            return part.get_payload(decode=True) or b""
+    return None
+
+
+@router.post("/transcribe", response_model=schemas.Transcript, tags=["voice"], openapi_extra=_AUDIO_BODY,
+             summary="The words in one recorded question (WAV), for the owner to check before sending it")
+async def transcribe(request: Request) -> dict:
+    """Held in memory only: never written to disk, logged or stored. Calls checker.voice.transcribe() unchanged."""
+    if not voice.stt_available():
+        raise ApiError(503, "no_speech_to_text", "Speech to text is not installed on this server. Type the question instead.")
+    cap = config.max_audio_bytes() + _MULTIPART_OVERHEAD
+    if int(request.headers.get("content-length") or 0) > cap:
+        raise ApiError(413, "audio_too_large", f"The recording is larger than the {config.max_audio_bytes() / 1024 / 1024:g} MB limit. Ask a shorter question.")
+    body = bytearray()
+    async for chunk in request.stream():         # read with a cap, so a body without a length cannot grow without limit
+        body += chunk
+        if len(body) > cap:
+            raise ApiError(413, "audio_too_large", f"The recording is larger than the {config.max_audio_bytes() / 1024 / 1024:g} MB limit. Ask a shorter question.")
+    audio = _audio_from_form(request.headers.get("content-type", ""), bytes(body))
+    del body
+    if not audio:
+        raise ApiError(400, "audio_needed", "No recording was received. Record the question again, or type it.")
+    if len(audio) > config.max_audio_bytes():
+        raise ApiError(413, "audio_too_large", f"The recording is larger than the {config.max_audio_bytes() / 1024 / 1024:g} MB limit. Ask a shorter question.")
+    if not (audio[:4] == b"RIFF" and audio[8:12] == b"WAVE"):
+        raise ApiError(415, "audio_not_wav", "The recording must be a WAV file. Record the question again, or type it.")
+    text = await run_in_threadpool(voice.transcribe, audio)
+    if not text or not text.strip():
+        raise ApiError(422, "speech_not_understood", "The recording could not be made out. Try again, or type the question.")
+    return {"text": text.strip()}
 
 
 # ---------------------------------------------------------------- the app

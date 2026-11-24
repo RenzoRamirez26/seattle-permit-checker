@@ -26,6 +26,10 @@ export const assistant = {
   close: () => set({ open: false }),
   /** "Ask about this": open with a question in the box, not sent. */
   askAbout: (text: string) => set({ open: true, draft: text, draftVersion: state.draftVersion + 1 }),
+  /** Keeps what is in the box when the panel changes between side panel and sheet (rotating a tablet). */
+  keepDraft: (text: string) => {
+    state = { ...state, draft: text };
+  },
   add: (m: Message) => set({ messages: [...state.messages, m] }),
   setPending: (pending: boolean) => set({ pending }),
   clear: () => set({ messages: [], draft: "", draftVersion: state.draftVersion + 1 }),

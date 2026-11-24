@@ -36,6 +36,8 @@ export async function expectTouchTargets(page: Page) {
       if (el.closest(".skip-link")) return [];
       if (r.width <= 1 && r.height <= 1) return []; // visually hidden, for screen readers only (React Aria's "Dismiss")
       if ((el as HTMLInputElement).type === "radio" || (el as HTMLInputElement).type === "file") return []; // the whole card or label is the target
+      const label = (el as HTMLInputElement).type === "checkbox" ? el.closest("label")?.getBoundingClientRect() : null;
+      if (label && label.height >= 44 && label.width >= 44) return []; // the label and the box are one target
       const inline = el.tagName === "A" && style.display === "inline" && el.closest("p, li, dd");
       if (inline) return []; // a link inside a sentence (WCAG 2.5.8 inline exception)
       return r.height < 44 || r.width < 44 ? [`${el.tagName} "${(el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 40)}" ${Math.round(r.width)}x${Math.round(r.height)}`] : [];

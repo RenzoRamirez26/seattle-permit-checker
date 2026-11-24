@@ -5,6 +5,16 @@ Started 24 November 2026. Each stage ends with `python -m pytest`, `npm test`, `
 axe on every page and state), the build guard, a design review against brief section 12 and the Vercel
 Web Interface Guidelines, screenshots, this file, a commit and a push.
 
+## Summary
+
+All seven stages are built on `website-v1`. At the end: `python -m pytest` 154 passed, 1 skipped (a real-model
+test that needs faster-whisper); `npm test` 38 passed; `npm run e2e` 56 passed, with axe on every page and state at
+375 and 1280 px and zero violations; the build guard, ESLint and TypeScript clean; the generated API types and the
+fixtures match the API. Four backend changes, each with tests: Q2 (rulebook edition date), Q1 and Q9 ("Not sure"
+answers, in the rules engine), and `/api/transcribe`. What could not be done here is listed under each stage, and
+together: an uploaded plan read with a real key, the Protomaps tiles, a real address, and voice with a real
+microphone in Chrome and Safari.
+
 ## Status
 
 | Stage | Status | Screenshots |
@@ -15,13 +25,14 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | 3. Results and downloads | Finished | [stage-3](screenshots/stage-3/) |
 | 4. The assistant | Finished | [stage-4](screenshots/stage-4/) |
 | 5. The map | Finished | [stage-5](screenshots/stage-5/) |
-| 6. Voice | Not started | |
+| 6. Voice | Finished; the real-microphone check in Chrome and Safari is not done here (see below) | [stage-6](screenshots/stage-6/) |
 
 ## Backend changes
 
 | Change | Files | Tests |
 |---|---|---|
 | Q1: intake answers accept `null` ("Not sure"). `null` is unknown, never false: the checks run with the answer as no and as yes; a finding that differs becomes `review` (citation and `reviewed_by` kept, the question named), never `pass`; a permit listed only one way is still listed with `may_be_needed` naming the question (Q9). Left out still means false. | `checker/rules_engine.py` (`UNSURE_ANSWERS`, `run_checks` wraps the old body, now `_run_checks`, and `_merge_unsure`; no rule value changes), `api/schemas.py` (six `Optional[bool]` answers; `Permit.may_be_needed`, sent only when set), `api/main.py` (`create_check` keeps `null` instead of dropping it, which had turned it into false), `checker/pdf.py` (`permit_name()`: the PDFs say "May be needed" too, brief section 10) | `tests/test_rules.py`: for each of the six answers, `null` vs `true` and `false` over five plans and business types (every finding that depends on it is `review`, with its citation, reviewer and the question; the others unchanged; summary recounted; each answer shown to matter in at least one case); the three permit-only answers list the permit as "May be needed" / as today / not at all; several unknowns at once; an omitted answer and explicit `false` give today's results (flawed café 11 / 2 / 6) for all three examples; the command-line audit is unchanged. `tests/test_api.py`: `null` accepted, stored and turned into `review`; omitted equals `false`; `"perhaps"` refused; OpenAPI shows `null` and `may_be_needed`. `tests/test_pdf.py`: both PDFs say "May be needed". |
+| Stage 6: `POST /api/transcribe` (multipart field `audio`, 16 kHz mono WAV) returns `{"text"}`; `503 no_speech_to_text`, `400 audio_needed`, `415 audio_not_wav`, `413 audio_too_large`, `422 speech_not_understood`. `/api/meta` `limits` gains `max_audio_mb` and `max_audio_seconds` (30). `checker/voice.py` is **not** changed. | `api/main.py` (the route; the body is read with a size cap and the multipart form parsed in memory with the standard library, because Starlette's upload spools anything over 1 MB to a temporary file), `api/config.py` (`max_audio_bytes()`, `PERMIT_MAX_AUDIO_MB` default 2; `MAX_AUDIO_SECONDS`), `api/schemas.py` (`Transcript`, the two limits), `tests/fixtures/question.wav` and its line in `tests/fixtures/README.md`, `README.md` status table | `tests/test_api.py`: the fixture's bytes reach `transcribe()` unchanged and its text comes back; 503 when unavailable (patched, and with `PERMIT_STT=off` as on a server without faster-whisper); 422 for `None`, `""` and spaces; 400 for an empty file, a missing field and a non-form body; 415 for a PNG; 413 above the limit; no rejected clip reaches `transcribe()`; nothing is written to disk (`open` for writing and every `tempfile` maker are watched, with a 1.5 MB clip that Starlette's upload would have spooled to disk); `/api/meta` reports the limits; the OpenAPI document describes the form. One test transcribes the fixture with the real model; it is skipped unless faster-whisper and its model are already present, so it was skipped here and never runs in CI. |
 | Q2: `_meta.edition_date` placeholder; `/api/meta` returns `rulebook: {edition_date, code_basis}`, with `edition_date` `null` while it is the placeholder | `checker/rules/seattle.json` (one `_meta` line, no rule values), `docs/rulebook.md`, `api/schemas.py` (`Rulebook`), `api/main.py` (`edition_date()`) | `tests/test_api.py::test_meta_gives_the_rulebook_edition_date_only_once_the_owner_has_set_it` |
 
 ## Decisions the plan did not cover
@@ -67,6 +78,12 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | D5-3 | The tiled style is written by hand from the Protomaps layer names (`water`, `buildings`, `roads`) in paper, hairline and field colours, with no labels. | The plan names no style package; `@protomaps/basemaps` would be another dependency. |
 | D5-4 | MapLibre's web worker (`maplibre-gl-worker.mjs`) is copied into `public/` by `scripts/copy-demo.mjs` (git-ignored) and set with `setWorkerUrl`. | MapLibre 6 draws GeoJSON in a worker it cannot find in a static export ("Worker failed to load"). Same approach as the PDF.js worker. |
 | D5-5 | On step 1 the address is looked up when the field is left (and again on a refresh), not on every key press. | One request per address. |
+| D6-1 | Speak and Stop are one button whose label changes. | With two buttons, pressing Speak removed the focused element and a keyboard user lost their place. |
+| D6-2 | The Voice setting is shown even when the server has no speech to text, then it controls Read aloud only and says that speaking questions is not available on this server. | Reading answers aloud uses the browser's voice and works anywhere. |
+| D6-3 | Recording is shown in ink, not red, and Stop is an ink-bordered button. | Red is for problems only (brief section 5). |
+| D6-4 | The question being typed is kept when the panel changes between side panel and sheet (rotating a tablet). | Found by the tests: the swap remounted the panel and lost the text. |
+| D6-5 | The fixture clip was made with espeak-ng (voice `en-us`), installed in this cloud container only, and resampled to 16 kHz in Python. espeak-ng is not a project dependency. | The plan asks for a machine voice and no real person's voice; nothing else was available here. |
+| D6-6 | The e2e browser always runs with Chromium's fake microphone fed with `tests/fixtures/question.wav`, and the "allow microphone" prompt answered. | One Playwright set-up for every test; the other tests never touch the microphone. |
 | B7 | `tests/test_web_guard.py` also checks the generated types (`openapi.sh --check`) and the fixtures (`make-fixtures.py --check`). | So a backend change that would break the front end fails `python -m pytest` too, not only CI. |
 
 ## Not testable in this environment
@@ -379,3 +396,53 @@ the city's geocoder and zoning layer (the API's own STATUS note: not yet run aga
 
 **Screenshots.** Step 1 with a pin [375](screenshots/stage-5/step-1-pin-375.png), [1280](screenshots/stage-5/step-1-pin-1280.png);
 the zoning card [375](screenshots/stage-5/zoning-card-375.png), [1280](screenshots/stage-5/zoning-card-1280.png).
+
+---
+
+## Stage 6: Voice (finished here; the real-microphone check is for a person)
+
+**Built.** Backend: `POST /api/transcribe` (see Backend changes). Front end: a Speak button beside the question box,
+shown only when `/api/meta` says `speech_to_text`, Voice is on, and the browser can record; press to start, the
+same button says Stop; "Recording N s of 30" announced politely; it stops by itself at the API's limit. The
+recording is decoded and converted to 16 kHz mono WAV in the browser (`src/voice/wav.ts`, Web Audio, no package)
+and sent to our API only. The words heard go into the question box with "These are the words heard. Correct them if
+needed, then press Send"; nothing is sent by itself. The answer to a spoken question is read aloud with the
+browser's own voice (`speechSynthesis`, plain text); every answer has Read aloud / Stop reading. One setting,
+"Voice", remembered on this device (`localStorage`); off hides the microphone and never reads aloud. A refused
+microphone and every transcribe error have a sentence in `errors.ts`. The browser's own speech recognition is never
+used (the guard fails on it).
+
+**Tested.**
+- `python -m pytest`: 154 passed, 1 skipped (the real-model transcription test: no faster-whisper here).
+- `npm test`: 38 passed (4 new). The WAV encoder writes RIFF/WAVE, PCM, one channel, 16000 Hz, 16 bits, and the right lengths; the microphone is hidden when `speech_to_text` is false, when Voice is off, and when the browser cannot record; the heard text lands in the box, is not sent until Send, and the request carries a WAV file to `http://api.test/api/transcribe`; the corrected text is what is asked; `speechSynthesis.speak` gets the answer text for a spoken question, not for a typed one (unless Read aloud is pressed), and never with Voice off.
+- `npm run e2e`: 56 passed (7 new). On this server (no faster-whisper) the microphone is hidden and the panel says so. With `/api/meta` and `/api/transcribe` served from the fixtures and Chromium's fake microphone playing `question.wav`: keyboard only, Speak (focus stays on the button, now Stop), "Recording" shown, Stop, the words heard in the box with focus, edited, Ctrl+Enter sends, the answer has Read aloud; the request is multipart with a WAV file (RIFF, WAVE, 16000 Hz, mono) and goes to the API base only, and no other host is contacted. Recording at 375 and 1280: axe clean while recording and with the heard words; Voice off hides the microphone and is remembered after a reload; a 422 from the API is said in words and the question can still be typed; a half-typed question survives the panel changing to a sheet.
+
+**Design review, brief section 12** (the assistant panel with voice).
+
+| Check | Result | How |
+|---|---|---|
+| Keyboard alone, focus visible | Yes | Playwright keyboard-only run from Speak to Send (D6-1). |
+| axe | Yes | 0 violations: panel with the microphone, while recording, with the heard words, Voice off; both widths. |
+| Labels | Yes | Speak/Stop, Read aloud/Stop reading and Voice are visible words; the checkbox's label is its whole row. |
+| Contrast | Yes | Ink and muted ink on paper; no red outside problems (D6-3). |
+| 44 px targets | Yes | Playwright; the Voice checkbox shares its 44 px label as one target. |
+| 320 px | Yes | The panel's footer wraps. |
+| The flow with the assistant closed and voice off | Yes | Every other test runs with voice never used; Voice off tested. |
+| Words heard and spoken shown as text | Yes | The heard words are in the box; spoken answers are the same text on screen. |
+| Screenshots | Yes | `docs/screenshots/stage-6/`. |
+
+**Vercel `AGENTS.md`.** Met: `aria-live="polite"` for the recording line and the heard words; the microphone
+refusal and errors offer the next step (type the question); no autoplay: speech starts only after the owner asked
+by voice or pressed Read aloud, and it can be stopped; settings are remembered locally.
+
+**Not done here: for a person to do.** The plan's "done when": in **Chrome and in Safari**, on a server with
+faster-whisper installed, speak a question with a real microphone, see the words heard, correct them, and get the same
+answer as the same question typed, read aloud with the text on screen. This cloud session has no microphone, no
+Safari and no faster-whisper. It has also not been checked that Safari's recording (MP4) decodes in `toWav()`;
+the conversion uses only standard Web Audio calls that Safari supports, but that is not tested.
+
+**Screenshots.** The panel with the microphone [375](screenshots/stage-6/panel-microphone-375.png), [1280](screenshots/stage-6/panel-microphone-1280.png);
+recording [375](screenshots/stage-6/recording-375.png), [1280](screenshots/stage-6/recording-1280.png);
+the heard words in the box [375](screenshots/stage-6/heard-words-375.png), [1280](screenshots/stage-6/heard-words-1280.png);
+an answer with Read aloud [375](screenshots/stage-6/answer-read-aloud-375.png), [1280](screenshots/stage-6/answer-read-aloud-1280.png);
+the Voice setting off [375](screenshots/stage-6/voice-off-375.png), [1280](screenshots/stage-6/voice-off-1280.png).

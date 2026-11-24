@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from api import main as api_main  # noqa: E402
-from checker import audit, zoning  # noqa: E402
+from checker import audit, voice, zoning  # noqa: E402
 
 
 @contextmanager
@@ -145,6 +145,19 @@ def build(tmp: Path) -> dict[str, object]:
             app.dependency_overrides.clear()
             with patched(audit, "audit", lambda *a, **k: 1 / 0):
                 errors["server_error"] = c.post("/api/checks", json={"facts": {}, "intake": {"business_type": "salon"}})
+            # /api/transcribe: a patched success with the fixture clip, and each error (no model is ever loaded)
+            clip = (SEATTLE / "question.wav").read_bytes()
+            say = lambda data, name="question.wav", kind="audio/wav": c.post("/api/transcribe", files={"audio": (name, data, kind)})
+            errors["no_speech_to_text"] = say(clip)
+            with patched(voice, "stt_available", lambda: True):
+                with patched(voice, "transcribe", lambda audio, **k: "Why do I need a second exit for my cafe?"):
+                    out["transcribe"] = say(clip).json()
+                    errors["audio_needed"] = say(b"")
+                    errors["audio_not_wav"] = say(png(), "q.png", "image/png")
+                    with env(PERMIT_MAX_AUDIO_MB="0.05"):
+                        errors["audio_too_large"] = say(clip)
+                with patched(voice, "transcribe", lambda audio, **k: None):
+                    errors["speech_not_understood"] = say(clip)
             for code, r in errors.items():
                 body = r.json()
                 assert body["error"]["code"] == code, (code, body)

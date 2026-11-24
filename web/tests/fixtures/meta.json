@@ -74,6 +74,8 @@
   },
   "limits": {
     "check_days": 30.0,
+    "max_audio_mb": 2.0,
+    "max_audio_seconds": 30,
     "max_history_turns": 6,
     "max_question_chars": 500,
     "max_upload_mb": 10.0,

@@ -9,7 +9,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
-import { MessageCircleQuestion, X } from "lucide-react";
+import { Mic, MessageCircleQuestion, Square, Volume2, X } from "lucide-react";
+import { canRecord, startRecording, type Recording } from "@/voice/recorder";
+import { canSpeak, speak, stopSpeaking, voiceSetting } from "@/voice/speech";
 import { api, ApiProblem, call, loadCheck, type Check } from "@/api/client";
 import { errorWords } from "@/api/errors";
 import { Button } from "@/components/ui/button";
@@ -181,6 +183,13 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
   const list = useRef<HTMLOListElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [seenDraft, setSeenDraft] = useState(s.draftVersion);
+  const [voiceOn, setVoiceOn] = useState(() => voiceSetting.get());
+  const [mic, setMic] = useState<{ state: "idle" } | { state: "recording"; seconds: number } | { state: "converting" } | { state: "problem"; code: string }>({ state: "idle" });
+  const [spokenNext, setSpokenNext] = useState(false);       // the text in the box came from the microphone
+  const [reading, setReading] = useState<number | null>(null);
+  const recording = useRef<Recording | null>(null);
+  const maxSeconds = meta?.limits.max_audio_seconds ?? 30;
+  const showMic = !!meta?.features.speech_to_text && voiceOn && canRecord();
 
   // A question put in the box by "Ask about this" (or cleared): show it, and put the cursor there.
   if (seenDraft !== s.draftVersion) {
@@ -212,9 +221,9 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
     setText("");
     if (!checkId) {
       const topic = matchHelp(q);
-      assistant.add(topic
-        ? { role: "assistant", text: topic.answer, cited: [], by: "help", spoken: opts.spoken }
-        : { role: "assistant", text: BEFORE_RESULT, cited: [], by: "help", spoken: opts.spoken });
+      const answer = topic ? topic.answer : BEFORE_RESULT;
+      assistant.add({ role: "assistant", text: answer, cited: [], by: "help", spoken: opts.spoken });
+      if (opts.spoken && voiceSetting.get()) readAloud(answer, assistant.get().messages.length - 1);
       return;
     }
     assistant.setPending(true);
@@ -226,12 +235,70 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
     try {
       const a = await call(() => api.POST("/api/checks/{check_id}/ask", { params: { path: { check_id: checkId } }, body: { question: q, history } }));
       assistant.add({ role: "assistant", text: a.text, cited: a.cited_rules, by: a.generated_by === "template" ? "template" : "model", spoken: opts.spoken });
+      if (opts.spoken && voiceSetting.get()) readAloud(a.text, assistant.get().messages.length - 1);
     } catch (e) {
       assistant.add({ role: "problem", text: errorWords(e instanceof ApiProblem ? e.code : "network") });
     } finally {
       assistant.setPending(false);
     }
   };
+
+  function readAloud(answer: string, index: number) {
+    setReading(index);
+    speak(answer, () => setReading((r) => (r === index ? null : r)));
+  }
+
+  // Recording stops by itself at the API's limit.
+  useEffect(() => {
+    if (mic.state !== "recording") return;
+    if (mic.seconds >= maxSeconds) {
+      void stopMic();
+      return;
+    }
+    const t = setTimeout(() => setMic((m) => (m.state === "recording" ? { state: "recording", seconds: m.seconds + 1 } : m)), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mic]);
+
+  useEffect(() => () => recording.current?.cancel(), []);
+
+  // The panel and the sheet are different elements: keep the question as it is typed, so the one that replaces
+  // the other (rotating a tablet) starts with it. Saved on every change, not on unmount: the new one renders first.
+  useEffect(() => assistant.keepDraft(text), [text]);
+
+  async function startMic() {
+    stopSpeaking();
+    try {
+      recording.current = await startRecording();
+      setMic({ state: "recording", seconds: 0 });
+    } catch {
+      setMic({ state: "problem", code: "microphone_blocked" });
+    }
+  }
+
+  async function stopMic() {
+    const r = recording.current;
+    recording.current = null;
+    if (!r) return;
+    setMic({ state: "converting" });
+    try {
+      const wav = await r.stop();
+      const heard = await call(() => api.POST("/api/transcribe", {
+        body: {} as never,
+        bodySerializer: () => {
+          const fd = new FormData();
+          fd.append("audio", wav, "question.wav");
+          return fd;
+        },
+      }));
+      setText(heard.text);                     // the words heard go in the box; nothing is sent until Send
+      setSpokenNext(true);
+      setMic({ state: "idle" });
+      requestAnimationFrame(() => box.current?.focus());
+    } catch (e) {
+      setMic({ state: "problem", code: e instanceof ApiProblem ? e.code : "network" });
+    }
+  }
 
   const suggestions = hasResult ? RESULT_SUGGESTIONS : (SUGGESTIONS[step] ?? SUGGESTIONS.start).map((id) => HELP.find((h) => h.id === id)!.question);
   const answerSuggestion = (q: string) => {
@@ -259,6 +326,7 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
         <ol ref={list} className="m-0 mt-4 flex list-none flex-col gap-4 p-0">
           {s.messages.map((m, i) => (
             <MessageItem key={i} m={m} check={check} checkId={checkId} onLink={closeOnLink ? onClose : undefined}
+              voice={voiceOn && canSpeak() ? { reading: reading === i, read: () => readAloud(m.text, i), stop: () => { stopSpeaking(); setReading(null); } } : null}
               onTopic={answerSuggestion} showTopics={!hasResult && m.role === "assistant" && m.text === BEFORE_RESULT} suggestions={suggestions} />
           ))}
           {s.pending ? <li className="text-ink-muted">Writing an answer from your result…</li> : null}
@@ -276,7 +344,7 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
       </div>
 
       <form className="flex flex-col gap-2 border-t border-hairline px-4 py-3"
-        onSubmit={(e) => { e.preventDefault(); void send(text); }}>
+        onSubmit={(e) => { e.preventDefault(); void send(text, { spoken: spokenNext }); setSpokenNext(false); }}>
         <label htmlFor="assistant-question" className="font-semibold">Your question</label>
         <textarea
           id="assistant-question"
@@ -289,25 +357,63 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              void send(text);
+              void send(text, { spoken: spokenNext });
+              setSpokenNext(false);
             }
           }}
           aria-describedby="assistant-hint"
           className="block w-full resize-y rounded-sm border border-field bg-white px-3 py-2 text-body"
         />
+        {mic.state === "recording" ? (
+          <p className="m-0 font-semibold nums" role="status">Recording {mic.seconds} s of {maxSeconds}. Press Stop when you have finished.</p>
+        ) : mic.state === "converting" ? (
+          <p className="m-0 text-ink-muted" role="status">Writing down what you said…</p>
+        ) : mic.state === "problem" ? (
+          <p className="m-0 font-semibold text-fix" role="alert">{errorWords(mic.code)}</p>
+        ) : spokenNext ? (
+          <p className="m-0 text-small text-ink-muted" role="status">These are the words heard. Correct them if needed, then press Send.</p>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span id="assistant-hint" className="text-small text-ink-muted">Ctrl or ⌘ and Enter also sends.</span>
           <div className="flex items-center gap-2">
+            {showMic ? (
+              // One button that changes from Speak to Stop, so keyboard focus stays on it while recording.
+              <Button variant="secondary" className={mic.state === "recording" ? "border-2 border-ink" : undefined} isDisabled={mic.state === "converting" || s.pending}
+                onPress={() => void (mic.state === "recording" ? stopMic() : startMic())}>
+                {mic.state === "recording" ? <><Square aria-hidden size={16} /> Stop</> : <><Mic aria-hidden size={18} /> Speak</>}
+              </Button>
+            ) : null}
             {s.messages.length ? <Button variant="quiet" onPress={() => assistant.clear()}>Clear the conversation</Button> : null}
-            <Button type="submit" variant="secondary" className="border-blue text-blue" isDisabled={s.pending}>Send</Button>
+            <Button type="submit" variant="secondary" className="border-blue text-blue" isDisabled={s.pending || mic.state === "recording"}>Send</Button>
           </div>
         </div>
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 self-start">
+          <input type="checkbox" checked={voiceOn} className="size-5 shrink-0 accent-blue"
+            onChange={(e) => {
+              voiceSetting.set(e.target.checked);
+              setVoiceOn(e.target.checked);
+              if (!e.target.checked) {
+                stopSpeaking();
+                setReading(null);
+                recording.current?.cancel();
+                recording.current = null;
+                setMic({ state: "idle" });
+              }
+            }} />
+          <span>
+            <span className="font-semibold">Voice</span>
+            <span className="block text-small text-ink-muted">
+              {meta?.features.speech_to_text ? "Speak questions and hear answers read aloud." : "Hear answers read aloud. Speaking questions is not available on this server."}
+            </span>
+          </span>
+        </label>
       </form>
     </div>
   );
 }
 
-function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestions }: {
+function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestions, voice }: {
+  voice: { reading: boolean; read: () => void; stop: () => void } | null;
   m: Message;
   check: Check | null;
   checkId: string | null;
@@ -364,6 +470,11 @@ function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestio
             ))}
           </ul>
         </div>
+      ) : null}
+      {voice ? (
+        voice.reading
+          ? <Button variant="quiet" className="self-start" onPress={voice.stop}><Square aria-hidden size={14} /> Stop reading</Button>
+          : <Button variant="quiet" className="self-start" onPress={voice.read}><Volume2 aria-hidden size={16} /> Read aloud</Button>
       ) : null}
       <span className="text-small text-ink-muted">
         {m.by === "help" ? "From the pre-check's help text." : m.by === "template" ? "Written from your result by a template." : "Written from your result by the model."}

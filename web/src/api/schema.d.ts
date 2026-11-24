@@ -125,6 +125,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transcribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The words in one recorded question (WAV), for the owner to check before sending it
+         * @description Held in memory only: never written to disk, logged or stored. Calls checker.voice.transcribe() unchanged.
+         */
+        post: operations["transcribe_api_transcribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/zoning": {
         parameters: {
             query?: never;
@@ -472,6 +492,16 @@ export interface components {
              * @description A stored check is deleted after this many days.
              */
             check_days: number;
+            /**
+             * Max Audio Mb
+             * @description The largest recording /api/transcribe accepts.
+             */
+            max_audio_mb: number;
+            /**
+             * Max Audio Seconds
+             * @description The browser stops recording a spoken question at this length.
+             */
+            max_audio_seconds: number;
             /** Max History Turns */
             max_history_turns: number;
             /** Max Question Chars */
@@ -665,6 +695,14 @@ export interface components {
             reviews: number;
         } & {
             [key: string]: unknown;
+        };
+        /** Transcript */
+        Transcript: {
+            /**
+             * Text
+             * @description The words heard. The owner checks and can correct them before sending the question.
+             */
+            text: string;
         };
         /** Turn */
         Turn: {
@@ -1357,6 +1395,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanReading"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    transcribe_api_transcribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description One recorded question as 16 kHz mono WAV.
+                     */
+                    audio: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transcript"];
                 };
             };
             /** @description Bad Request */

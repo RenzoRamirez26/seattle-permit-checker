@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "audio_needed",
+      "message": "No recording was received. Record the question again, or type it."
+    }
+  },
+  "status": 400
+}
