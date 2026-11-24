@@ -146,6 +146,9 @@ class Meta(BaseModel):
     features: Features
     limits: Limits
     rulebook: Rulebook
+    facts_checked: list[str] = Field(description="The plan values the rules read, as \"field\" or \"group.field\". The others "
+                                                 "are recorded with the check but no rule reads them.")
+    room_uses_without_load: list[str] = Field(description="Room uses whose size no rule reads (restrooms, corridors).")
 
 
 # ---------------------------------------------------------------- /plans/read

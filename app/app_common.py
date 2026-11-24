@@ -180,8 +180,9 @@ and names the permits to expect.
 
 **How it decides.** A vision model reads facts off the drawing (areas, door widths, fixtures). It
 does not judge anything. Plain Python then compares those facts with rules our team coded from
-Seattle's building codes and other city requirements, and every problem is tied to a code section and
-to the reviewer who checks it. {checked}
+Seattle's building and plumbing codes, the federal accessibility standards, and the King County and
+Washington State food codes, and every problem is tied to a code section and to the reviewer who checks
+it. {checked}
 
 **Where the numbers on the data page come from.** Seattle publishes every permit's review history:
 how many rounds it took, how long, and the reviewers' comments. The app only repeats those records.

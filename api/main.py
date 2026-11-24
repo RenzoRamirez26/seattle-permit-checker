@@ -34,6 +34,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from checker import agent, audit, pdf, rules_engine, voice, zoning
+from checker.extract import SPACE_USES
 
 from . import config, errors, geo, schemas, store, uploads
 from .errors import ApiError
@@ -108,6 +109,8 @@ def get_meta() -> dict:
                    "max_audio_seconds": config.MAX_AUDIO_SECONDS},
         "rulebook": {"edition_date": edition_date(rules()), "code_basis": rules()["_meta"]["code_basis"],
                      **rule_counts(rules())},
+        "facts_checked": list(rules_engine.FACTS_CHECKED),
+        "room_uses_without_load": rules_engine.room_uses_without_load(rules(), SPACE_USES),
     }
 
 
