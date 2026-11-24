@@ -43,7 +43,14 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
   - EG-4: an exit with no width is Check with the city.
   - ADA-3: a restroom door with no width is Check with the city.
   - PL-1 and PL-2: a restroom with no toilet or sink count, or no men/women designation where that matters, is Check
-    with the city.
+    with the city. This includes the Fix these rules used to report by counting an unknown as 0 ("Your plan shows no
+    toilets"). That was caught by the third independent scoring.
+  - EG-1 and EG-4: a door not marked as exit or not, or an exit with no width, could be what is missing, so the
+    shortfall is Check with the city, not Fix.
+  - A Fix stays a Fix only when it holds whatever the unknown value turns out to be. For example, more people than a
+    room with no area shows can only make a shortfall worse.
+  - Permits: when a room's area or use, the seat count or the floor area is unknown, the assembly and sprinkler
+    permits are listed as "May be needed", not dropped.
   - MECH-1 and FS-3: unknown grease cooking is Check with the city.
   - Zoning: no floor area in a zone with a size limit is Check with the city.
   - Rules that depend on the number of people (OCC-1, EG-1, EG-2, EG-4, FS-1, FS-2, PL-1, PL-2): a room with no area
@@ -52,7 +59,9 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 - **Tests:** `tests/unknown_inputs.py` sets every plan input of five demo cases to a spread of known values and then
   to unknown. `test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding` fails if unknown ever gives
   a better outcome than the worst known value. `test_unknown_handling_leaves_every_fix_finding_as_it_was` compares
-  every Fix finding over the same grid with a snapshot written by the engine before the change: identical.
+  every Fix finding over the same grid with a snapshot written by the engine before the change (commit 7dc74cf). Under
+  known values they are identical. Under an unknown value a Fix is only removed, only for EG-1, EG-4, PL-1 and PL-2,
+  and only by becoming Check with the city for the same rule.
 - **Not changed:**
   - Urinals left empty count as 0, as before. The reading schema makes them optional, and 0 is already the worst case.
   - A room marked "other" still has no load. It is a known use, not an unknown one.
