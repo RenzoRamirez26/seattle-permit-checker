@@ -198,6 +198,8 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
     pdf.grid(["Space", "Use", "Area (sq ft)", "Sq ft per person", "Load"],
              [[r["space"], r["use"], f"{r['area_sqft']:g}", r["factor"], r["load"]] for r in result["occupant_load"]["by_space"]],
              [2.2, 1.4, 1, 1.1, 0.8])
+    if not result["occupant_load"].get("rule_verified"):
+        pdf.paragraph(rules_engine.UNVERIFIED_FACTORS)
 
     passed = [f for f in result["findings"] if f["status"] == "pass"]
     if passed:

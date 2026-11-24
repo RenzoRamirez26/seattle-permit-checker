@@ -79,7 +79,9 @@ def test_report_pdf(case, title, finding, permit, request):
     unverified = [f for f in result["findings"] if not f["rule_verified"]]
     assert unverified and first.index(rules_engine.SOME_UNVERIFIED) > first.index(note)
     assert first.index(rules_engine.SOME_UNVERIFIED) < first.index("Fix list") and text.count(rules_engine.SOME_UNVERIFIED) == 1
-    assert text.count(rules_engine.UNVERIFIED_NOTE) == len(unverified)
+    flowing = re.sub(rf" {re.escape(pdf.REPORT_NAME)}: {re.escape(s['business_label'])} Page \d+ of \d+ ", " ", text)
+    assert flowing.count(rules_engine.UNVERIFIED_NOTE) == len(unverified)                 # a note may run across a page break
+    assert (rules_engine.UNVERIFIED_FACTORS in flowing) is (not result["occupant_load"]["rule_verified"])
     # tables: every permit with its agency, every room of the occupant-load calculation
     for p in result["permits_likely_required"]:
         assert p["name"] in text and p["agency"] in text

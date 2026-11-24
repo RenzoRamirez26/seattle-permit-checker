@@ -231,3 +231,20 @@ def test_voice_evaluation_scores_and_reports(salon):
     assert 'heard "how many laboratories do i need"' in report
     with pytest.raises(RuntimeError):
         ev.evaluate(["Hello"], salon, synthesize=lambda text: None, transcribe=fake_transcribe)
+
+
+def test_template_answers_say_when_a_rule_value_is_still_being_checked(salon):
+    """The assistant's template answers claim no more than the pages: every path names an unverified rule's note."""
+    assert any(not f["rule_verified"] for f in salon["findings"])
+    assert agent.spoken_summary(salon).endswith(rules_engine.SOME_UNVERIFIED)
+    open_hit = agent.template_answer("What about the aisle?", salon)
+    assert rules_engine.UNVERIFIED_NOTE in open_hit
+    none_open = salon | {"findings": [f for f in salon["findings"] if f["status"] == "pass"]}
+    passed = agent.template_answer("Tell me about the toilets and restrooms", none_open)
+    hits = [f for f in none_open["findings"] if f["rule_id"].startswith("PL")]
+    assert hits and passed.startswith("No issues found there.")
+    assert passed.count(rules_engine.UNVERIFIED_NOTE) == sum(not f["rule_verified"] for f in hits[:2]) > 0
+    checked = salon | {"findings": [f | {"rule_verified": True} for f in salon["findings"]]}
+    assert rules_engine.SOME_UNVERIFIED not in agent.spoken_summary(checked)
+    assert rules_engine.UNVERIFIED_NOTE not in agent.template_answer("What about the aisle?", checked)
+    assert '"rule_verified"' in agent.build_context(salon)

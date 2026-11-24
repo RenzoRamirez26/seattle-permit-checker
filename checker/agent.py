@@ -21,7 +21,7 @@ import os
 import re
 from typing import Any, Optional
 
-from .rules_engine import PRECHECK_NOTE, UNVERIFIED_NOTE
+from .rules_engine import PRECHECK_NOTE, SOME_UNVERIFIED, UNVERIFIED_NOTE
 
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
@@ -100,14 +100,16 @@ def spoken_summary(result: dict, limit: int = 3) -> str:
     s = result["summary"]
     open_items = [f for f in result["findings"] if f["status"] != "pass"]
     if not open_items:
+        unverified = f" {SOME_UNVERIFIED}" if any(not f.get("rule_verified") for f in result["findings"]) else ""
         return (f"No issues found in the checks I ran on this {s['business_label'].lower()} plan, for "
-                f"{s['occupant_load']} people. {PRECHECK_NOTE}")
+                f"{s['occupant_load']} people. {PRECHECK_NOTE}{unverified}")
     head = (f"I found {s['fails']} item{'s' if s['fails'] != 1 else ''} to fix before you apply and {s['reviews']} "
             f"to check with the city. The space is for {s['occupant_load']} people, "
             f"which makes it Group {s['occupancy_group']}. Most serious first: ")
     top = " ".join(f"{f['title']}. [{f['rule_id']}]" for f in open_items[:limit])
     more = f" There are {len(open_items) - limit} more in the fix list." if len(open_items) > limit else ""
-    return head + top + more
+    unverified = f" {SOME_UNVERIFIED}" if any(not f.get("rule_verified") for f in result["findings"]) else ""
+    return head + top + more + unverified
 
 
 def template_answer(question: str, result: dict) -> str:
@@ -133,7 +135,9 @@ def template_answer(question: str, result: dict) -> str:
     if open_hits:
         return " ".join(_say(f) for f in open_hits[:3])
     if hits:
-        return "No issues found there. " + " ".join(f"{f['title']}: {f['detail']} [{f['rule_id']}]" for f in hits[:2])
+        return "No issues found there. " + " ".join(
+            f"{f['title']}: {f['detail']}{'' if f.get('rule_verified') else ' ' + UNVERIFIED_NOTE} [{f['rule_id']}]"
+            for f in hits[:2])
     return spoken_summary(result)
 
 
