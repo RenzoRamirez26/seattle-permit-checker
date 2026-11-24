@@ -52,7 +52,7 @@ def test_cafe_flow(app):
     assert (m["Fix before you apply"], m["Check with the city"], m["No issues found"], m["Occupant load"]) == ("11", "2", "6", "106")
     text = " ".join(x.value for x in at.markdown)
     assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
-    assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
+    assert any("Who to ask: SDCI Ordinance" in c.value for c in at.caption)
     captions = [c.value for c in at.caption]                     # rules still being checked: once on top, then per finding
     assert captions.count(rules_engine.SOME_UNVERIFIED) == 1 and rules_engine.UNVERIFIED_NOTE in captions
     assert rules_engine.UNVERIFIED_FACTORS in captions                                     # under the occupant-load table

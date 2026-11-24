@@ -106,10 +106,12 @@ def test_misreadings_are_counted_and_traced_to_problems():
     assert wrong == {"Restroom 1 door: clear width (in.)", "Restroom 1: door width (in.)",
                      "Aisle A (between tables): width (in.)", "area of Dining Room", "fire_safety: exit_signs_shown"}
     assert r["correct"] == 33 and r["accuracy"] == round(33 / 38, 3)
-    assert r["problems"]["caught"] == 8 and len(r["problems"]["missed"]) == 3 and r["problems"]["to_confirm"] == []
+    # the unread aisle is no longer missed: an unknown width is Check with the city, so the owner is pointed at it
+    assert r["problems"]["caught"] == 8 and len(r["problems"]["missed"]) == 2
+    assert r["problems"]["to_confirm"] == ["Widen the aisle: Aisle A (between tables)"]
     assert "Add an exit sign at each exit" in r["problems"]["missed"] and "Widen the door: Restroom 1 door (Restroom 1)" in r["problems"]["missed"]
     md = ev.to_markdown([r], "test")
-    assert "| Café with planted problems | 38 | 33 | 87% | 11 | 8 | 0 | 3 | 0 |" in md and "Misread area of Dining Room: read 1500, should be 1280" in md
+    assert "| Café with planted problems | 38 | 33 | 87% | 11 | 8 | 1 | 2 | 0 |" in md and "Misread area of Dining Room: read 1500, should be 1280" in md
 
 
 def test_an_invented_problem_is_a_false_alarm():

@@ -106,6 +106,11 @@ def classify(district: Optional[str], rules: dict, *, business_type: Optional[st
         return out | {"status": "needs_review",
                       "detail": f"{note} This plan is {area_sqft:,.0f} sq ft, over that limit.",
                       "fix": f"Reduce the floor area to {limit:,} sq ft or less, or ask {contact} about a conditional use."}
+    if limit and area_sqft is None and status == "likely_permitted":       # unknown never becomes a pass
+        return out | {"status": "needs_review",
+                      "detail": f"{note} A {use} is generally allowed, but your plan doesn't show its floor area. This zone "
+                                f"allows up to {limit:,} sq ft.",
+                      "fix": "Add the floor area to the plan, then run the check again."}
     size = f" This plan is {area_sqft:,.0f} sq ft, within the {limit:,} sq ft limit." if limit and area_sqft else ""
     if status == "likely_permitted":
         return out | {"status": status,

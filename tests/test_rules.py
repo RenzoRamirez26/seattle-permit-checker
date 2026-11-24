@@ -154,7 +154,7 @@ def test_missing_information_becomes_a_question_not_a_pass(rules):
 def test_report_markdown(rules, load):
     z = zoning.classify("NR3", rules, business_type="salon", area_sqft=800)
     md = rules_engine.to_markdown(rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules, z))
-    assert md.startswith("# Permit pre-check: Salon, barbershop or spa") and "Checked by: SDCI Ordinance" in md
+    assert md.startswith("# Permit pre-check: Salon, barbershop or spa") and "Who to ask: SDCI Ordinance" in md
     assert "Washington State Department of Licensing" in md and "Atlanta" not in md and "Georgia" not in md
 
 
@@ -277,7 +277,7 @@ def test_a_rule_is_verified_only_with_evidence_in_the_rulebook(rules):
         for s in sections:
             assert s in checked, f"{rule_id} is verified but {s} is not in _meta.checked_against_city_sources"
     # The rules _meta.verify names as from memory stay unverified.
-    for rule_id in ("OCC-1", "EG-1", "FS-3", "ADA-1", "ADA-2", "ADA-4", "MECH-1", "HLTH-1", "ZN-1", "PL-1"):
+    for rule_id in ("OCC-1", "EG-1", "EG-3", "ADA-3", "FS-3", "ADA-1", "ADA-2", "ADA-4", "MECH-1", "HLTH-1", "ZN-1", "PL-1"):
         assert _rule_entries(rules)[rule_id]["verified"] is False
 
 
@@ -295,7 +295,10 @@ def test_a_rule_counts_as_checked_only_when_the_rules_it_depends_on_are(rules, l
     entries = _rule_entries(rules)
     assert entries["FS-2"]["verified"] and set(entries["FS-2"]["depends_on"]) == {"OL-0", "OCC-1"}
     assert not rules_engine.rule_checked(rules, "FS-2") and not rules_engine.rule_checked(rules, "FS-1")
-    assert rules_engine.rule_checked(rules, "EG-3")                    # a door width needs no occupant load
+    door = json.loads(json.dumps(rules))
+    door["rules"]["EG-3"]["verified"] = True
+    assert not rules_engine.rule_checked(rules, "EG-3")                # its ADA cross-reference is from memory
+    assert rules_engine.rule_checked(door, "EG-3")                     # once read, a door width needs no occupant load
     for rule_id, entry in entries.items():                              # every dependency is a rule in the rulebook
         assert set(entry.get("depends_on", [])) <= set(entries), rule_id
     loads_on_occupants = {"OCC-1", "EG-1", "EG-2", "EG-4", "FS-2", "PL-1", "PL-2"}
@@ -403,3 +406,57 @@ def test_every_no_issues_found_row_says_what_the_plan_shows_and_what_is_needed(r
             assert len(sentences) >= 2, f"{f['rule_id']}: {f['detail']}"
             assert re.search(r"\b(need|needs|puts)\b", sentences[-1]), f"{f['rule_id']}: {f['detail']}"
     assert {"EG-1", "EG-3", "FS-1", "PL-1", "PL-2", "OCC-1"} <= seen
+
+
+# ---------------------------------------------------------------- unknown never becomes a pass
+from tests import unknown_inputs as U  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def unknown_grid(rules):
+    return list(U.grid(rules))
+
+
+def test_an_unknown_input_never_gives_no_issues_found_and_never_drops_a_finding(unknown_grid):
+    """Every rule, every plan input of five demo cases, set to known values and then to unknown (null, or "unknown").
+    Where any known value gives Fix or Check with the city, unknown must too: never No issues found, never missing."""
+    problems = []
+    checked = set()
+    for name, path, known, unknown in unknown_grid:
+        known_outcomes = [U.outcomes(r) for _, r in known]
+        for rule_id in set().union(*known_outcomes):
+            worst = min(U.ORDER[o.get(rule_id, "absent")] for o in known_outcomes)
+            if worst > U.ORDER["review"]:
+                continue
+            checked.add(rule_id)
+            for value, result in unknown:
+                got = U.outcomes(result).get(rule_id, "absent")
+                if U.ORDER[got] > U.ORDER["review"]:
+                    problems.append(f"{name} {'.'.join(map(str, path))}={value!r}: {rule_id} is {got}")
+    assert problems == []
+    # the grid reaches every plan-based rule, so the test means something
+    assert {"OL-0", "OCC-1", "EG-1", "EG-2", "EG-3", "EG-4", "FS-1", "FS-2", "FS-3", "ADA-1", "ADA-2", "ADA-3", "ADA-4",
+            "PL-1", "PL-2", "MECH-1", "HLTH-1", "HLTH-2", "ZN-1"} <= checked
+
+
+def test_unknown_handling_leaves_every_fix_finding_as_it_was(rules):
+    """tests/fixtures/fix_findings_snapshot.json was written by the engine before unknown inputs were enforced, over the
+    same grid of known and unknown values. Fix findings are identical: only passes and missing findings changed."""
+    before = json.loads(U.SNAPSHOT.read_text(encoding="utf-8"))
+    now = U.fix_snapshot(rules)
+    assert set(now) == set(before)
+    assert [k for k in before if before[k] != now[k]] == []
+
+
+def test_the_aisle_and_seating_bugs_are_fixed(rules, load):
+    cafe = load("flawed")
+    for a in cafe["aisles"]:
+        a["min_width_in"] = None
+    cafe["seat_count"] = None
+    result = rules_engine.run_checks(cafe, {"business_type": "cafe_restaurant", "cooking_on_site": True}, rules)
+    by_rule = {}
+    for f in result["findings"]:
+        by_rule.setdefault(f["rule_id"], []).append(f)
+    assert by_rule["ADA-1"] and all(f["status"] == "review" for f in by_rule["ADA-1"])
+    assert any(f["title"] == "Show the seat count" and f["status"] == "review" for f in by_rule["ADA-4"])
+    assert "No issues found" not in json.dumps([f for f in result["findings"] if f["rule_id"] in ("ADA-1", "ADA-4")])
