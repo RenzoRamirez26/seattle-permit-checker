@@ -25,7 +25,7 @@ test("results: each finding on an unverified rule says so after its code section
   const id = new URL(page.url()).searchParams.get("check")!;
   const findings: { rule_id: string; rule_verified: boolean; citation: string; status: string }[] =
     (await (await request.get(`${API}/api/checks/${id}`)).json()).result.findings;
-  expect(findings.some((f) => f.rule_verified) && findings.some((f) => !f.rule_verified)).toBe(true);
+  expect(findings.some((f) => !f.rule_verified)).toBe(true);       // today no rule counts as checked (EG-3's ADA section)
 
   await expect(page.getByText(SOME, { exact: true })).toHaveCount(1);              // the In short band, once
   await expect(page.getByRole("tabpanel", { name: "In short" }).getByText(SOME)).toBeVisible();
@@ -47,6 +47,13 @@ test("results: each finding on an unverified rule says so after its code section
     expect(await note.evaluate((el) => getComputedStyle(el).color)).toBe(
       await page.evaluate((c) => { const d = document.createElement("div"); d.style.color = c; document.body.append(d); const v = getComputedStyle(d).color; d.remove(); return v; }, muted));
     await expect(note.locator("svg")).toHaveCount(0);
+  }
+  // A permit listed because of the number of people says so, beside it.
+  const check = await (await request.get(`${API}/api/checks/${id}`)).json();
+  const permits = page.getByRole("region", { name: /^Permits and approvals/ });
+  for (const p of check.result.permits_likely_required as { name: string; rule_verified: boolean }[]) {
+    const item = permits.getByRole("listitem").filter({ hasText: p.name });
+    await expect(item.getByText("Listed because of a value still being checked against the code.")).toHaveCount(p.rule_verified ? 0 : 1);
   }
   // Fix stays Fix: the statuses on the page are the API's
   await expect(page.getByRole("region", { name: `Fix before you apply (${findings.filter((f) => f.status === "fail").length})` })).toBeVisible();

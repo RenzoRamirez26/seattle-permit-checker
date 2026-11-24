@@ -129,7 +129,7 @@ test("step 1: ready-made questions answered from the help text, with no request"
   await expectTouchTargets(page);
   await shoot(page, "stage-4", "panel-step-1", { fullPage: false });
   await panel(page).getByRole("button", { name: "What if I am not sure of an answer?" }).click();
-  await expect(panel(page).getByText(/Choose Not sure\. A step 1 answer left as Not sure is never treated as no/)).toBeVisible();
+  await expect(panel(page).getByText(/Choose Not sure\. Any check that needs an answer or a plan value left as Not sure becomes Check with the city/)).toBeVisible();
   expect(asked).toBe(false);
 });
 

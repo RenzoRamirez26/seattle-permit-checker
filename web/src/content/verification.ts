@@ -7,6 +7,8 @@ import type { Finding, Meta } from "@/api/client";
 
 /** Under a finding whose rule value is still being checked, after its code section. */
 export const UNVERIFIED_FINDING = "This rule's value is still being checked against the code.";
+/** Under a permit the API listed because of a value still being checked (Permit.rule_verified false). */
+export const UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code.";
 /** One line in the In short band when any finding uses such a rule. */
 export const SOME_UNVERIFIED = "Some rule values are still being checked against the code.";
 /** The last step of Start's one-line strip, and the sentence that ends its full "How it works" step. */

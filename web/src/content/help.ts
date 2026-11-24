@@ -22,7 +22,7 @@ export const HELP: HelpTopic[] = [
   },
   {
     id: "not-sure", question: "What if I am not sure of an answer?",
-    answer: "Choose Not sure. A step 1 answer left as Not sure is never treated as no: every result that depends on it is marked Check with the city, and a permit that depends on it is listed as May be needed. On the plan, fill in what you can: most checks turn a missing value into Check with the city; a few don't yet.",
+    answer: "Choose Not sure. Any check that needs an answer or a plan value left as Not sure becomes Check with the city, and a permit that depends on it is listed as May be needed.",
     words: ["not sure", "don't know", "dont know", "unsure", "unknown"],
   },
   {

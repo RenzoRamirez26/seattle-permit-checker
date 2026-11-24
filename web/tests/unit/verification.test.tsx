@@ -6,7 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { Check, Finding, Meta } from "@/api/client";
 import { FindingCard } from "@/components/results/FindingCard";
-import { rulebookUnverified, SOME_UNVERIFIED, UNVERIFIED_FINDING, usesUnverifiedRule } from "@/content/verification";
+import { PermitList } from "@/components/results/PermitList";
+import { rulebookUnverified, SOME_UNVERIFIED, UNVERIFIED_FINDING, UNVERIFIED_PERMIT, usesUnverifiedRule } from "@/content/verification";
 import { fixture } from "./fixtures";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
@@ -75,5 +76,16 @@ describe("the rulebook count from /api/meta", () => {
     expect(rulebookUnverified(meta)).toBe(true);
     expect(rulebookUnverified(null)).toBe(true);                         // not loaded yet: the careful wording
     expect(rulebookUnverified({ ...meta, rulebook: { ...meta.rulebook, rules_unverified: 0 } })).toBe(false);
+  });
+});
+
+describe("a permit listed because of a value still being checked", () => {
+  it("says so under that permit only", () => {
+    const permits = flawed().result.permits_likely_required;
+    const marked = permits.filter((p) => p.rule_verified === false);
+    expect(marked.length).toBeGreaterThan(0);
+    render(<PermitList permits={permits} />);
+    expect(screen.getAllByText(UNVERIFIED_PERMIT)).toHaveLength(marked.length);
+    for (const p of marked) expect(screen.getByText(p.name).parentElement!.textContent).toContain(UNVERIFIED_PERMIT);
   });
 });
