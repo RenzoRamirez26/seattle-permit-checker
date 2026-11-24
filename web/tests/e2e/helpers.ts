@@ -4,12 +4,13 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const FIXTURES = join(__dirname, "..", "fixtures");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- fixtures are API responses read as loose JSON in tests
 export const fixture = <T = any>(name: string): T => JSON.parse(readFileSync(join(FIXTURES, `${name}.json`), "utf8"));
 
 /** axe with the WCAG 2.2 AA tags. Zero violations to pass; incomplete results are printed for a manual look. */
 export async function expectNoAxeViolations(page: Page, label: string) {
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-  for (const i of r.incomplete) console.log(`axe incomplete [${label}]: ${i.id} (${i.nodes.length} nodes): ${i.help}`);
+  for (const i of r.incomplete) console.log(`axe incomplete [${label}]: ${i.id} (${i.nodes.length} nodes): ${i.help}: ${i.nodes.slice(0, 4).map((n) => `${n.target.join(" ")} (${n.any.map((a) => a.message).join("; ").slice(0, 120)})`).join(" | ")}`);
   expect(r.violations.map((v) => `${v.id}: ${v.help} -> ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`), label).toEqual([]);
 }
 

@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { PageShell } from "@/components/flow/PageShell";
+import { Suspense } from "react";
+import { ResultsPage } from "./ResultsPage";
 
 export const metadata: Metadata = { title: "Your pre-check results" };
 
 export default function Page() {
-  return <PageShell step={4} title="Your pre-check results" />;
+  return (
+    <Suspense>
+      <ResultsPage />
+    </Suspense>
+  );
 }

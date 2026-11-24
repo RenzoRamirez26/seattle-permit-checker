@@ -1,11 +1,12 @@
 /** Reads a fixture written by scripts/make-fixtures.py (real API responses, no key). */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+const DIR = join(__dirname, "..", "fixtures");
+
 export function fixture<T = unknown>(name: string): T {
-  return JSON.parse(readFileSync(join(__dirname, "..", "fixtures", `${name}.json`), "utf8")) as T;
+  return JSON.parse(readFileSync(join(DIR, `${name}.json`), "utf8")) as T;
 }
 export function fixtureNames(prefix: string): string[] {
-  return require("node:fs").readdirSync(join(__dirname, "..", "fixtures"))
-    .filter((f: string) => f.startsWith(prefix)).map((f: string) => f.replace(/\.json$/, ""));
+  return readdirSync(DIR).filter((f) => f.startsWith(prefix)).map((f) => f.replace(/\.json$/, ""));
 }

@@ -10,7 +10,7 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | Stage | Status | Screenshots |
 |---|---|---|
 | 0. Skeleton | Finished | [stage-0](screenshots/stage-0/) |
-| 1. Check what we read | Not started | |
+| 1. Check what we read | Finished | [stage-1](screenshots/stage-1/) |
 | 2. Start, business, plan, reading | Not started | |
 | 3. Results and downloads | Not started | |
 | 4. The assistant | Not started | |
@@ -33,6 +33,13 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | B4 | Extra devDependency types: `@types/node` 22.20.5, `@types/react` and `@types/react-dom` 19.3.0. | TypeScript needs them; create-next-app adds them. They only describe types and ship nothing to the browser. |
 | B5 | The guard's code-number rule skips `.css` files, and does not count digits preceded by `-` (Tailwind class names such as `gap-2`). | CSS holds sizes (`100%`), not sentences; class-name digits are not code values. Every other rule still scans CSS. |
 | B6 | E2E runs on ports 8765 (API) and 3765 (site), from a fresh `npm run build`, served by `scripts/serve-out.mjs` (no dependency). | Keeps the tests off the ports a person uses for `npm run dev` and `uvicorn`, and tests the same static files a host would serve. |
+| C1 | A fact row is one thing on the plan (a door, a room, a restroom, the kitchen, fire safety, the seats, the overall size) with its facts listed and one Change, not one Change per number. | 18 rows for the café instead of about 70 buttons. Change still edits in place and keeps every other value. |
+| C2 | Rooms, doors, aisles and restrooms can be added ("Add a door") and removed (with Undo). | Manual entry starts with no doors or rooms; without Add the owner could not describe the plan, so "the owner can always finish without the model" would not hold. Remove has Undo (Vercel: confirm destructive actions or offer Undo). |
+| C3 | Manual entry is the URL `/check/?enter=yourself`. | The URL reflects the state (Vercel); stage 2's error page links to it. |
+| C4 | The main button turns Ink on hover instead of a darker blue. | A darker blue would be a new colour (DESIGN.md: no new colour). White on Ink is 16.6 to 1, so hover raises contrast (Vercel). |
+| C5 | On wide screens the plan stays in view (sticky) while the facts scroll. | The owner compares each fact with the drawing. |
+| C6 | `scripts/copy-demo.mjs` also writes `public/demo/plans.json`, the picture file for each example plan id. | `/api/meta` names the example plans but not their pictures; the browser needs the file name. It holds ids and file names only. |
+| C7 | "Changed by you" compares a row with the reading by its position. After removing a door, the doors after it are marked changed. | Facts have no ids (plan finding 3 is the same issue for findings). Wording stays true: the values differ from what was read at that position. |
 | B7 | `tests/test_web_guard.py` also checks the generated types (`openapi.sh --check`) and the fixtures (`make-fixtures.py --check`). | So a backend change that would break the front end fails `python -m pytest` too, not only CI. |
 
 ## Not testable in this environment
@@ -90,3 +97,59 @@ buttons, unsaved-changes warning, URL state. Departure: shadows (D11) and WCAG 2
 
 **Screenshots.** The empty Start page with header and footer: [375](screenshots/stage-0/start-empty-375.png),
 [1280](screenshots/stage-0/start-empty-1280.png).
+
+---
+
+## Stage 1: Check what we read (finished)
+
+**Built.** `/check/`: the plan in 7 columns and the facts in 5 (plan first on phones, sticky on wide
+screens). `PlanViewer` shows an example plan from `/demo/`, an uploaded PNG or JPG from memory, or an
+uploaded PDF drawn by PDF.js (lazy-loaded, worker from `public/`), with Zoom out, Zoom in and Fit buttons
+(keyboard and one hand) and pinch. After a refresh an uploaded plan is gone and the page says so, with a
+"Choose the plan file" button that shows it again without sending it anywhere. `FactsEditor` groups the facts
+as the schema does; `FactRow` shows what was read, where it is on the plan in words, and Change, which opens a
+form in place (React Aria fields, react-hook-form, zod for shape only). An empty value shows "Not sure" (in the
+city colour) and is sent as `null`. "Changed by you. The check will use these values" after a change (HAX G16).
+"What the reader was unsure about" lists `uncertainties`; the source is said once. The error summary lists each
+error as a link that focuses its field; the field shows the error next to it and gets focus on Save. Leaving
+with an unsaved change warns. "Run the check" posts to `POST /api/checks` and opens `/results/?check=<id>`,
+which for now shows the counts sentence only. Manual entry: `/check/?enter=yourself`.
+
+**Tested.**
+- `python -m pytest`: 135 passed (no backend change in this stage).
+- `npm test`: 12 passed. Every field of `Facts` and of each thing on the plan has a row and a label (checked against the API's own reading); every thing read from the café has a Change; a `null` shows "Not sure" and is sent back as `null` (facts and intake answers); an emptied number and a "Not sure" answer become `null`; manual entry sends empty facts; Change keeps every other value; an error is reported next to the field and as a problem linking to it; the summary lists each error as a link.
+- `npm run e2e`: 20 passed. The three example readings render with their plan picture; axe at 375 and 1280 (reading, Change state, error summary, manual entry, refresh state), zero violations and no `incomplete`; no sideways scroll at 320; 44 px targets. The flawed café, unchanged, gives `11 / 2 / 6`, compared in the test with `python -m checker.audit` run on the same input. Adding a second exit changes the result. A refresh keeps the edited facts. Keyboard only from the first Change, through editing a value (Enter saves, focus returns to Change), to Run the check and the results page. Manual entry runs a check. An uploaded plan is gone after a refresh and can be chosen again and zoomed.
+- `npm run lint`, `npm run typecheck`, guard: clean.
+
+**Design review, brief section 12** (page: `/check/`, and the temporary `/results/`).
+
+| Check | Result | How |
+|---|---|---|
+| Keyboard alone, focus visible | Yes | Playwright keyboard-only run; radios show the ring through React Aria's `data-focus-visible`. |
+| axe: no errors | Yes | 0 violations in every state at both widths. One `incomplete` (contrast of labels inside `display: contents`) was removed by changing the markup so axe can measure them. |
+| Visible labels; errors next to the field and in the summary | Yes | Every input has a `Label`; Vitest and Playwright check the error in both places. |
+| Contrast | Yes | Only `DESIGN.md` pairs. "Not sure" uses the city colour on paper (6.7 to 1). |
+| 44 px targets | Yes | Playwright, every state. |
+| 320 px, no sideways scroll | Yes | Playwright. The plan scrolls inside its own region when zoomed. |
+| Assistant closed, voice off | Not applicable | Not built yet. |
+| Refresh keeps entries | Yes | Playwright: an added door survives a reload. The plan file does not, by design (D12), and the page says so. |
+| Screenshots | Yes | `docs/screenshots/stage-1/`. |
+
+**Vercel `AGENTS.md`.** Met: Enter submits the focused field (saves the row); errors inline and focus to the
+first error on Save; `inputmode="decimal"`/`"numeric"` and `autocomplete="off"` on fact fields; paste allowed;
+values trimmed; warn before leaving with an unsaved change; the loading button keeps a spinner and the label
+("Running the check…"); `…` in loading text; `tabular-nums` and Plex Mono on measurements; `Intl.NumberFormat`
+for values; the scrollable plan region is focusable and has a name; `overscroll-behavior: contain` on it; Undo
+for Remove; long names wrap (`break-words`, `min-w-0`); empty groups say "None read from the plan.". Not met,
+with reason: "Back/Forward restores scroll position" is left to the browser's default for a static export (not
+tested). Not applicable: autofocus (several fields).
+
+**Not tested here.** Pinch zoom on a real phone; a real multi-page PDF (the PDF path is built and type-checked;
+the tests use PNG plans because no PDF plan exists in `demo/`).
+
+**Screenshots.** [Café reading 375](screenshots/stage-1/cafe-reading-375.png), [1280](screenshots/stage-1/cafe-reading-1280.png)
+(full page: [375](screenshots/stage-1/cafe-reading-full-375.png), [1280](screenshots/stage-1/cafe-reading-full-1280.png));
+one row in Change state [375](screenshots/stage-1/row-change-375.png), [1280](screenshots/stage-1/row-change-1280.png);
+manual entry [375](screenshots/stage-1/manual-entry-375.png), [1280](screenshots/stage-1/manual-entry-1280.png);
+refresh without the plan [375](screenshots/stage-1/refresh-without-plan-375.png), [1280](screenshots/stage-1/refresh-without-plan-1280.png);
+error summary [375](screenshots/stage-1/error-summary-375.png), [1280](screenshots/stage-1/error-summary-1280.png).
