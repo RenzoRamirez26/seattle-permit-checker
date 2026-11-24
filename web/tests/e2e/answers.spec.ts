@@ -74,7 +74,7 @@ test("Also used in the check holds every other row, each with Change and no unsu
   await expect(also.getByText("We're not sure we read this right.")).toHaveCount(0);
   await expect(also.getByRole("button", { name: "Change Door 1" })).toBeVisible();
   for (const name of ["Overall size", "Rooms", "Doors", "Aisles and routes", "Restrooms"]) {
-    await expect(also.getByRole("heading", { name, level: 3 })).toBeVisible();
+    await expect(also.getByRole("heading", { name, level: 3, exact: true })).toBeVisible();
   }
   for (const add of ["Add a room", "Add a door", "Add an aisle or route", "Add a restroom"]) {
     await expect(also.getByRole("button", { name: add })).toBeVisible();

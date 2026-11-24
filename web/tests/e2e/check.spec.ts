@@ -76,7 +76,8 @@ test("the flawed café, unchanged, gives the same counts as python -m checker.au
   await page.goto("/check/");
   await page.getByRole("button", { name: "Run the check" }).click();
   await expect(page).toHaveURL(/\/results\/\?check=/);
-  await expect(page.getByTestId("counts")).toHaveText(`${cli.fails} things to fix before you apply, ${cli.reviews} to check with the city, ${cli.passes} fine.`);
+  await expect(page.getByTestId("counts")).toHaveText(`You have ${cli.fails} things to fix before you apply and ${cli.reviews} to check with the city.`);
+  await expect(page.getByTestId("others")).toHaveText(`We found no issues in the other ${cli.passes} checks.`);
 });
 
 test("adding a second exit changes the result, and a refresh keeps the edited facts", async ({ page }) => {
@@ -97,7 +98,7 @@ test("adding a second exit changes the result, and a refresh keeps the edited fa
 
   await page.getByRole("button", { name: "Run the check" }).click();
   await expect(page.getByTestId("counts")).toBeVisible();
-  await expect(page.getByTestId("counts")).not.toHaveText(/^11 things to fix/);
+  await expect(page.getByTestId("counts")).not.toHaveText(/^You have 11 things to fix/);
 });
 
 test("keyboard only: from the first Change to Run the check", async ({ page }) => {
