@@ -6,6 +6,32 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Rules not yet checked against the code are marked
+
+- **Decision:** The rulebook gives every rule id a `verified` (true or false) and a `source` (code edition and
+  section), plus the `evidence` for the choice. A rule is true only when every value it uses is listed in
+  `_meta.checked_against_city_sources`: EG-2, EG-3, EG-4, FS-1, FS-2 and ADA-3 (6 of 21). The other 15 are false.
+  Each finding carries `rule_verified` and `rule_source` from the engine through the API. Where `rule_verified` is
+  false, the website shows "This rule's value is still being checked against the code." after the code section, in
+  muted body text with no new colour or icon. The PDFs, the Streamlit demo and the assistant's answers say it too.
+  The In short band and the first page of each PDF say "Some rule values are still being checked against the code."
+  once. Start's strip ends "Seattle's rules decide (some values still being checked)" while `/api/meta` counts any
+  unverified rule.
+- **Why:** A claim must be no larger than its evidence (checklist T5 and L4). A finding built on a value entered from
+  memory looked exactly like one read from the code.
+- **Rejected:**
+  - Marking per value instead of per rule, which is more exact but needs the engine to track which value produced
+    each finding.
+  - Counting a rule as checked when only some of its values were read. EG-1 stays false because three exits above
+    500 occupants is from memory, and PL-1 stays false because two rows of Table 2902.1 still need re-reading.
+  - A new colour or icon, which would add a fourth status look.
+  - Letting `verified` lower a finding to "Check with the city". The status comes from the plan and the rule; whether
+    the rule was read from the code is a separate fact.
+- **Unknown is careful:** a finding without the field, a rulebook with no `rules` section, or a Start page whose
+  `/api/meta` has not loaded all get the "still being checked" wording.
+- **Source:** design checklist (T5, L4); CLAUDE.md (`_meta.verify`); `docs/rulebook.md`.
+- **Who:** team.
+
 ## 2026-11-24 · Three fixes after the checklist re-score
 
 - **Decision 1, Start:** the four steps of "How it works" as one line under the intro sentence ("You upload your plan ·
@@ -28,7 +54,7 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
   The page title "Check what we read from your plan" follows the rules and stays.
 - **Source:** design checklist (L2, F2); CONTENT.md rules 6 and 10. **Who:** team.
 
-## 2026-11-24 · Unverified rule values are not marked yet (open)
+## 2026-11-24 · Unverified rule values are not marked yet (closed: see "Rules not yet checked against the code are marked")
 
 - **Decision:** None yet. The checklist scoring found that findings built on rulebook values listed under
   `_meta.verify` (entered from memory, not yet checked against the code) look the same as checked ones.

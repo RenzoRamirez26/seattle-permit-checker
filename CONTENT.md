@@ -28,6 +28,17 @@ Words the tests reject in interface copy and the PDF templates: *approved, compl
 oops*, and *pass* or *OK* used as a status label. The API's own status values (`pass`, `fail`, `review`) are data, not
 copy, and stay as they are.
 
+## Values still being checked
+
+Say what is not yet checked, once, next to what it affects (rules 4 and 11):
+- under a finding whose rule value is not yet read from the code: "This rule's value is still being checked against
+  the code."
+- once beside the results and on the first page of each PDF: "Some rule values are still being checked against the
+  code."
+- on Start, while any rule is unverified: "Seattle's rules decide (some values still being checked)".
+
+The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unverified`); the pages only show the words.
+
 ## Before and after
 
 | Before | After | Rule |
