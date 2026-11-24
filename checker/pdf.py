@@ -237,6 +237,8 @@ def permit_sheet_pdf(result: dict) -> bytes:
     if d["rooms"]:
         pdf.grid(permit_draft.ROOM_COLUMNS,
                  [[r["space"], r["use"], f"{r['area_sqft']:g}", r["factor"], r["load"]] for r in d["rooms"]], [2.2, 1.4, 1, 1.1, 0.8])
+        if d["rooms_unverified"]:
+            pdf.paragraph(d["rooms_unverified"])
 
     pdf.heading(permit_draft.SECTIONS[2])
     for item, source in d["uploads"]:

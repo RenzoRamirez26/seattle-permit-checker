@@ -352,6 +352,8 @@ if result:
                 st.dataframe(pd.DataFrame(result["occupant_load"]["by_space"])[["space", "use", "area_sqft", "factor", "load"]]
                              .rename(columns={"space": "Room", "use": "Use", "area_sqft": "Area (sq ft)",
                                               "factor": "Sq ft per person", "load": "People"}), hide_index=True, width="stretch")
+                if not result["occupant_load"].get("rule_verified"):
+                    st.caption(rules_engine.UNVERIFIED_FACTORS)
                 st.caption(result["code_basis"])
 
             try:

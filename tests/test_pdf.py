@@ -107,6 +107,7 @@ def test_permit_sheet_pdf(case, finding, permit, request):
     assert first.index(permit_draft.NOTICE) < first.index(permit_draft.SECTIONS[0])
     assert permit_draft.CURRENCY in first and "dated 2016" in first
     assert permit_draft.SOME_UNVERIFIED in first and first.index(permit_draft.SOME_UNVERIFIED) < first.index(permit_draft.SECTIONS[0])
+    assert (permit_draft.UNVERIFIED_FACTORS in text) is (not result["occupant_load"]["rule_verified"])   # under the rooms table
     assert last.rstrip().split(" Permit application preparation sheet")[0].endswith(result["disclaimer"])   # last thing before the footer
     assert finding in text and any(permit in p["name"] and permit in text for p in result["permits_likely_required"])
     # each open problem is one line, title and severity; the fix and the code section are left to the report
@@ -236,3 +237,4 @@ def test_the_pdfs_say_nothing_about_checking_when_every_rule_is_checked(cafe):
 def test_the_sheet_uses_the_engine_s_words_for_unverified_rules():
     assert permit_draft.UNVERIFIED_NOTE == rules_engine.UNVERIFIED_NOTE
     assert permit_draft.SOME_UNVERIFIED == rules_engine.SOME_UNVERIFIED
+    assert permit_draft.UNVERIFIED_FACTORS == rules_engine.UNVERIFIED_FACTORS

@@ -55,6 +55,7 @@ def test_cafe_flow(app):
     assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
     captions = [c.value for c in at.caption]                     # rules still being checked: once on top, then per finding
     assert captions.count(rules_engine.SOME_UNVERIFIED) == 1 and rules_engine.UNVERIFIED_NOTE in captions
+    assert rules_engine.UNVERIFIED_FACTORS in captions                                     # under the occupant-load table
     assert any("review records are not downloaded yet" in c.value for c in at.caption)
 
 

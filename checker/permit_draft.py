@@ -19,6 +19,7 @@ UNFILLED = "to be filled in by the applicant"
 # The same words as rules_engine.UNVERIFIED_NOTE and SOME_UNVERIFIED (this module imports no rules; a test keeps them equal).
 UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
 SOME_UNVERIFIED = "Some rule values are still being checked against the code."
+UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
 
 NOTICE = ("This is a preparation aid, not the City of Seattle's official form. It gathers, in one place, what the "
           "city's published pages say you will be asked for. You apply in the Seattle Services Portal.")
@@ -127,6 +128,8 @@ def sheet(result: dict) -> dict[str, Any]:
              TI_STANDARDS),
         ],
         "rooms": spaces,
+        # under the rooms table when some of its factors are not yet read from the code text (rule OL-0)
+        "rooms_unverified": None if result["occupant_load"].get("rule_verified") else UNVERIFIED_FACTORS,
         "uploads": UPLOADS,
         "permits": result["permits_likely_required"],
         # one line each, to keep the sheet short: the report has the detail, the fix and the code section
@@ -153,6 +156,8 @@ def to_markdown(result: dict) -> str:
     if d["rooms"]:
         out += ["", "| " + " | ".join(ROOM_COLUMNS) + " |", "|---|---|---|---|---|"]
         out += [f"| {_cell(r['space'])} | {_cell(r['use'])} | {r['area_sqft']:g} | {r['factor']} | {r['load']} |" for r in d["rooms"]]
+        if d["rooms_unverified"]:
+            out += ["", d["rooms_unverified"]]
 
     out += ["", f"## {SECTIONS[2]}", ""]
     out += [f"- [ ] {item} ({source})" for item, source in d["uploads"]]
