@@ -17,8 +17,8 @@ Field names below were read from live records in November 2026.
 Each dataset is saved to data/raw/seattle/<name>.jsonl first, then parsed from
 that file, so a download can be re-used and inspected.
 
-STATUS: the mappers are tested on real records and the paging on a stand-in. The live
-download has not been run from this code yet; run `python -m pipeline.run_pipeline --seattle`.
+The live download ran on 21 November 2026: 1,588 permits, 11,391 review steps and 26,299
+reviewer comments, the same counts the portal gave for the same query on 23 November.
 """
 from __future__ import annotations
 

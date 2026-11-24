@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green"></a>
 </p>
 
-> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. The vision model has now read the three demo plans (21 November 2026), but no real floor plan yet. One thing has **not** been run against the real service: the live Seattle download. The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
+> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. The vision model has now read the three demo plans (21 November 2026), but no real floor plan yet. The live Seattle download ran on 21 November 2026 (1,588 permits, 11,391 review steps, 26,299 reviewer comments). The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
 
 ## Contents
 
@@ -50,7 +50,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Zoning | `checker/zoning.py` | Logic tested; the live lookup is tested with the network mocked | Run one real address |
 | Plan reading | `checker/extract.py` | **The real model has read the three demo plans** (21 November 2026, one run): 103 of 107 facts read correctly. The demo plans are fictional and drawn to be easy to read | **Read a real floor plan** (with permission); accuracy on real drawings is unknown |
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested. First results in [reports/extraction_eval.md](reports/extraction_eval.md): of 14 real problems on the two flawed plans, 12 were caught as problems, 2 were flagged to confirm, none missed, no false alarms. One run, three demo plans | Repeat the run to see how much it varies; add more plans |
-| Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
+| Seattle data | `pipeline/` | **The live download has run** (21 November 2026): 1,588 permits, 11,391 review steps, 26,299 reviewer comments, the same counts the city's portal gave on 23 November. Mappers and queries tested | The data is not committed: each computer runs the download itself. Run it again with `--refresh` before quoting numbers |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
 | Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
@@ -188,7 +188,7 @@ Queried directly from the city's portal on 20 November 2026, using its text sear
 
 - [x] **Phase 0: Setup.** Layout, environment, `.gitignore`, `CLAUDE.md`, tests on GitHub
 - [x] **Phase 1: Rules.** Rulebook for six business types, rules engine, zoning, three demo plans
-- [x] **Phase 2: Seattle data.** Download, database, queries (live download still to run)
+- [x] **Phase 2: Seattle data.** Download, database, queries (live download run on 21 November 2026)
 - [x] **Phase 3: Website.** Five pages, editable reading, results, PDF downloads
 - [ ] **Phase 4: Plan reading with the model.** Run `--vision`, record the accuracy table, fix the prompt where it misreads
 - [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
