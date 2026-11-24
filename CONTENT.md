@@ -44,3 +44,7 @@ copy, and stay as they are.
 | Always shown, never behind a tab | (removed) | 9 |
 | This server cannot read uploaded plans yet. | This server can't read uploaded plans yet. | 10 |
 | Invalid file | We can't read this kind of file. Upload a PDF, PNG or JPG. | 3 |
+| Read by the vision model. Check every value against your plan. | The model read your plan. Check each value against the drawing. | 6, 10 |
+| You are entering the measurements yourself. Leave anything you are not sure of empty. | You're entering the measurements yourself. Leave anything you're not sure of empty. | 10 |
+| No plan has been read in this browser tab yet. | We haven't read a plan in this browser tab yet. | 6 |
+| We're not sure we read this right. (under every empty reading) | We couldn't read this from your plan. | 2 |

@@ -5,7 +5,12 @@ Pass/fail items for every version, each naming its source. Score a version in a 
 
 design-v3 was scored on 24 November 2026 by a separate reviewing agent that had not built the pages, from the
 screenshots in `screenshots/design-v3/` and the code: 20 of 26 passed. Three failures were fixed after the scoring
-(marked below); three remain.
+(marked below).
+
+Re-scored the same day after three more fixes (a "How it works" line on Start, the example plans listed once on Plan,
+and the empty-reading line on Answers). This re-score was done by the agent that made the fixes, not a separate one; it
+rechecked L2, F2, S1, V1, V3 and L3 against the new screenshots and tests and carried the other items over. Result:
+24 of 26 pass. Two remain: T5 and L4, which both wait on a backend field for unverified rule values.
 
 | # | Item | Source | design-v3 |
 |---|---|---|---|
@@ -18,7 +23,7 @@ screenshots in `screenshots/design-v3/` and the code: 20 of 26 passed. Three fai
 | T6 | Nothing looks official: no seals, stamps or city colours | design brief section 1 | Pass |
 | **Flow** | | | |
 | F1 | Upload, a few questions, confirm, results | design brief | Pass |
-| F2 | The least-certain readings come first and are editable in one step | decisions.md ("Check these first") | Pass |
+| F2 | The least-certain readings come first and are editable in one step | decisions.md ("Check these first") | Pass. Re-score: each empty reading now says "We couldn't read this from your plan." |
 | F3 | Progress is visible on every step | design brief | Pass |
 | F4 | The assistant opens beside the findings | design brief section 11 | Pass |
 | F5 | Voice falls back to typing | website plan, stage 6 | Pass |
@@ -37,6 +42,6 @@ screenshots in `screenshots/design-v3/` and the code: 20 of 26 passed. Three fai
 | V5 | One component library (React Aria) | website plan | Pass |
 | **Landing** | | | |
 | L1 | Says who it is for, what it does, and that it is a pre-check | CONTENT.md | Pass |
-| L2 | "How it works" is high on the page | design brief | **Fail**: "How it works" sits below the form, in the order the v3 spec set |
+| L2 | "How it works" is high on the page | design brief | Fail at scoring: "How it works" sat below the form, in the order the v3 spec set. Fixed after: the four steps as one line directly under the intro sentence; the full section stays below the form. Test: flow.spec.ts (Start) |
 | L3 | No copy slop (em-dash chains, "leverage", marketese) | plain-language guides | Pass |
 | L4 | Claims no larger than the evidence | decisions.md (proof figures) | **Fail**: "Seattle's rules decide" was larger than the evidence while values are unverified (T5). Softened after: "Some of their values are still being checked against the code." |

@@ -6,6 +6,28 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Three fixes after the checklist re-score
+
+- **Decision 1, Start:** the four steps of "How it works" as one line under the intro sentence ("You upload your plan ·
+  The model reads it · You confirm · Seattle's rules decide"); the full section stays below the form.
+  **Why:** the checklist wants how it works high on the page (L2), and the form had pushed it below the fold.
+  **Rejected:** moving the whole section above the form, which would push the form below the fold on a phone.
+- **Decision 2, Plan:** with no API key, the example plans are listed once, as the pill rows under "Try an example
+  plan". The no-key notice and "Other ways to go on" now link down to them ("Try an example plan below") instead of
+  repeating the list. This also applies when reading failed for another reason, since the rows are on the page then too.
+  **Why:** the same three links twice on one screen is noise. **Rejected:** hiding the pill rows when there is no key.
+- **Decision 3, Answers:** a reading the API left empty says "We couldn't read this from your plan." The line "We're not
+  sure we read this right." is gone: the API marks no single reading as uncertain (`uncertainties` is a free-text list,
+  shown as "Noted while reading your plan"), so that sentence claimed something the data does not say.
+  **Rejected:** keeping "not sure" for every empty reading. **TODO:** bring the line back if `extract.py` gains a
+  per-reading uncertainty or confidence mark.
+- **Decision 4, three kept strings rewritten:** of the four strings design-v3 had kept because tests asserted them, three
+  did not follow CONTENT.md and were changed with their tests: "Read by the vision model. Check every value against your
+  plan." (passive, jargon), "You are entering the measurements yourself. Leave anything you are not sure of empty."
+  (no contractions, unlike CONTENT.md's own example), and "No plan has been read in this browser tab yet." (passive).
+  The page title "Check what we read from your plan" follows the rules and stays.
+- **Source:** design checklist (L2, F2); CONTENT.md rules 6 and 10. **Who:** team.
+
 ## 2026-11-24 · Unverified rule values are not marked yet (open)
 
 - **Decision:** None yet. The checklist scoring found that findings built on rulebook values listed under
