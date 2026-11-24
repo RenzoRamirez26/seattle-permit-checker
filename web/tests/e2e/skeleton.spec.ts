@@ -65,3 +65,11 @@ test("F3: the site has a favicon, so a first page load asks for nothing that is 
   await page.waitForLoadState("networkidle");
   expect(missing).toEqual([]);
 });
+
+test("F4: an address with no page gets its own title, its h1 and a 404", async ({ page }) => {
+  const res = await page.goto("/no-such-page/");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("There is no page at this address");
+  await expect(page).toHaveTitle("There is no page at this address | Seattle Permit Pre-Check");
+  await expect(page.getByRole("link", { name: "Go to the start of the pre-check" })).toBeVisible();
+});
