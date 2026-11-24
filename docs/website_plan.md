@@ -92,9 +92,10 @@ web/
 │   │   ├── plan/                   PlanViewer (img or PDF.js), FactRow, FactGroup
 │   │   ├── results/                CountsSentence, FindingCard, PermitList, RecordLine, ZoningCard, Downloads
 │   │   ├── map/                    PlaceMap (MapLibre, lazy)
-│   │   └── assistant/              AskButton, Panel, Suggestions, Message
+│   │   └── assistant/              AskButton, Panel, Suggestions, Message, MicButton, ReadAloud, VoiceSetting
 │   ├── content/                    every fixed sentence the site shows: page copy, help text, suggested questions.
 │   │                               Words only, no code values (section 5 checks this)
+│   ├── voice/                      recording, conversion to 16 kHz mono WAV (no dependency), browser speech for answers
 │   ├── state/                      flow state in sessionStorage, one key per step; the uploaded file kept in memory only
 │   └── styles/tokens.css           DESIGN.md tokens as CSS variables and Tailwind @theme
 ├── tests/
@@ -123,7 +124,7 @@ again"). The step line counts four steps, as the brief does: Reading is part of 
 | `/check` | Step 3 | Check what we read from your plan | None on load (the facts come from the reading, kept in `sessionStorage`). "Run the check" calls `POST /api/checks` with the confirmed facts, the intake and the zoning input. | Run the check |
 | `/results?check=<id>` | Step 4 | Your pre-check results | `GET /api/checks/{id}`; `POST /api/zoning` once, for the map point and outline, when the check used an address; the two PDF links; `DELETE /api/checks/{id}` ("Delete this check now") | Download the fix list (PDF) |
 | `/help` | (new, small) | How the pre-check works | None. The fixed help text, so the assistant's pre-result answers are also readable as a page. | (none) |
-| Assistant panel | §8 | (dialog title "Ask about the pre-check") | `POST /api/checks/{id}/ask` once a result exists; before that, fixed text from `web/src/content/help` only, no request | (send button) |
+| Assistant panel | §8 | (dialog title "Ask about the pre-check") | `POST /api/checks/{id}/ask` once a result exists; before that, fixed text from `web/src/content/help` only, no request. `POST /api/transcribe` for a spoken question (stage 6); `GET /api/meta` `features.speech_to_text` decides whether the microphone is shown | (send button) |
 
 Notes on the harder pages:
 
@@ -187,12 +188,74 @@ plan upload nor the business step to exist yet.
 - **Done when:** a wrong address is obvious before the check runs.
 - **Screenshots:** step 1 with a pin; the zoning card.
 
-### Stage 6: Voice (only after the backend has a speech route)
+### Stage 6: Voice
 
-The microphone needs a new API route that wraps `checker/voice.py`; it is backend work and is not
-part of this plan. The front-end stage starts once that route exists: a microphone button in the
-panel, the heard text always shown, the browser's own voice for answers, one setting to turn voice
-off, tested in Chrome and Safari.
+Push to talk inside the assistant panel, built after stage 4. Audio goes only to our backend:
+the browser's own speech recognition (`SpeechRecognition`, `webkitSpeechRecognition`) is never
+used, and the guard in section 5 fails the build if it appears.
+
+- **Backend change: `POST /api/transcribe`.** A new route in `api/main.py` that takes one recorded
+  clip as a multipart file `audio` and returns `{"text": "..."}`, the words heard. It calls
+  `voice.transcribe()` from `checker/voice.py` (faster-whisper) and **does not change
+  `checker/voice.py`**: `transcribe()` already takes the audio bytes and returns the text or `None`.
+  The clip is held in memory, never written to disk, logged or stored. Errors use the API's usual
+  `{"error": {"code", "message"}}` shape:
+  - `503 no_speech_to_text` when `voice.stt_available()` is false (faster-whisper not installed, or
+    `PERMIT_STT=off`). The message says speech to text is not installed on this server and the
+    question can be typed.
+  - `400 audio_needed` for no file or an empty one; `415 audio_not_wav` for anything but WAV;
+    `413 audio_too_large` above `max_audio_bytes()` (a new setting in `api/config.py`,
+    `PERMIT_MAX_AUDIO_MB`, default 2 MB, about a minute of 16 kHz mono audio).
+  - `422 speech_not_understood` when `transcribe()` returns `None` or an empty string. The message
+    says the recording could not be made out, and to try again or type.
+  - `/api/meta` already reports `features.speech_to_text`. `limits` gains `max_audio_mb` and
+    `max_audio_seconds` (30), so the browser knows when to stop recording.
+- **Why WAV from the browser.** The browser converts each recording to 16 kHz mono WAV before
+  sending it (Web Audio API, a few lines in `web/src/voice/`, no package). `checker/voice.py` was
+  built and measured on WAV, and Chrome and Safari record in different formats (WebM and MP4). The
+  Streamlit app's spoken questions fail in Safari for a reason not yet known (`docs/voice.md`,
+  Known issues); sending one format the backend already reads removes the recording format as a
+  cause.
+- **Front end.**
+  - A microphone button in the panel, beside the question box, with the word "Speak". It is shown
+    only when `features.speech_to_text` is true, the voice setting is on, and the browser can record.
+    Press to start, press again to stop (not press-and-hold, so it works from the keyboard).
+    Recording stops by itself at 30 seconds. While recording, the button says "Stop" and a line shows
+    "Recording" and the seconds, announced politely to screen readers.
+  - The words heard are put in the question box as text. The owner can edit them and presses Send;
+    nothing is sent by itself.
+  - Answers are shown as text, as always. An answer to a spoken question is also read aloud with the
+    browser's own voice (`speechSynthesis`); every answer has a "Read aloud" button, and "Stop
+    reading" while it speaks. The text is passed to `speechSynthesis` as plain text, never as HTML.
+  - One setting, "Voice", in the panel: on by default when the server supports it. Off hides the
+    microphone and never reads aloud. Remembered on this device (`localStorage`).
+  - If the browser refuses the microphone, the panel says how to allow it, or to type the question.
+    Each error code above has a sentence in `errors.ts`.
+- **Backend tests** (in `tests/test_api.py`, one file per part): a fixture clip,
+  `tests/fixtures/question.wav`, a few seconds of an invented question spoken by a machine voice
+  (no real person's voice, under 200 KB, its words written in `tests/fixtures/README.md`). In every
+  test `voice.transcribe` and `voice.stt_available` are patched, so **no model is downloaded and
+  faster-whisper need not be installed in CI**. The tests check: the fixture's bytes reach
+  `transcribe()` unchanged and its text comes back; `503 no_speech_to_text` when speech to text is
+  unavailable; `422` when `transcribe()` returns `None` or `""`; `400` for an empty file; `415` for a
+  PNG sent as audio; `413` above the limit; nothing is written to disk during the request;
+  `/api/meta` reports the new limits. One more test transcribes the fixture with the real model and
+  checks the words; it is skipped unless faster-whisper and its model are already present, so it
+  runs on a laptop that has them and never in CI.
+- **Front-end tests:** Vitest: the WAV encoder writes a valid 16 kHz mono header and the right
+  length; the microphone is hidden when `speech_to_text` is false, when voice is off, and when the
+  browser cannot record; the heard text lands in the question box and is not sent until Send;
+  `speechSynthesis.speak` is called with the answer text for a spoken question and not when voice is
+  off. Playwright (Chromium) records from a fake microphone fed with the same fixture
+  (`--use-fake-device-for-media-stream --use-file-for-fake-audio-capture`), with `/api/transcribe`
+  and `/api/meta` served from the fixtures; it checks the request is WAV and goes to the API base
+  only, and that the keyboard alone can start, stop, edit and send. axe on the panel while recording.
+- **Done when:** in Chrome and in Safari, on a server with faster-whisper installed, a spoken
+  question shows the words heard, can be corrected, and gives the same answer as the same question
+  typed, read aloud with the text on screen. The cloud session cannot use a real microphone; it
+  writes the Chrome and Safari check in the progress file as **not done here**, for a person to do.
+- **Screenshots:** the panel with the microphone; recording; the heard words in the box; an answer
+  with "Read aloud"; the voice setting off.
 
 ## 4. Running without secrets
 
@@ -202,6 +265,7 @@ model-written answers, and both have a path without it.
 - **Types:** `scripts/openapi.sh` runs `python -c "import json; from api.main import app; print(json.dumps(app.openapi()))"` and feeds the result to `openapi-typescript`. It imports the app; it calls nothing. The generated file is committed, and CI fails if a fresh run differs.
 - **Fixtures:** `scripts/make-fixtures.py` uses FastAPI's `TestClient` with no key, exactly as `tests/test_api.py` does, and writes to `web/tests/fixtures/`: `/api/meta`; `/api/plans/read` for each demo case (the saved readings); `/api/checks` for each demo case with the demo zone entered by hand; `/ask` answers (the template answers); every error body the API can return; and one check with `local_review_data`, built from a temporary SQLite loaded from `tests/fixtures/seattle_*.json` the way `tests/test_pipeline.py` does. For the map, one `/api/zoning` response is written with the point and outline from the mocked city layer used in `tests/test_api.py`. CI regenerates the fixtures and fails if they differ, so the front-end tests can never run against an out-of-date contract.
 - **Unit tests (Vitest)** read the fixtures. No server.
+- **Voice** needs no model in tests. The backend tests patch `voice.transcribe`, and the front-end tests use `tests/fixtures/question.wav` as a fake microphone with `/api/transcribe` served from fixtures. `make-fixtures.py` writes the `/api/transcribe` responses (a patched success and each error body). The end-to-end server runs without faster-whisper, so its own `/api/meta` says `speech_to_text: false` and the microphone is hidden there, which is tested too.
 - **End-to-end tests (Playwright)** start `uvicorn api.main:app` with no key, `PERMIT_CHECKS_DB` in a temporary folder, `PERMIT_SEATTLE_DB` pointing at a missing file, and `PERMIT_CORS_ORIGIN` set to the test server, then run the real flow with the three demo plans. Zone is entered by hand, so no geocoder call. The two cases that would need the network or a key are served by Playwright request interception from the fixtures: `/api/zoning` for an address, and the Seattle-records version of a check. The upload path is tested for real up to the `503 no_model_key` reply, then with an intercepted `200` reply.
 - **The map** uses a blank MapLibre style in tests, so no tile requests. Without `web/public/tiles/seattle.pmtiles` (run `scripts/fetch-tiles.sh` once, which needs the network), the map draws the pin and outline on the blank style.
 - **The demo plan images** are copied from `demo/` by `scripts/copy-demo.mjs` before `dev`, `build` and tests.
@@ -219,6 +283,7 @@ check from `python -m pytest`, so it holds whichever test command is run. It sca
 | A building-code number | (a) Every number in `checker/rules/seattle.json` that sits next to a unit or a code key (door widths, areas, load factors, fixture ratios, distances) is collected, and any of them in `web/src/` beside a unit word (`in`, `inch`, `"`, `ft`, `sq ft`, `occupants`, `persons`, `%`) fails. (b) Code-section patterns fail anywhere in `web/src/`: `SBC`, `IBC`, `IFC`, `UPC`, `SMC`, `ADA`, `Table 10…`, `Section 10…`, `§`. Text that cites the code may only arrive from the API. |
 | Pass/fail logic | Fails on: a comparison involving a `Facts` field name (`clear_width_in`, `area_sqft`, `water_closets` and the rest, taken from the generated types) with `<`, `>`, `<=`, `>=`; assigning or returning the literals `"pass"`, `"fail"` or `"review"` outside `components/results/status.ts`, which maps a status the API sent to its word and icon and nothing else; any import of `seattle.json` or any path under `checker/`. |
 | A model call | Fails on: `anthropic`, `@anthropic-ai/`, `api.anthropic.com`, `ANTHROPIC_API_KEY`, `x-api-key`, `claude-` model ids, `openai`, `@ai-sdk/`, `ai/` imports, any `fetch` to a host other than the configured API base; and, in `web/out/`, the strings `sk-ant` and `ANTHROPIC`. |
+| Audio sent anywhere but our backend | Fails on `SpeechRecognition` and `webkitSpeechRecognition` (the browser's own speech recognition can send audio to the browser maker). The `fetch` rule above already stops requests to any other host. |
 | Model output as HTML | Fails on `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`. ESLint `react/no-danger` as well. |
 
 Allowed exceptions live in `web/scripts/guard-allow.json`, each with a reason, and the guard prints
@@ -324,7 +389,9 @@ Each one can be approved or rejected on its own. Rejecting one changes only the 
 - **Sign-in.** No accounts. Each check is reached by its unguessable id in the URL.
 - **Hosting.** The site runs locally (`npm run dev` beside `uvicorn`). No deployment, domain or CDN work. The static export keeps hosting simple later.
 - **Saved-check storage.** No list of past checks, no projects, no comparison. The API's own 30-day storage of one check is used as it is, and only reached through the current tab's link.
-- Also not in version 1: voice (until the backend route exists), the tool-using assistant, photo notes, dark mode.
+- **Live voice.** Streaming transcription over a WebSocket while the owner speaks is version 2. Version 1 records a clip and sends it when the owner stops.
+- **Spoken answers from the server.** Answers are read by the browser's own voice; the Kokoro voice in `checker/voice.py` is not used by the website in version 1.
+- Also not in version 1: the tool-using assistant, photo notes, dark mode.
 
 ## 9. Open questions
 
