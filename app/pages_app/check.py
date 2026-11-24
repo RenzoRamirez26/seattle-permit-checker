@@ -249,12 +249,13 @@ if extraction:
             with a2:
                 st.markdown("**Restrooms**")
                 rest_df = st.data_editor(
-                    _frame(extraction.get("restrooms"), ["label", "designation", "water_closets", "lavatories",
+                    _frame(extraction.get("restrooms"), ["label", "designation", "water_closets", "urinals", "lavatories",
                                                           "turning_circle_diameter_in", "door_clear_width_in"]),
                     key="ed_rest", num_rows="dynamic", hide_index=True,
                     column_config={"label": "Restroom",
                                    "designation": st.column_config.SelectboxColumn("For", options=["men", "women", "all_gender", "unknown"]),
                                    "water_closets": st.column_config.NumberColumn("Toilets", min_value=0, step=1),
+                                   "urinals": st.column_config.NumberColumn("Urinals", min_value=0, step=1),
                                    "lavatories": st.column_config.NumberColumn("Sinks", min_value=0, step=1),
                                    "turning_circle_diameter_in": st.column_config.NumberColumn("Turning circle (in.)", min_value=0),
                                    "door_clear_width_in": st.column_config.NumberColumn("Door (in.)", min_value=0)})
@@ -281,12 +282,12 @@ if extraction:
 # ----------------------------------------------------------------------------------
 # 4. Results
 # ----------------------------------------------------------------------------------
-ICON = {"fail": "❌", "review": "❓", "pass": "✅"}
+ICON = {"fail": "❌", "review": "❓", "pass": "✓"}   # a plain check, never a green tick (CONTENT.md rule 11)
 # One colour per status, used the same way everywhere on this page, and never as the only signal: each status
 # also has its icon and its words. The colours themselves are set in .streamlit/config.toml (red, orange, green).
 # These are fixed strings; nothing read from a plan or typed by the owner is ever placed inside a colour.
-STATUS_WORDS = {"fail": "Fix", "review": "Check with the city", "pass": "OK"}
-STATUS_LABEL = {"fail": ":red[**Fix**]", "review": ":orange[**Check with the city**]", "pass": ":green[**OK**]"}
+STATUS_WORDS = {"fail": "Fix before you apply", "review": "Check with the city", "pass": "No issues found"}
+STATUS_LABEL = {"fail": ":red[**Fix before you apply**]", "review": ":blue[**Check with the city**]", "pass": ":gray[**No issues found**]"}
 
 result = st.session_state.get(ac.KEY_RESULT)
 if result:
@@ -295,19 +296,20 @@ if result:
         st.subheader("4. Results")
         m1, m2, m3 = st.columns(3)
         m1.metric(f"{ICON['fail']} {STATUS_LABEL['fail']}", s["fails"], border=True,
-                  help="Problems the rules found. Fix these before you submit.")
+                  help="What the rules found to change before you apply.")
         m2.metric(f"{ICON['review']} {STATUS_LABEL['review']}", s["reviews"], border=True,
-                  help="The plan does not show enough to decide. Confirm these.")
-        m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks the plan passed.")
+                  help="Your plan doesn't show enough to decide. Ask the city about these.")
+        m3.metric(f"{ICON['pass']} {STATUS_LABEL['pass']}", s["passes"], border=True, help="Checks where we found no issue.")
         st.caption(f"Occupant load {s['occupant_load']} · Group {s['occupancy_group']} · "
                    f"Exits: {s['exits_shown']} shown, {s['exits_required']} required")
+        st.caption(rules_engine.result_counts_sentence(result))
 
         open_items = [f for f in result["findings"] if f["status"] != "pass"]
         fix_col, side_col = st.columns([7, 5])
         with fix_col:
             st.markdown("**Fix list** (most serious first)")
             if not open_items:
-                st.success("Nothing to fix on the items this tool checks.", icon="✅")
+                st.info("Nothing to fix before you apply.", icon="✓")
             for f in open_items:
                 with st.container(border=True):
                     st.markdown(f"{ICON[f['status']]} {STATUS_LABEL[f['status']]} &nbsp; **{f['title']}** &nbsp; "
@@ -315,18 +317,25 @@ if result:
                     st.write(f["detail"])
                     if f["fix"]:
                         st.markdown(f"**Fix:** {f['fix']}")
-                    st.caption(f"Checked by: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
+                    st.caption(f"Who to ask: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
+                    st.caption(rules_engine.level_words(f))
 
-            with st.expander(f"Checks passed ({s['passes']})"):
+            with st.expander(f"No issues found ({s['passes']})"):
                 for f in result["findings"]:
                     if f["status"] == "pass":
                         st.markdown(f"{ICON['pass']} {STATUS_LABEL['pass']} &nbsp; **{f['title']}**: {f['detail']}  \n"
-                                    f":gray[{f['citation']}]")
+                                    f":gray[{f['citation']}]"
+                                    + f"  \n:gray[{rules_engine.level_words(f)}]")
 
         with side_col:
             st.markdown("**Permits and approvals you will likely need**")
-            st.table(pd.DataFrame(result["permits_likely_required"])[["name", "agency"]]
-                     .rename(columns={"name": "Permit or approval", "agency": "Who issues it"}).set_index("Permit or approval"))
+            permits = pd.DataFrame([{"name": p["name"], "agency": p["agency"],
+                                     "note": " ".join(([rules_engine.may_be_needed_words(p)] if p.get("may_be_needed") else [])
+                                                      + ([rules_engine.UNVERIFIED_PERMIT] if "check_level" in p and rules_engine.is_unchecked(p) else [])
+                                                      + ([rules_engine.UNVERIFIED_ENTRY] if p.get("entry_verified") is False else []))}
+                                    for p in result["permits_likely_required"]])
+            st.table(permits.rename(columns={"name": "Permit or approval", "agency": "Who issues it", "note": "Note"})
+                     .set_index("Permit or approval"))
 
             review = result.get("local_review_data")
             if review:
@@ -347,6 +356,8 @@ if result:
                 st.dataframe(pd.DataFrame(result["occupant_load"]["by_space"])[["space", "use", "area_sqft", "factor", "load"]]
                              .rename(columns={"space": "Room", "use": "Use", "area_sqft": "Area (sq ft)",
                                               "factor": "Sq ft per person", "load": "People"}), hide_index=True, width="stretch")
+                if rules_engine.is_unchecked(result["occupant_load"]):
+                    st.caption(rules_engine.UNVERIFIED_FACTORS)
                 st.caption(result["code_basis"])
 
             try:

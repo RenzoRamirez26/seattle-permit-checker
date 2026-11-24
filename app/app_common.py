@@ -167,20 +167,23 @@ LIMITS_NOTE = """
   correct it before the check runs.
 - **The demo plans are fictional**, drawn with printed dimensions so they are easy to read. Real
   drawings are harder.
-- **Part of the rulebook is unverified.** `docs/rulebook.md` lists which numbers were checked against
-  Seattle's code and which were entered from memory.
+- **Each rule has a check level:** unchecked, transcribed (checked against the code text by our
+  team) or reviewed (by an expert). The About section says how many rules are at each level. `docs/verifying-rules.md`
+  lists every rule's level and how a rule moves up.
 - **Seattle only.** Other cities have different codes, zones and agencies.
 - **Not affiliated with the City of Seattle** or any agency named here.
 """
 
-ABOUT_NOTE = """
+ABOUT_TEMPLATE = """
 **What this is.** A pre-check for someone opening a small business in Seattle: a café, bar, shop,
 salon, office or gym. It reads a floor plan, lists what a plan reviewer would likely send back,
 and names the permits to expect.
 
 **How it decides.** A vision model reads facts off the drawing (areas, door widths, fixtures). It
-does not judge anything. Plain Python then compares those facts with a rulebook built from the
-Seattle Building Code, and every problem is tied to a code section and to the reviewer who checks it.
+does not judge anything. Plain Python then compares those facts with rules our team coded from
+Seattle's building and plumbing codes, the federal accessibility standards, and the King County and
+Washington State food codes, and every problem is tied to a code section and to the reviewer who checks
+it. {checked}
 
 **Where the numbers on the data page come from.** Seattle publishes every permit's review history:
 how many rounds it took, how long, and the reviewers' comments. The app only repeats those records.
@@ -191,3 +194,9 @@ from your result, and an answer that cites a rule your result does not contain i
 **Built with.** Python, Streamlit, the Claude API for reading plans and answering questions, and
 Seattle's open data. Source and status are in the repository README.
 """
+
+
+def about_note() -> str:
+    """The About text, with how many rules are checked against the code text, counted from the rulebook."""
+    rules = rules_engine.load_rules()
+    return ABOUT_TEMPLATE.replace("{checked}", rules_engine.rules_checked_sentence(rules_engine.rule_counts(rules)))

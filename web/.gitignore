@@ -1,0 +1,14 @@
+/node_modules
+/.next/
+/out/
+/public/demo/
+/public/tiles/
+/public/pdf.worker.min.mjs
+/test-results/
+/playwright-report/
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+.env*
+/public/maplibre-gl.mjs
+/public/maplibre-gl-worker.mjs

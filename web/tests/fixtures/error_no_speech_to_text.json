@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "no_speech_to_text",
+      "message": "Speech to text is not installed on this server. Type the question instead."
+    }
+  },
+  "status": 503
+}

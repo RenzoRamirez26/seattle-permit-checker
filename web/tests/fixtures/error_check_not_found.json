@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "check_not_found",
+      "message": "There is no check with this id. It may have been deleted or have expired."
+    }
+  },
+  "status": 404
+}

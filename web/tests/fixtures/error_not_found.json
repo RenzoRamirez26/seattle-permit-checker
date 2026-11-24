@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "not_found",
+      "message": "There is nothing at this address. The API's routes are listed at /docs."
+    }
+  },
+  "status": 404
+}

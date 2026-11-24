@@ -3,7 +3,7 @@
    "extraction": "flawed_extraction.json", "zoning": "NC2-55 (M)",
    "intake": {"business_type": "cafe_restaurant", "cooking_on_site": true},
    "planted": ["EG-1", "EG-2", "EG-3", "FS-1", "FS-2", "ADA-1", "ADA-2", "MECH-1", "HLTH-1"]},
-  {"id": "cafe_compliant", "title": "Café that passes", "plan": "compliant_plan.png",
+  {"id": "cafe_compliant", "title": "Café with no issues found", "plan": "compliant_plan.png",
    "extraction": "compliant_extraction.json", "zoning": "NC2-55 (M)",
    "intake": {"business_type": "cafe_restaurant", "cooking_on_site": true},
    "planted": []},

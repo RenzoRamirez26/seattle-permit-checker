@@ -2,6 +2,7 @@
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from checker import rules_engine
 from pipeline import db, seattle
 from tests.conftest import FIXTURES, ROOT
 
@@ -20,10 +21,10 @@ def app(monkeypatch, tmp_path):
 
 
 def _plain(label: str) -> str:
-    """A count's label without its icon and colour: '❌ :red[**Fix**]' -> 'Fix'."""
+    """A count's label without its icon and colour: '❌ :red[**Fix before you apply**]' -> 'Fix before you apply'."""
     import re
 
-    return re.sub(r":\w+\[\*\*(.*?)\*\*\]", r"\1", label).lstrip("❌❓✅ ").strip()
+    return re.sub(r":\w+\[\*\*(.*?)\*\*\]", r"\1", label).lstrip("❌❓✓ ").strip()
 
 
 def _metrics(at):
@@ -48,10 +49,16 @@ def test_cafe_flow(app):
     at.button(key="btn_check").click().run()
     assert not at.exception
     m = _metrics(at)
-    assert (m["Fix"], m["Check with the city"], m["OK"], m["Occupant load"]) == ("11", "2", "6", "106")
+    assert (m["Fix before you apply"], m["Check with the city"], m["No issues found"], m["Occupant load"]) == ("11", "2", "6", "106")
     text = " ".join(x.value for x in at.markdown)
-    assert "Not enough exits" in text and "No Type I hood over cooking equipment" in text
-    assert any("Checked by: SDCI Ordinance" in c.value for c in at.caption)
+    assert "Add a second exit" in text and "Add a Type I hood over the cooking line" in text
+    assert any("Who to ask: SDCI Ordinance" in c.value for c in at.caption)
+    captions = [c.value for c in at.caption]                     # the counts once on top, then each finding's level
+    assert captions.count(rules_engine.rules_checked_sentence(rules_engine.rule_counts(rules_engine.load_rules()))) == 1
+    assert rules_engine.UNVERIFIED_NOTE in captions and not any("Some rule values" in c for c in captions)
+    assert rules_engine.UNVERIFIED_FACTORS in captions                                     # under the occupant-load table
+    table = next(t.value for t in at.table if t.value.index.name == "Permit or approval")
+    assert table.loc["Assembly permit (spaces holding 100 or more people)", "Note"] == rules_engine.UNVERIFIED_PERMIT
     assert any("review records are not downloaded yet" in c.value for c in at.caption)
 
 
@@ -63,7 +70,7 @@ def test_salon_flow_and_questions(app):
     at.button(key="btn_read").click().run()
     at.button(key="btn_check").click().run()
     m = _metrics(at)
-    assert (m["Fix"], m["Check with the city"], m["Occupant load"]) == ("3", "2", "15")
+    assert (m["Fix before you apply"], m["Check with the city"], m["Occupant load"]) == ("3", "2", "15")
     permits = _permits(at)
     assert any("Salon or shop licence" in p for p in permits) and not any("Food service" in p for p in permits)
 
@@ -73,7 +80,7 @@ def test_salon_flow_and_questions(app):
     assert "You will likely need: Construction permit" in at.chat_message[1].markdown[0].value
     assert "fixed template" in at.chat_message[1].caption[0].value
     _click(at, "Read my results aloud")
-    assert "I found 3 problems and 2 items to confirm" in at.chat_message[2].markdown[0].value
+    assert "I found 3 items to fix before you apply and 2 to check with the city" in at.chat_message[2].markdown[0].value
 
     # changing the business clears the old result (and the chat) instead of showing it under the wrong heading,
     # and keeps the reading of the plan, so the check can be run again without reading the plan a second time
@@ -245,22 +252,23 @@ def test_layout_of_the_check_page(app):
     assert not at.exception
     assert [h.value for h in at.subheader] == ["1. Your floor plan", "2. Your business", "3. What was read from the plan",
                                                "4. Results", "5. Ask about your results"]
-    assert [_plain(m.label) for m in at.metric][:3] == ["Fix", "Check with the city", "OK"]  # the top row, in this order
+    assert [_plain(m.label) for m in at.metric][:3] == ["Fix before you apply", "Check with the city", "No issues found"]  # the top row, in this order
     # colour is never the only signal: each count carries its icon, its words and its colour
-    assert [m.label for m in at.metric][:3] == ["❌ :red[**Fix**]", "❓ :orange[**Check with the city**]", "✅ :green[**OK**]"]
+    assert [m.label for m in at.metric][:3] == ["❌ :red[**Fix before you apply**]", "❓ :blue[**Check with the city**]", "✓ :gray[**No issues found**]"]
     assert [m.value for m in at.metric][:3] == ["11", "2", "6"]
     assert any(c.value.startswith("Occupant load 106 · Group A-2 · Exits: 1 shown, 2 required") for c in at.caption)
 
     # the fix list: problems first, then items to confirm; passed checks are not in it
     titles = [m.value for m in at.markdown if m.value.startswith(("❌", "❓"))]
     assert len(titles) == 13 and [t[0] for t in titles] == ["❌"] * 11 + ["❓"] * 2
-    assert all(t.startswith("❌ :red[**Fix**] ") for t in titles[:11])                         # icon, colour and words on each finding
-    assert all(t.startswith("❓ :orange[**Check with the city**] ") for t in titles[11:])
-    # red and amber are used for nothing else on the page, and no finding's own text sits inside a colour
+    assert all(t.startswith("❌ :red[**Fix before you apply**] ") for t in titles[:11])                         # icon, colour and words on each finding
+    assert all(t.startswith("❓ :blue[**Check with the city**] ") for t in titles[11:])
+    # red and blue mark the statuses and nothing else, and no finding's own text sits inside a colour
     page_text = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
     import re
-    assert set(re.findall(r":(red|orange|green)\[(.*?)\]", page_text)) == {("red", "**Fix**"), ("orange", "**Check with the city**"), ("green", "**OK**")}
-    assert any(e.label == "Checks passed (6)" for e in at.expander)
+    assert set(re.findall(r":(red|blue|gray|orange|green)\[(\*\*.*?\*\*)\]", page_text)) == {   # bold status labels (grey also sets citations)
+        ("red", "**Fix before you apply**"), ("blue", "**Check with the city**"), ("gray", "**No issues found**")}
+    assert any(e.label == "No issues found (6)" for e in at.expander)
 
     # one primary button per step: read (1), run (3), download the report (4), ask (5); everything else is secondary
     kinds = {b.label: b.proto.type for b in at.button}
@@ -362,7 +370,7 @@ def test_an_old_seattle_database_is_explained_on_the_page(monkeypatch, tmp_path)
     at = AppTest.from_file(APP, default_timeout=30).run()
     at.button(key="btn_read").click().run()
     at.button(key="btn_check").click().run()
-    assert not at.exception and _metrics(at)["Fix"] == "11"                    # the check itself is unaffected
+    assert not at.exception and _metrics(at)["Fix before you apply"] == "11"                    # the check itself is unaffected
     assert any("different column names" in e.value and "python -m pipeline.run_pipeline --seattle" in e.value for e in at.error)
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception and any("different column names" in e.value for e in at.error)
@@ -404,7 +412,18 @@ def test_pages_with_the_seattle_database(monkeypatch, tmp_path):
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception
     m = _metrics(at)
-    assert m["Permits with plan review"] == "3" and m["Passed in one round"] == "33%"
+    assert m["Permits with plan review"] == "3" and m["Through review in one round"] == "33%"
     assert any("Paraphrased for the test" in x.value for x in at.markdown)       # a reviewer comment is shown
     at.selectbox[0].set_value("salon").run()
     assert not at.exception and _metrics(at)["Permits with plan review"] == "1"
+
+
+def test_the_about_text_says_who_coded_the_rules_and_how_many_are_checked():
+    from app import app_common
+
+    text = " ".join(app_common.about_note().split())        # the Markdown wraps lines
+    counts = rules_engine.rule_counts(rules_engine.load_rules())
+    assert "rules our team coded from Seattle's building and plumbing codes, the federal accessibility standards, and the King County and Washington State food codes" in text
+    assert rules_engine.rules_checked_sentence(counts) in text and "{checked}" not in text
+    assert rules_engine.rules_checked_sentence(counts) == \
+        "None of the 21 rules is checked against the code text yet; none reviewed by an expert."

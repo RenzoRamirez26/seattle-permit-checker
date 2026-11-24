@@ -1,0 +1,277 @@
+/* The design tokens from DESIGN.md, once. If a token changes, change DESIGN.md first, then here.
+   Contrast figures are WCAG 2 ratios (DESIGN.md, Colour). */
+@import "tailwindcss";
+
+@theme {
+  /* Colour: one family. Warm paper and white, ink, one trust blue and its tint; red only marks something to fix.
+     Ratios are WCAG 2 contrast on each background the colour is used on (DESIGN.md, Colour; tested). */
+  --color-paper: #faf7f2;        /* the page */
+  --color-white: #ffffff;        /* cards, panels, the white zones */
+  --color-ink: #1d2430;          /* 14.6 : 1 on paper, 15.6 on white, 13.5 on tint */
+  --color-ink-muted: #56606c;    /* 6.0 : 1 on paper, 6.4 on white, 5.5 on tint */
+  --color-blue: #1f4e8c;         /* 7.8 : 1 on paper, 8.3 on white, 7.2 on tint; white on it 8.3 : 1 */
+  --color-tint: #e8eff8;         /* the blue tint: the selected tab, the summary zone, "Not sure" when selected */
+  --color-fix: #b3261e;          /* marks only, never a background: 6.1 : 1 on paper, 6.5 on white, 5.6 on tint */
+  --color-hairline: #e4ded3;     /* dividers only */
+  --color-field: #8a8f96;        /* field and card borders: 3.05 : 1 on paper, 3.3 on white */
+  /* The dark records zone: ink with white text (15.6 : 1) and a muted line (#c9d3e0, 10.3 : 1). */
+  --color-band: #1d2430;
+  --color-band-text: #ffffff;
+  --color-band-muted: #c9d3e0;
+  /* Text on the blue hero: white (8.3 : 1) and a muted line (#c9d8ee, 5.8 : 1). */
+  --color-hero-text: #ffffff;
+  --color-hero-muted: #c9d8ee;
+
+  /* shadcn's variable names, mapped onto the tokens only (DESIGN.md, Colour) */
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --color-muted-foreground: var(--color-ink-muted);
+  --color-primary: var(--color-blue);
+  --color-primary-foreground: var(--color-white);
+  --color-ring: var(--color-blue);
+  --color-border: var(--color-hairline);
+  --color-input: var(--color-field);
+  --color-destructive: var(--color-fix);
+  --color-secondary: var(--color-paper);
+  --color-secondary-foreground: var(--color-ink);
+  --color-accent: var(--color-paper);
+  --color-accent-foreground: var(--color-ink);
+
+  /* Type: Plex Sans for text, Plex Mono for code sections and measurements, Plex Serif for the Start headline only.
+     Three sizes, no more (tested): 48 page title (Light), 24 section heading (Medium), 17 everything else. */
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "IBM Plex Serif", Georgia, serif;
+
+  --text-title: 3rem;            /* 48 / 56 */
+  --text-title--line-height: 3.5rem;
+  --text-heading: 1.5rem;        /* 24 / 32 */
+  --text-heading--line-height: 2rem;
+  --text-body: 1.0625rem;        /* 17 / 24 */
+  --text-body--line-height: 1.5rem;
+
+  /* 8 px unit; Tailwind's 4 px step gives the allowed gaps 1, 2, 4, 6, 8, 12, 16, 24 (4 to 96 px) */
+  --spacing: 0.25rem;
+  /* Shape: round means you can press it (pills); grouping containers 12 to 16 px; information is plain. */
+  --radius-pill: 999px;
+  --radius-group: 16px;
+  --radius-group-sm: 12px;
+
+  --breakpoint-sm: 40rem;        /* 640 px: 8 columns */
+  --breakpoint-lg: 64rem;        /* 1024 px: 12 columns */
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: rgb(31 78 140 / 0.12);
+    text-rendering: optimizeLegibility;
+    /* The Ask button is fixed at the bottom right (64 px, 16 px from the edge): a focused control scrolls clear
+       of it instead of stopping underneath it (Vercel: nothing fixed covers focus; WCAG 2.4.12). */
+    scroll-padding-bottom: 96px;
+  }
+  body {
+    margin: 0;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-weight: 400;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The focus ring: 3 px blue, 2 px offset, visible on paper and on every tint. */
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+  a {
+    color: var(--color-blue);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+  h1, h2, h3, [id] {
+    scroll-margin-top: 24px;
+  }
+  button, input, select, textarea, a, label, [role="button"], [role="radio"] {
+    touch-action: manipulation;
+  }
+  input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+  select {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+  }
+  @media (pointer: fine) {
+    html { overscroll-behavior: none; }
+  }
+}
+
+@layer components {
+  /* The page grid: 4 columns under 640 px, 8 to 1023 px, 12 from 1024 px (DESIGN.md, Grid). */
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 16px;
+    padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (min-width: 40rem) {
+    .page-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); column-gap: 24px; padding-inline: 32px; }
+  }
+  @media (min-width: 64rem) {
+    .page-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); max-width: calc(1200px + 64px); margin-inline: auto; }
+  }
+  /* Question pages: columns 1 to 7 (all columns on phones and tablets). */
+  .col-question { grid-column: 1 / -1; min-width: 0; }
+  @media (min-width: 64rem) { .col-question { grid-column: 1 / span 7; } }
+
+  .text-page-heading {
+    font-size: var(--text-title);
+    line-height: var(--text-title--line-height);
+    font-weight: 300;
+    text-wrap: balance;
+  }
+  .text-section-heading {
+    font-size: var(--text-heading);
+    line-height: var(--text-heading--line-height);
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  .measure { max-width: 80ch; }
+  /* The results page's zones are full-width bands. Inside each: the page's side margins (.band-pad), then the results
+     column (at most 880 px) and, from 1024 px, the 220 px "On this page" rail to its right with a 48 px gap. The hero's
+     title is centred over the results column. */
+  .band-pad { width: 100%; box-sizing: border-box; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
+  @media (min-width: 40rem) { .band-pad { padding-inline: 32px; } }
+  .results-frame { width: 100%; max-width: calc(55rem + 48px + 220px); margin-inline: auto; min-width: 0; }
+  .results-column { width: 100%; max-width: 55rem; margin-inline: auto; min-width: 0; }
+  @media (min-width: 64rem) {
+    .results-frame { display: grid; grid-template-columns: minmax(0, 1fr) 220px; column-gap: 48px; }
+    .results-frame > .results-column { grid-column: 1; grid-row: 1; }
+    .results-frame > .results-rail { grid-column: 2; grid-row: 1; }
+  }
+  .nums { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .skip-link {
+    position: absolute;
+    left: 16px;
+    top: -100px;
+    z-index: 100;
+    background: var(--color-blue);
+    color: var(--color-white);
+    padding: 12px 16px;
+    border-radius: 2px;
+    text-decoration: none;
+  }
+  .skip-link:focus { top: 8px; }
+}
+
+@layer components {
+  /* The footer's title block: hairline cells, like the corner of a drawing sheet. */
+  .title-block { border: 1px solid var(--color-hairline); grid-template-columns: 1fr; }
+  .title-block > div { padding: 16px; border-top: 1px solid var(--color-hairline); }
+  .title-block > div:first-child { border-top: 0; }
+  .title-block dd { margin: 4px 0 0; }
+  @media (min-width: 40rem) {
+    .title-block { grid-template-columns: 2fr 2fr 1fr; }
+    .title-block > div { border-top: 0; border-left: 1px solid var(--color-hairline); }
+    .title-block > div:first-child { border-left: 0; }
+  }
+}
+
+@layer components {
+  /* Start page h1 only: IBM Plex Serif 400 (D2). Same sizes as every h1. */
+  .start-heading { font-family: var(--font-serif); font-weight: 400; }
+}
+
+/* The assistant: the only thing that moves (brief section 11). Transform only, off with reduced motion. */
+:root { --panel-w: min(424px, 34vw); }
+.side-panel {
+  width: var(--panel-w);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 180ms ease-out, visibility 0s linear 180ms;
+}
+.side-panel[data-open] {
+  transform: none;
+  visibility: visible;
+  transition: transform 180ms ease-out, visibility 0s;
+}
+@media (min-width: 64rem) {
+  body[data-assistant="open"] { padding-right: var(--panel-w); }
+}
+.sheet[data-entering] { animation: sheet-in 180ms ease-out; }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .side-panel, .side-panel[data-open] { transition: none; }
+  .sheet[data-entering] { animation: none; }
+}
+.ask-button { margin-bottom: env(safe-area-inset-bottom); margin-right: env(safe-area-inset-right); }
+/* The results page's "On this page" bar sits at the bottom left below 1024 px (48 px tall, 16 px up), beside the Ask
+   button. The 96 px scroll padding above clears both; the body gets room so the footer's last line is not under it. */
+@media (max-width: 63.999rem) {
+  body:has(.section-bar) { padding-bottom: 80px; }
+}
+
+/* The map's pin and the zone's name, drawn as page elements (no map fonts are hosted). */
+.map-pin {
+  display: block; width: 18px; height: 18px; margin-bottom: 2px;
+  border: 3px solid var(--color-white); border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--color-blue); outline: 1px solid var(--color-ink);
+}
+.map-zone-label {
+  font: 500 var(--text-body)/var(--text-body--line-height) var(--font-mono); color: var(--color-ink);
+  background: var(--color-paper); border: 1px solid var(--color-ink); padding: 0 8px; border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* --- answers (design v3) --- */
+/* A chosen pill: 1 px blue border plus a 1 px inset ring, so its edge reads as 2 px without the pill growing or
+   its neighbours moving (DESIGN.md: "Not sure" when chosen is tint with blue). An edge, not an elevation shadow. */
+.choice-pill[data-selected] { box-shadow: inset 0 0 0 1px var(--color-blue); }
+/* Forced colours drop the fill and the ring: a thicker system-colour border keeps the choice visible. */
+@media (forced-colors: active) {
+  .choice-pill[data-selected] { border: 3px solid Highlight; }
+}
+
+/* --- start/plan/header (design v3) --- */
+/* The Checking state's bar: a tint track with a blue segment that slides while the plan is read. The API sends no
+   progress, so the bar has no value. With reduced motion the segment stands still in the middle (DESIGN.md, Motion). */
+.checking-bar {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 28rem;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-tint);
+}
+.checking-bar > span {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-blue);
+  animation: checking-slide 1.6s ease-in-out infinite;
+}
+@keyframes checking-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .checking-bar > span { animation: none; left: 30%; }
+}

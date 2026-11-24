@@ -1,0 +1,15 @@
+{
+  "outline": null,
+  "point": null,
+  "zoning": {
+    "address": "",
+    "cite": "SMC 23.47A",
+    "detail": "Neighborhood Commercial 2. Most uses are limited to 25,000 sq ft. A restaurant is generally allowed, but your plan doesn't show its floor area. This zone allows up to 25,000 sq ft.",
+    "district": "NC2-55 (M)",
+    "fix": "Add the floor area to the plan, then run the check again.",
+    "source": "entered by hand",
+    "status": "needs_review",
+    "use": "restaurant",
+    "zone": "NC2"
+  }
+}

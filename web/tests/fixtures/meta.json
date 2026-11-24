@@ -1,0 +1,131 @@
+{
+  "business_types": [
+    {
+      "has_seating": true,
+      "key": "cafe_restaurant",
+      "label": "Café or restaurant",
+      "serves_alcohol": false,
+      "serves_food": true
+    },
+    {
+      "has_seating": true,
+      "key": "bar_taproom",
+      "label": "Bar, tavern or taproom",
+      "serves_alcohol": true,
+      "serves_food": true
+    },
+    {
+      "has_seating": false,
+      "key": "retail",
+      "label": "Retail shop",
+      "serves_alcohol": false,
+      "serves_food": false
+    },
+    {
+      "has_seating": false,
+      "key": "salon",
+      "label": "Salon, barbershop or spa",
+      "serves_alcohol": false,
+      "serves_food": false
+    },
+    {
+      "has_seating": false,
+      "key": "office_studio",
+      "label": "Office or professional studio",
+      "serves_alcohol": false,
+      "serves_food": false
+    },
+    {
+      "has_seating": false,
+      "key": "fitness",
+      "label": "Gym or fitness studio",
+      "serves_alcohol": false,
+      "serves_food": false
+    }
+  ],
+  "demo_cases": [
+    {
+      "business_type": "cafe_restaurant",
+      "cooking_on_site": true,
+      "id": "cafe_flawed",
+      "title": "Café with planted problems",
+      "zone": "NC2-55 (M)"
+    },
+    {
+      "business_type": "cafe_restaurant",
+      "cooking_on_site": true,
+      "id": "cafe_compliant",
+      "title": "Café with no issues found",
+      "zone": "NC2-55 (M)"
+    },
+    {
+      "business_type": "salon",
+      "cooking_on_site": false,
+      "id": "salon_flawed",
+      "title": "Hair salon with planted problems",
+      "zone": "NR3"
+    }
+  ],
+  "facts_checked": [
+    "gross_area_sqft",
+    "seat_count",
+    "accessible_seat_count",
+    "outdoor_seating_shown",
+    "spaces.use",
+    "spaces.area_sqft",
+    "spaces.width_ft",
+    "spaces.length_ft",
+    "doors.clear_width_in",
+    "doors.is_exit",
+    "doors.swing",
+    "aisles.min_width_in",
+    "restrooms.designation",
+    "restrooms.water_closets",
+    "restrooms.urinals",
+    "restrooms.lavatories",
+    "restrooms.turning_circle_diameter_in",
+    "restrooms.door_clear_width_in",
+    "kitchen.grease_producing_cooking",
+    "kitchen.type1_hood_shown",
+    "kitchen.hand_sinks",
+    "kitchen.three_compartment_sink",
+    "kitchen.mop_or_service_sink",
+    "fire_safety.exit_signs_shown",
+    "fire_safety.fire_extinguishers_shown",
+    "fire_safety.class_k_extinguisher_shown",
+    "fire_safety.sprinklers_noted"
+  ],
+  "features": {
+    "kokoro_voice": false,
+    "model_api_key": false,
+    "seattle_database": false,
+    "speech_to_text": false
+  },
+  "limits": {
+    "check_days": 30.0,
+    "max_audio_mb": 2.0,
+    "max_audio_seconds": 30,
+    "max_history_turns": 6,
+    "max_question_chars": 500,
+    "max_upload_mb": 10.0,
+    "upload_types": [
+      ".jpeg",
+      ".jpg",
+      ".pdf",
+      ".png"
+    ]
+  },
+  "room_uses_without_load": [
+    "restroom",
+    "corridor"
+  ],
+  "rulebook": {
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design; King County Board of Health Code and the Washington State Retail Food Code (chapter 246-215 WAC) for food businesses.",
+    "code_edition": "2021 Seattle Building Code",
+    "edition_date": "2024-11-15",
+    "reviewed": 0,
+    "rules": 21,
+    "transcribed": 0,
+    "unchecked": 21
+  }
+}

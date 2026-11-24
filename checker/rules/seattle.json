@@ -1,10 +1,13 @@
 {
   "_meta": {
+    "edition_date": "2024-11-15",
+    "code_edition": "2021 Seattle Building Code",
     "jurisdiction": "City of Seattle, Washington",
     "use_case": "Small-business tenant spaces: cafés and restaurants, bars, retail shops, salons, offices and fitness studios",
-    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design.",
+    "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design; King County Board of Health Code and the Washington State Retail Food Code (chapter 246-215 WAC) for food businesses.",
     "checked_against_city_sources": [
       "Code edition: SDCI's code adoption page lists the 2021 editions as adopted and the 2024 editions no sooner than May 2027.",
+      "Edition date (edition_date): the 2021 Seattle codes took effect on November 15, 2024. SDCI's 2021 Seattle Code Adoption page, https://www.glb.seattle.gov/sdci/codes/changes-to-code/2021-seattle-code-adoption: \"The effective date for the 2021 Seattle codes was November 15, 2024.\" Confirmed by the owner, November 2026.",
       "Occupant load factors (2021 SBC Table 1004.5); one exit up to 49 occupants for Groups A, B and M (Table 1006.2.1); 32 in. door clear width (1010.1.1); door swing at 50 occupants (1010.1.2.1); 0.2 in. of exit width per occupant (1005.3.2); exit signs not required where only one exit is required (1013.1 exception 1). Read from the 2021 Seattle Building Code Chapter 10 PDF.",
       "Sprinkler triggers for Groups A-2, A-3 and M (903.2.1.2, 903.2.1.3, 903.2.7), read from the 2021 SBC Chapter 9 PDF.",
       "Toilet and lavatory ratios for restaurants, bars, A-3, business and mercantile; the separate-facility exceptions (15, 25, 30 and 100 occupants); the struck-out service sink; the Uniform Plumbing Code. Read from the 2021 SBC Chapter 29 PDF. The business and mercantile rows were partly garbled in the extract, so re-check those two.",
@@ -12,7 +15,123 @@
       "Group B under 50 occupants: stated in a real SDCI Ordinance-review correction comment.",
       "Zoning layer URL and field names: read from the live layer. Ground-floor shops and restaurants up to 2,500 sq ft in Neighborhood Residential zones: Ordinance 127376, SMC 23.44.020.E. NC1/NC2 size limits: SDCI Commercial Zoning Summary (October 2019)."
     ],
-    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Check each before relying on it."
+    "rule_check_levels": "Each rule in the rules section has a check_level: unchecked, transcribed or reviewed (see rules._note and docs/verifying-rules.md). All rules start unchecked. sections_read is the record of code sections read from seattle.gov's 2021 code PDFs; a rule can be transcribed only when every section it names is in that record and marked complete. The site, the PDFs and the assistant show each finding's level and how many rules are at each level. The level never changes a finding's status.",
+    "sections_read": [
+      {
+        "section": "SBC 2021 Table 1004.5",
+        "read_from": "2021 SBC Chapter 10 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 Table 1006.2.1",
+        "read_from": "2021 SBC Chapter 10 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true,
+        "note": "One exit up to 49 occupants for Groups A, B and M. The three-exit row above 500 occupants was not recorded as read."
+      },
+      {
+        "section": "SBC 2021 1010.1.1",
+        "read_from": "2021 SBC Chapter 10 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 1010.1.2.1",
+        "read_from": "2021 SBC Chapter 10 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 1005.3.2",
+        "read_from": "2021 SBC Chapter 10 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 1013.1",
+        "read_from": "2021 SBC Chapter 10 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true,
+        "note": "Exception 1: no exit signs where only one exit is required."
+      },
+      {
+        "section": "SBC 2021 903.2.1.2",
+        "read_from": "2021 SBC Chapter 9 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 903.2.1.3",
+        "read_from": "2021 SBC Chapter 9 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 903.2.7",
+        "read_from": "2021 SBC Chapter 9 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true
+      },
+      {
+        "section": "SBC 2021 Table 2902.1",
+        "read_from": "2021 SBC Chapter 29 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": false,
+        "note": "The business and mercantile rows were garbled in the text extract: re-read them before transcribing PL-1 or PL-2."
+      },
+      {
+        "section": "SBC 2021 2902.2",
+        "read_from": "2021 SBC Chapter 29 PDF",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true,
+        "note": "Exceptions 2, 3, 4 and 7 (separate facilities)."
+      },
+      {
+        "section": "SMC 23.44.020.E",
+        "read_from": "Ordinance 127376",
+        "read_on": "2026-11",
+        "read_by": "automated build session",
+        "complete": true,
+        "note": "Ground-floor shops and restaurants up to 2,500 sq ft in Neighborhood Residential zones."
+      }
+    ],
+    "verify": "Entered from memory and not checked against Seattle's text: the occupancy group for each business type, the occupant load factor used for waiting areas, the hood and extinguisher sections, the ADA section numbers, the state salon licence, and the zoning status of downtown, Seattle Mixed, multifamily and industrial zones and of bars and gyms in each zone. Also from memory: how many urinals may stand in for required toilets, 67% in assembly spaces and 50% in others (plumbing.urinal_substitution, SBC 2902.1.1); the 75 ft of travel to a fire extinguisher (fire.extinguisher_max_travel_ft), the 28 to 34 in. accessible table surface height (accessibility.table_surface_height_in) and the 5 to 7 months a land use approval can take (zoning.land_use_approval_time). Check each before relying on it."
+  },
+  "rules": {
+    "_note": "One entry per rule id the checker reports. check_level is unchecked, transcribed or reviewed (docs/verifying-rules.md). unchecked: nobody has yet compared every number and condition with the code text. transcribed: a person compared them with the 2021 Seattle Building Code text and recorded who (transcribed_by) and when (transcribed_on); every section the source names must be in _meta.sections_read. reviewed: an expert also reviewed it, recorded as reviewed_by (name and role), reviewed_on and an optional review_note. source is the code edition and section. A rule missing here counts as unchecked. depends_on names the rules whose results this one uses (the occupant load OL-0, the occupancy group OCC-1, the number of exits EG-1): a finding's level is the lowest level of its rule and every rule it depends on. The level never changes a finding's status.",
+    "OL-0": {"check_level": "unchecked", "source": "SBC 2021 Table 1004.5", "evidence": "Table 1004.5 was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources), but the 15 sq ft per person used for waiting areas is from memory (_meta.verify)."},
+    "OCC-1": {"check_level": "unchecked", "source": "SBC 2021 303.1.1; SBC 2021 Chapter 3", "evidence": "The occupancy group for each business type is from memory (_meta.verify). Group B under 50 occupants comes from an SDCI review comment, not the code text.", "depends_on": ["OL-0"]},
+    "EG-1": {"check_level": "unchecked", "source": "SBC 2021 Table 1006.2.1; SBC 2021 1006.3", "evidence": "One exit up to 49 occupants was read from Table 1006.2.1, but three exits above 500 occupants is from memory (_meta.verify).", "depends_on": ["OL-0"]},
+    "EG-2": {"check_level": "unchecked", "source": "SBC 2021 1010.1.2.1", "evidence": "Door swing at 50 occupants was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). Those values were read by an automated build session, not transcribed and dated by a person, so the rule starts unchecked.", "depends_on": ["OL-0"]},
+    "EG-3": {"check_level": "unchecked", "source": "SBC 2021 1010.1.1", "evidence": "The 32 in. door clear width was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources), but its citation also names ADA 404.2.3, which was entered from memory. Unchecked until someone reads that section."},
+    "EG-4": {"check_level": "unchecked", "source": "SBC 2021 1005.3.2", "evidence": "0.2 in. of exit width per occupant was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). Those values were read by an automated build session, not transcribed and dated by a person, so the rule starts unchecked.", "depends_on": ["OL-0"]},
+    "FS-1": {"check_level": "unchecked", "source": "SBC 2021 1013.1", "evidence": "Exit signs not required where only one exit is required (1013.1 exception 1) was read from the SBC Chapter 10 PDF (_meta.checked_against_city_sources). Those values were read by an automated build session, not transcribed and dated by a person, so the rule starts unchecked.", "depends_on": ["EG-1"]},
+    "FS-2": {"check_level": "unchecked", "source": "SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7", "evidence": "The A-2, A-3 and M sprinkler triggers were read from the SBC Chapter 9 PDF (_meta.checked_against_city_sources). Those values were read by an automated build session, not transcribed and dated by a person, so the rule starts unchecked.", "depends_on": ["OL-0", "OCC-1"]},
+    "FS-3": {"check_level": "unchecked", "source": "SFC 2021 906.1; SFC 2021 906.4", "evidence": "The fire extinguisher section numbers are from memory (_meta.verify)."},
+    "ADA-1": {"check_level": "unchecked", "source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 403.5.1", "evidence": "The 36 in. accessible route and the ADA section numbers are from memory, and the A117.1 edition was not confirmed (_meta.verify)."},
+    "ADA-2": {"check_level": "unchecked", "source": "SBC 2021 Chapter 11; ICC A117.1; 2010 ADA 304.3.1, 603.2.1", "evidence": "The 60 in. turning circle and the ADA section numbers are from memory (_meta.verify)."},
+    "ADA-3": {"check_level": "unchecked", "source": "SBC 2021 1010.1.1", "evidence": "Uses the 32 in. door clear width read from the SBC Chapter 10 PDF, but cites the same ADA 404.2.3, entered from memory. Unchecked until someone reads that section."},
+    "ADA-4": {"check_level": "unchecked", "source": "SBC 2021 Chapter 11; 2010 ADA 226.1", "evidence": "The 5% accessible seating and the ADA section number are from memory (_meta.verify)."},
+    "PL-1": {"check_level": "unchecked", "source": "SBC 2021 Table 2902.1; SBC 2021 2902.1.1; SBC 2021 2902.2", "evidence": "Read from the SBC Chapter 29 PDF, but the business and mercantile rows of Table 2902.1 were garbled in the extract and still need a person to re-read them (docs/rulebook.md).", "depends_on": ["OL-0", "OCC-1"]},
+    "PL-2": {"check_level": "unchecked", "source": "SBC 2021 Table 2902.1", "evidence": "Lavatory ratios come from the same table; the business and mercantile rows still need re-reading (docs/rulebook.md).", "depends_on": ["OL-0", "OCC-1"]},
+    "PL-3": {"check_level": "unchecked", "source": "SBC 2021 Table 2902.1", "evidence": "The service sink is struck out of Seattle's table, so this rule does not run in Seattle; nothing confirms the row's other uses.", "depends_on": ["OCC-1"]},
+    "MECH-1": {"check_level": "unchecked", "source": "SMC 2021 507; SFC 2021 904", "evidence": "The kitchen hood section numbers are from memory (_meta.verify)."},
+    "HLTH-1": {"check_level": "unchecked", "source": "King County Board of Health Code Title 5; WAC 246-215", "evidence": "The food code citation for sinks is from memory (_meta.verify)."},
+    "HLTH-2": {"check_level": "unchecked", "source": "King County Board of Health Code Title 5; WAC 246-215", "evidence": "The food code citation for sinks is from memory (_meta.verify)."},
+    "HLTH-3": {"check_level": "unchecked", "source": "King County Board of Health Code Title 5; WAC 246-215", "evidence": "The food code citation for sinks is from memory (_meta.verify)."},
+    "ZN-1": {"check_level": "unchecked", "source": "SMC Title 23", "evidence": "Neighborhood Residential limits were read from SMC 23.44.020.E, but the status of most other zones and of bars and gyms in each zone is from memory (_meta.verify)."}
   },
   "occupant_load_factors_sqft_per_person": {
     "dining": {
@@ -77,6 +196,8 @@
     "outward_swing_at_occupant_load": 50,
     "swing_cite": "SBC 1010.1.2.1",
     "door_min_clear_width_in": 32,
+    "door_nominal_width_in": 36,
+    "door_nominal_width_note": "The door size suggested in fix text: a 36 in. door leaf usually gives 32 in. of clear opening. Trade practice, not a code value.",
     "door_cite": "SBC 1010.1.1; ADA 404.2.3",
     "egress_width_in_per_occupant": 0.2,
     "egress_width_cite": "SBC 1005.3.2",
@@ -89,6 +210,7 @@
     "turning_space_diameter_in": 60,
     "turning_cite": "SBC Chapter 11 / ICC A117.1; ADA 304.3.1 and 603.2.1",
     "accessible_seating_share": 0.05,
+    "table_surface_height_in": {"min": 28, "max": 34},
     "seating_cite": "SBC Chapter 11; ADA 226.1"
   },
   "plumbing": {
@@ -141,12 +263,18 @@
         "lav_per": 750
       }
     },
+    "urinal_substitution": {
+      "max_share_of_required": {"assembly": 0.67, "other": 0.5},
+      "verified": false,
+      "note": "Urinals may stand in for up to this share of the toilets required for men. Entered from memory (_meta.verify); until checked, a count that passes only by counting urinals is Check with the city."
+    },
     "separate_facilities_exempt_default": 15,
     "service_sink_required": false,
     "cite": "SBC Table 2902.1; SBC 2902.1.1 (50/50 split); SBC 2902.2 exceptions 2, 3, 4 and 7 (when one shared toilet room is allowed)"
   },
   "fire": {
     "assembly_permit_occupant_load": 100,
+    "extinguisher_max_travel_ft": 75,
     "extinguisher_cite": "Seattle Fire Code 906.1; Class K at commercial cooking, 906.4",
     "hood_cite": "Seattle Mechanical Code 507 (Type I hood over grease- or smoke-producing appliances); Seattle Fire Code 904 (hood fire suppression)",
     "sprinklers": {
@@ -232,6 +360,7 @@
     "cite": "Seattle Municipal Code Title 23 (Land Use Code)",
     "source": "District statuses below are a first screen for the demo, not a zoning determination. Overlays, pedestrian (P) designations, shoreline and historic districts add their own rules.",
     "contact": "SDCI land use coaching (free) or the Office of Economic Development, (206) 684-8090",
+    "land_use_approval_time": "5 to 7 months",
     "map_name": "the Seattle zoning map (SDCI GIS)",
     "lookup": {
       "layer": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Current_Land_Use_Zoning_Detail_2/FeatureServer/0/query",
@@ -518,7 +647,8 @@
       "id": "salon_license",
       "name": "Salon or shop licence (cosmetology, barber, esthetics, manicure)",
       "agency": "Washington State Department of Licensing",
-      "when": "salon"
+      "when": "salon",
+      "verified": false
     },
     {
       "id": "historic",

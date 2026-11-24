@@ -21,6 +21,9 @@ import os
 import re
 from typing import Any, Optional
 
+from .rules_engine import (PRECHECK_NOTE, is_unchecked, level_words, may_be_needed_words, result_counts_sentence,
+                           UNVERIFIED_ENTRY, UNVERIFIED_PERMIT)
+
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
 
@@ -35,6 +38,13 @@ SYSTEM = (
     "agencies listed in the audit.\n"
     "- This is a pre-submission check, not a code determination. Do not tell them the plan "
     "will be approved.\n"
+    "- Name a status only with these words: \"Fix before you apply\" (status fail), \"Check with the "
+    "city\" (status review), \"No issues found\" (status pass). Never call the plan or a finding OK, "
+    "passed, approved or compliant, and do not use the words must, invalid, illegal or violation.\n"
+    "- Each finding has a check_level: unchecked means its rule value is still being checked against the "
+    "code; transcribed means our team checked it against the code text; reviewed means an expert reviewed "
+    "it (rule_reviewed_by, rule_reviewed_on). When you rely on a finding, say its level in those words. "
+    "rule_levels says how many rules are at each level; never claim more than it says.\n"
     "- Your answer may be read aloud: two to five plain sentences, no lists, no markdown."
 )
 
@@ -62,7 +72,10 @@ def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
     ctx: dict[str, Any] = {
         "summary": result["summary"],
         "findings": [{k: f[k] for k in ("rule_id", "title", "status", "severity", "detail", "fix", "citation", "reviewed_by")}
+                     | {"check_level": f.get("check_level", "unchecked")}
+                     | {k: f[k] for k in ("rule_reviewed_by", "rule_reviewed_on") if f.get(k)}
                      for f in result["findings"]],
+        "rule_levels": result.get("rule_levels"),
         "permits_likely_required": result["permits_likely_required"],
         "occupant_load_by_space": result["occupant_load"]["by_space"],
         "toilets_required": result.get("fixtures_required"),
@@ -83,7 +96,7 @@ def build_context(result: dict, examples: Optional[list[dict]] = None) -> str:
 # ---------------------------------------------------------------- template (no model)
 def _say(f: dict) -> str:
     fix = f" {f['fix']}" if f.get("fix") else ""
-    return f"{f['title']}: {f['detail']}{fix} [{f['rule_id']}]"
+    return f"{f['title']}. {f['detail']}{fix} {level_words(f)} [{f['rule_id']}]"
 
 
 def spoken_summary(result: dict, limit: int = 3) -> str:
@@ -91,21 +104,29 @@ def spoken_summary(result: dict, limit: int = 3) -> str:
     s = result["summary"]
     open_items = [f for f in result["findings"] if f["status"] != "pass"]
     if not open_items:
-        return (f"I checked this {s['business_label'].lower()} plan and found nothing to fix on the items I check. "
-                f"The occupant load is {s['occupant_load']}. {result['disclaimer']}")
-    head = (f"I found {s['fails']} problem{'s' if s['fails'] != 1 else ''} and {s['reviews']} "
-            f"item{'s' if s['reviews'] != 1 else ''} to confirm. The occupant load is {s['occupant_load']}, "
-            f"which makes this Group {s['occupancy_group']}. The most serious: ")
+        return (f"No issues found in the checks I ran on this {s['business_label'].lower()} plan, for "
+                f"{s['occupant_load']} people. {PRECHECK_NOTE} {result_counts_sentence(result)}")
+    head = (f"I found {s['fails']} item{'s' if s['fails'] != 1 else ''} to fix before you apply and {s['reviews']} "
+            f"to check with the city. The space is for {s['occupant_load']} people, "
+            f"which makes it Group {s['occupancy_group']}. Most serious first: ")
     top = " ".join(f"{f['title']}. [{f['rule_id']}]" for f in open_items[:limit])
     more = f" There are {len(open_items) - limit} more in the fix list." if len(open_items) > limit else ""
-    return head + top + more
+    return f"{head}{top}{more} {result_counts_sentence(result)}"
+
+
+def _permit_words(p: dict) -> str:
+    """A permit as the answer names it, with its "May be needed" sentence and the unchecked note, as the pages show."""
+    out = f"{p['name']} from {p['agency']}"
+    notes = ([may_be_needed_words(p)] if p.get("may_be_needed") else []) + ([UNVERIFIED_PERMIT] if "check_level" in p and is_unchecked(p) else []) \
+        + ([UNVERIFIED_ENTRY] if p.get("entry_verified") is False else [])
+    return out + "".join(f" ({n.rstrip('.')[0].lower()}{n.rstrip('.')[1:]})" for n in notes)
 
 
 def template_answer(question: str, result: dict) -> str:
     """Answer from the findings by matching the question's topic. Used with no API key and as the fallback."""
     q = question.lower()
     if any(w in q for w in ("permit", "licen", "approval", "who do i", "which agenc")):
-        names = "; ".join(f"{p['name']} from {p['agency']}" for p in result["permits_likely_required"][:5])
+        names = "; ".join(_permit_words(p) for p in result["permits_likely_required"][:5])
         more = len(result["permits_likely_required"]) - 5
         return f"You will likely need: {names}" + (f"; and {more} more in the permit list." if more > 0 else ".")
     if any(w in q for w in ("how long", "how many rounds", "wait", "timeline", "delay")):
@@ -115,7 +136,7 @@ def template_answer(question: str, result: dict) -> str:
             return (f"In Seattle's records, {sm['share_two_or_more_rounds']:.0%} of {sm['permits']} {d['category_label']} "
                     f"build-outs needed two or more review rounds, and half spent {sm['median_days_in_review']:g} "
                     f"days or more in plan review.")
-        return "I have no Seattle review data loaded, so I cannot say how long review takes. Run the data pipeline first."
+        return "I have no Seattle review data loaded, so I can't say how long review takes."
     families = [fam for fam, words in TOPICS.items() if any(w in q for w in words)]
     words = set(re.findall(r"[a-z]{4,}", q)) - _STOPWORDS
     hits = [f for f in result["findings"]
@@ -124,7 +145,9 @@ def template_answer(question: str, result: dict) -> str:
     if open_hits:
         return " ".join(_say(f) for f in open_hits[:3])
     if hits:
-        return "That part passed. " + " ".join(f"{f['title']}: {f['detail']} [{f['rule_id']}]" for f in hits[:2])
+        return "No issues found there. " + " ".join(
+            f"{f['title']}: {f['detail']} {level_words(f)} [{f['rule_id']}]"
+            for f in hits[:2])
     return spoken_summary(result)
 
 

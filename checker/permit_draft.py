@@ -16,6 +16,15 @@ from __future__ import annotations
 from typing import Any, Optional
 
 UNFILLED = "to be filled in by the applicant"
+# The same words as rules_engine's level notes and counts sentence (this module imports no rules; a test keeps them equal).
+UNVERIFIED_NOTE = "This rule's value is still being checked against the code."
+TRANSCRIBED_NOTE = "Checked against the code text by our team."
+REVIEWED_NOTE = "Reviewed by {reviewed_by}, {reviewed_on}."
+LEVELS_UNKNOWN = "How many of these rules are checked against the code text isn't known for this result."
+UNVERIFIED_FACTORS = "Some of these square-feet-per-person values are still being checked against the code."
+UNVERIFIED_VALUE = "Still being checked against the code."
+UNVERIFIED_PERMIT = "Listed because of a value still being checked against the code."
+UNVERIFIED_ENTRY = "This permit entry is still being checked against the agency's own rules."
 
 NOTICE = ("This is a preparation aid, not the City of Seattle's official form. It gathers, in one place, what the "
           "city's published pages say you will be asked for. You apply in the Seattle Services Portal.")
@@ -49,7 +58,9 @@ SECTIONS = ["1. For the Seattle Services Portal pre-application", "2. For the co
 TABLE_COLUMNS = ["What you will be asked for", "For this project", "City source"]
 ROOM_COLUMNS = ["Room", "Use", "Area (sq ft)", "Sq ft per person", "People"]
 PERMITS_HEADING = "Permits and approvals you will likely need"
-OPEN_HEADING = "Open problems to fix before submitting"
+OPEN_HEADING = "To fix or check before you apply"
+# The site's status names (CONTENT.md rule 11), here because this module imports nothing from the engine.
+STATUS_LABEL = {"fail": "Fix before you apply", "review": "Check with the city"}
 OPEN_POINTER = "The pre-check report gives the fix and the code section for each of these."
 
 
@@ -112,9 +123,12 @@ def sheet(result: dict) -> dict[str, Any]:
             ("Existing use (last permitted use)", None, f"{TI_STANDARDS}; {TI_CHECKLIST}"),
             ("Proposed use", s["business_label"], TI_STANDARDS),
             ("Area of proposed use", f"{area:,g} sq ft (from the plan reading)" if area else None, TI_STANDARDS),
-            ("Type of occupancy", f"Group {s['occupancy_group']} (calculated by the pre-check; your designer confirms)", TI_STANDARDS),
-            ("Occupant load calculations", f"{s['occupant_load']} people (table below)" if spaces else None, TI_STANDARDS),
-            ("Exits", f"{s['exits_shown']} shown on the plan; the pre-check calculates {s['exits_required']} required", TI_STANDARDS),
+            ("Type of occupancy", f"Group {s['occupancy_group']} (calculated by the pre-check; your designer confirms)"
+             + _unchecked(_checked(result, "OCC-1")), TI_STANDARDS),
+            ("Occupant load calculations", f"{s['occupant_load']} people (table below)"
+             + _unchecked(not _is_unchecked(result["occupant_load"])) if spaces else None, TI_STANDARDS),
+            ("Exits", f"{s['exits_shown']} shown on the plan; the pre-check calculates {s['exits_required']} required"
+             + _unchecked(_checked(result, "EG-1")), TI_STANDARDS),
             ("Exit doors and swing", f"As read from the plan: {exit_doors}" if exit_doors else None, TI_STANDARDS),
             ("Construction type", None, TI_STANDARDS),
             ("Number of stories", None, TI_STANDARDS),
@@ -122,21 +136,63 @@ def sheet(result: dict) -> dict[str, Any]:
              TI_STANDARDS),
         ],
         "rooms": spaces,
+        # under the rooms table when some of its factors are not yet read from the code text (rule OL-0)
+        "rooms_unverified": UNVERIFIED_FACTORS if _is_unchecked(result["occupant_load"]) else None,
         "uploads": UPLOADS,
         "permits": result["permits_likely_required"],
         # one line each, to keep the sheet short: the report has the detail, the fix and the code section
-        "open_items": [f"{'Fix' if f['status'] == 'fail' else 'Confirm'}: {f['title']} ({f['severity']})"
+        "open_items": [f"{STATUS_LABEL[f['status']]}: {f['title']} ({f['severity']})"
+                       + f". {level_words(f)}"
                        for f in result["findings"] if f["status"] != "pass"],
+        # once, at the top: how many rules are checked against the code text and reviewed (the result's own counts)
+        "levels": counts_sentence(result.get("rule_levels")),
         "open_pointer": OPEN_POINTER,
-        "nothing_open": "Nothing to fix on the items this tool checks.",
+        "nothing_open": "No issues found in the checks we ran.",
         "disclaimer": result["disclaimer"],
     }
+
+
+def _checked(result: dict, rule_id: str) -> bool:
+    """Whether the finding for this rule says it is transcribed or reviewed (check_level)."""
+    return any(f["rule_id"] == rule_id and not _is_unchecked(f) for f in result["findings"])
+
+
+def _is_unchecked(item: Optional[dict]) -> bool:
+    return not item or item.get("check_level") not in ("transcribed", "reviewed")
+
+
+def level_words(item: dict) -> str:
+    """The level line for a finding, as rules_engine.level_words."""
+    if item.get("check_level") == "reviewed" and item.get("rule_reviewed_by") and item.get("rule_reviewed_on"):
+        return REVIEWED_NOTE.format(reviewed_by=item["rule_reviewed_by"], reviewed_on=item["rule_reviewed_on"])
+    return UNVERIFIED_NOTE if _is_unchecked(item) else TRANSCRIBED_NOTE
+
+
+def counts_sentence(counts: Optional[dict]) -> str:
+    """The counts sentence, as rules_engine.rules_checked_sentence."""
+    if not counts or not counts.get("rules"):
+        return LEVELS_UNKNOWN
+    n, r = counts["rules"], counts.get("reviewed", 0)
+    c = counts.get("transcribed", 0) + r
+    if not c:
+        checked = f"None of the {n} rules is checked against the code text yet"
+    elif c == n:
+        checked = f"All {n} rules are checked against the code text"
+    else:
+        checked = f"{c} of the {n} rules {'is' if c == 1 else 'are'} checked against the code text"
+    reviewed = "none" if not r else ("all" if r == n else str(r))
+    return f"{checked}; {reviewed} reviewed by an expert."
+
+
+def _unchecked(checked: Optional[bool]) -> str:
+    return "" if checked else f". {UNVERIFIED_VALUE}"
 
 
 def to_markdown(result: dict) -> str:
     """The preparation sheet for one audit result, as Markdown."""
     d = sheet(result)
     out = [f"# {d['title']}", "", f"> **{d['notice']}**", ">", f"> {d['currency']}", "",
+           f"> {d['levels']}", "",
            f"## {SECTIONS[0]}", ""]
     out += _table(d["portal"])
     out += ["", f"## {SECTIONS[1]}", ""]
@@ -144,12 +200,15 @@ def to_markdown(result: dict) -> str:
     if d["rooms"]:
         out += ["", "| " + " | ".join(ROOM_COLUMNS) + " |", "|---|---|---|---|---|"]
         out += [f"| {_cell(r['space'])} | {_cell(r['use'])} | {r['area_sqft']:g} | {r['factor']} | {r['load']} |" for r in d["rooms"]]
+        if d["rooms_unverified"]:
+            out += ["", d["rooms_unverified"]]
 
     out += ["", f"## {SECTIONS[2]}", ""]
     out += [f"- [ ] {item} ({source})" for item, source in d["uploads"]]
 
     out += ["", f"## {SECTIONS[3]}", "", f"**{PERMITS_HEADING}**", ""]
-    out += [f"- {p['name']}: {p['agency']}" for p in d["permits"]]
+    out += [f"- {p['name']}{'. ' + UNVERIFIED_PERMIT if 'check_level' in p and _is_unchecked(p) else ''}"
+            f"{'' if p.get('entry_verified', True) else '. ' + UNVERIFIED_ENTRY}: {p['agency']}" for p in d["permits"]]
     out += ["", f"**{OPEN_HEADING} ({len(d['open_items'])})**", ""]
     out += [f"- {line}" for line in d["open_items"]] or [f"- {d['nothing_open']}"]
     if d["open_items"]:

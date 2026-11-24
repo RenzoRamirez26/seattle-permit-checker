@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "speech_not_understood",
+      "message": "The recording could not be made out. Try again, or type the question."
+    }
+  },
+  "status": 422
+}

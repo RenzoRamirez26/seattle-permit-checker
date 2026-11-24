@@ -1,0 +1,11 @@
+{
+  "answer": {
+    "cited_rules": [
+      "OCC-1"
+    ],
+    "generated_by": "template",
+    "problems": [],
+    "text": "No issues found there. Occupancy classification: Your plan holds 15 people. The building code puts a salon, barbershop or spa that size in Group B. This rule's value is still being checked against the code. [OCC-1]"
+  },
+  "question": "Why is the occupant load what it is?"
+}

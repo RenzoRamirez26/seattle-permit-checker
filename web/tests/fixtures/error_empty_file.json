@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "empty_file",
+      "message": "The uploaded file is empty."
+    }
+  },
+  "status": 400
+}

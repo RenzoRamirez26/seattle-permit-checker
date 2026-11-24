@@ -14,6 +14,8 @@ __pycache__/
 node_modules/
 .claude/worktrees/
 .claude/settings.local.json
+# written and re-added by `next dev`
+web/AGENTS.md
 
 # data: downloaded from Seattle, not committed
 data/raw/*

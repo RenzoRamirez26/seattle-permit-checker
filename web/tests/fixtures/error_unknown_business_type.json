@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "unknown_business_type",
+      "message": "Unknown business type 'zoo'. Use one of: cafe_restaurant, bar_taproom, retail, salon, office_studio, fitness."
+    }
+  },
+  "status": 422
+}

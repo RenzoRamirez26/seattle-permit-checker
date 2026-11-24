@@ -21,10 +21,12 @@
 - [Try it](#try-it)
 - [How it works](#how-it-works)
 - [Repository map](#repository-map)
+- [Design](#design)
 - [Websites and keys](#websites-and-keys)
 - [What Seattle's data showed](#what-seattles-data-showed)
 - [Build phases](#build-phases)
 - [Working in this repo](#working-in-this-repo)
+- [Before launch](#before-launch)
 - [Limits](#limits)
 - [Troubleshooting](#troubleshooting)
 - [Team](#team)
@@ -45,16 +47,17 @@ Opening a small business in Seattle means a construction permit, and most plans 
 
 | Part | File | Now | Still to do |
 | --- | --- | --- | --- |
-| Rulebook | `checker/rules/seattle.json` | **Real.** Six business types. Most numbers checked against the 2021 Seattle Building Code PDFs | Check the items listed in [docs/rulebook.md](docs/rulebook.md) |
+| Rulebook | `checker/rules/seattle.json` | **Real.** Six business types, 21 rules. Most numbers were read from the 2021 Seattle Building Code PDFs, but **all 21 rules are still `unchecked`**: none is yet transcribed (compared and signed by a person) or reviewed by an expert ([docs/verifying-rules.md](docs/verifying-rules.md)) | Transcribe the foundation rules (OL-0, OCC-1, EG-1), then the rest; record an expert review |
 | Rules engine | `checker/rules_engine.py` | **Real and tested** on three demo plans and on each business type | More checks (travel distance, parking, signage) |
 | Zoning | `checker/zoning.py` | Logic tested; the live lookup is tested with the network mocked | Run one real address |
 | Plan reading | `checker/extract.py` | **The real model has read the three demo plans** (21 November 2026, one run): 103 of 107 facts read correctly. The demo plans are fictional and drawn to be easy to read | **Read a real floor plan** (with permission); accuracy on real drawings is unknown |
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested. First results in [reports/extraction_eval.md](reports/extraction_eval.md): of 14 real problems on the two flawed plans, 12 were caught as problems, 2 were flagged to confirm, none missed, no false alarms. One run, three demo plans | Repeat the run to see how much it varies; add more plans |
 | Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
-| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
+| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). The web front end now listens on the device where the browser can (Chrome), and otherwise records WebM, MP4 or Ogg for our API ([docs/voice.md](docs/voice.md#the-web-front-end-three-paths)); **neither path has been tried by a person yet, in Chrome or Safari** |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
-| Web API | `api/` | **Tested with the model and the network mocked.** Eight routes under `/api` for a future web front end: read a plan, screen zoning, run and store a check, fetch it, both PDFs, ask a question, delete. It adds no rules; it calls `checker/`. Docs page at `/docs` | **Read an uploaded plan with a key; try one real address through `/api/zoning`.** No login yet: add authentication and a rate limit before it is reachable from the internet. Known follow-up: reviewer examples in `/ask` (the Streamlit app gives the agent real reviewer comments; the API does not yet) |
+| Web front end (version 1) | `web/` | **Built and tested on the branch `website-v1`** against the real API with no key and the demo plans: every page, axe, keyboard and 320 px checks, screenshots ([docs/website_progress.md](docs/website_progress.md)). A static Next.js site; no rules, no key, no model calls (a build guard enforces it) | An uploaded plan read with a key; the Protomaps tiles; a spoken question in Chrome and Safari with faster-whisper installed; testing with business owners |
+| Web API | `api/` | **Tested with the model and the network mocked.** Nine routes under `/api` for the web front end: read a plan, screen zoning, run and store a check, fetch it, both PDFs, ask a question, transcribe a spoken question, delete. It adds no rules; it calls `checker/`. Intake answers accept `null` ("Not sure"), which the rules engine treats as unknown. Docs page at `/docs` | **Read an uploaded plan with a key; try one real address through `/api/zoning`; transcribe a real recording with faster-whisper installed (`/api/transcribe`).** No login yet: add authentication and a rate limit before it is reachable from the internet. Known follow-up: reviewer examples in `/ask` (the Streamlit app gives the agent real reviewer comments; the API does not yet) |
 | Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. A short sheet (two or three printed pages) gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form |
 | PDF downloads | `checker/pdf.py` | **Real and tested.** The owner downloads the report and the preparation sheet as PDFs (US Letter, page numbers, black and white). The command line writes `report.pdf` next to `report.md` and `report.json`. Page 1 of each was rendered and checked by eye for accents, wrapping and margins | Print one on paper; open one in a screen reader | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
 
@@ -118,6 +121,14 @@ PERMIT_TTS=kokoro python -m streamlit run app/streamlit_app.py
 
 Without the install, questions are typed and the browser reads the answers aloud. Without `PERMIT_TTS=kokoro`, the microphone works and the browser's voice reads the answers.
 
+**ffmpeg** (for the web API's `/api/transcribe`): browsers record WebM, MP4 or Ogg, and the API converts each to WAV
+with ffmpeg before faster-whisper reads it. Install it with `brew install ffmpeg` (macOS), `sudo apt-get install
+ffmpeg` (Debian, Ubuntu) or `winget install ffmpeg` (Windows), so that `ffmpeg` is on the PATH. Without it,
+`/api/meta` reports `speech_to_text: false` and the website records nothing; browsers that can turn speech into text
+on the device (recent Chrome) still take spoken questions, because their audio never reaches the server. The
+recording is kept in a private temporary folder only while ffmpeg converts it, then deleted. The API tests generate
+their WebM, MP4 and Ogg clips with ffmpeg, and skip those tests if it is missing.
+
 ## How it works
 
 ```mermaid
@@ -176,6 +187,18 @@ tests/                    one file per part, plus a headless test of the website
 CLAUDE.md                 project rules for Claude Code
 ```
 
+## Design
+
+How PermitOS looks and talks, and why:
+
+- [`DESIGN.md`](DESIGN.md): colours, type, shapes, zones, status icons and components, with the reason for each.
+- [`CONTENT.md`](CONTENT.md): the writing rules, with before and after examples.
+- [`docs/design-story.md`](docs/design-story.md): the story from the first version to this one, mistakes included.
+- [`docs/decisions.md`](docs/decisions.md): the decision log, newest first, with what was rejected.
+- [`docs/design_checklist.md`](docs/design_checklist.md): the pass/fail checklist each version is scored against.
+- Screenshots of the built site: [`docs/screenshots/design-v3/`](docs/screenshots/design-v3/). The Figma file:
+  https://www.figma.com/design/PVw8XgzSLPe2q9TR8mbbhj
+
 ## Websites and keys
 
 Only one key is needed, and only for reading uploaded plans and for model-written answers. Full list with what each is used for: [docs/data_sources.md](docs/data_sources.md).
@@ -221,12 +244,25 @@ Phase 4 is the evidence judges will ask for. If time runs short, cut from the bo
 - **Any number you report says what data it came from.**
 - **No real floor plans or personal data in the repository.** The demo plans are invented.
 
+## Before launch
+
+Open items that must be done before real owners use the site. Each is a GitHub issue labelled
+[before launch](https://github.com/RenzoRamirez26/seattle-permit-checker/issues?q=label%3A%22before+launch%22):
+
+- [ ] Real-key test: a real plan, a real Seattle address, and the assistant by typing and by voice in Chrome and Safari (#31).
+- [ ] Transcribe the foundation rules (OL-0, OCC-1, EG-1), then the other 18 ([docs/verifying-rules.md](docs/verifying-rules.md)) (#32).
+- [ ] An expert review, recorded as `reviewed` (#33).
+- [ ] A usability test with five owners (#34).
+- [ ] A trademark check on "PermitOS" (#35).
+- [ ] Export Figma v1 to v3 to `docs/screenshots/figma/` (#36).
+- [ ] Check whether "Nothing to fix before you apply" appears twice on a results page (#37).
+
 ## Limits
 
 - **Not a code determination.** A licensed design professional and the plan reviewer decide what complies.
 - **A short list of checks.** Occupant load, exits, doors, aisles, restrooms, sprinklers, kitchen hood and sinks, zoning. A real review covers far more.
 - **Seattle only**, 2021 Seattle codes. The 2024 editions arrive no sooner than May 2027.
-- **Part of the rulebook is unverified.** See [docs/rulebook.md](docs/rulebook.md).
+- **No rule is checked against the code text by a person yet.** Every rule has a level (unchecked, transcribed, reviewed); all 21 are unchecked. See [docs/verifying-rules.md](docs/verifying-rules.md).
 - **Demo plans are fictional** and drawn to be easy to read. Real drawings are harder, and reading accuracy on them is unknown.
 - **The permit categories are keyword matches** on the city's descriptions, so some permits are missed or mislabelled.
 - **Reviewer names are in the city's data and are not stored.**

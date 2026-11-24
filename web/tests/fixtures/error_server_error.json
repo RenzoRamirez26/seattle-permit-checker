@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "server_error",
+      "message": "Something went wrong on the server. Nothing was saved. Please try again."
+    }
+  },
+  "status": 500
+}

@@ -1,6 +1,9 @@
 """The web API (api/), through FastAPI's test client. The model and the network are stand-ins; the database is a temp file."""
 import io
 import json
+from pathlib import Path
+import shutil
+import subprocess
 import sqlite3
 from datetime import timedelta
 
@@ -9,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from api import config, geo, schemas, store, uploads
 from api import main as api_main
-from checker import audit, extract, zoning
+from checker import audit, extract, rules_engine, zoning
 from tests.conftest import FIXTURES, ROOT, FakeClient
 
 CASES = {"cafe": ("cafe_flawed", "cafe_restaurant", "NC2-55 (M)", True),
@@ -76,7 +79,29 @@ def test_meta_lists_what_the_form_needs(api):
     assert "salon_flawed" in cases
     assert meta["features"] == {"model_api_key": False, "seattle_database": False, "speech_to_text": False, "kokoro_voice": False}
     assert meta["limits"] == {"upload_types": [".jpeg", ".jpg", ".pdf", ".png"], "max_upload_mb": 10, "max_question_chars": 500,
-                              "max_history_turns": 6, "check_days": 30}
+                              "max_history_turns": 6, "check_days": 30, "max_audio_mb": 2, "max_audio_seconds": 30}
+
+
+def test_meta_gives_the_rulebook_edition_and_the_date_it_took_effect(api):
+    """Q2, #29: the footer reads the edition and its effective date from _meta. SDCI: the 2021 Seattle codes took effect
+    on November 15, 2024 (docs/rulebook.md, Edition date)."""
+    meta = api_main.rules()["_meta"]
+    assert meta["edition_date"] == "2024-11-15" and meta["code_edition"] == "2021 Seattle Building Code"
+    assert any("November 15, 2024" in s and "2021-seattle-code-adoption" in s for s in meta["checked_against_city_sources"])
+    rulebook = api.get("/api/meta").json()["rulebook"]
+    assert rulebook == {"edition_date": "2024-11-15", "code_edition": "2021 Seattle Building Code",
+                        "code_basis": meta["code_basis"], **api_main.rule_counts(api_main.rules())}
+    spec = api.get("/openapi.json").json()["components"]["schemas"]
+    assert {"edition_date", "code_edition"} <= set(spec["Rulebook"]["properties"]) and "rulebook" in spec["Meta"]["required"]
+
+
+def test_meta_sends_no_edition_date_while_the_rulebook_holds_the_placeholder(api, monkeypatch):
+    """Q2: a placeholder date gives null, so the word TODO never reaches a page."""
+    placeholder = json.loads(json.dumps(api_main.rules()))
+    placeholder["_meta"]["edition_date"] = "TODO: the owner sets this date"
+    monkeypatch.setattr(api_main, "rules", lambda: placeholder)
+    assert api.get("/api/meta").json()["rulebook"]["edition_date"] is None
+    assert "TODO" not in api.get("/api/meta").text
 
 
 def test_docs_page_and_contract(api):
@@ -84,7 +109,7 @@ def test_docs_page_and_contract(api):
     spec = api.get("/openapi.json").json()
     assert set(spec["paths"]) == {"/api/meta", "/api/plans/read", "/api/zoning", "/api/checks", "/api/checks/{check_id}",
                                   "/api/checks/{check_id}/report.pdf", "/api/checks/{check_id}/preparation-sheet.pdf",
-                                  "/api/checks/{check_id}/ask"}
+                                  "/api/checks/{check_id}/ask", "/api/transcribe"}
     assert set(spec["paths"]["/api/checks/{check_id}"]) == {"get", "delete"}
     models = spec["components"]["schemas"]
     assert {"Facts", "Intake", "CheckRequest", "Check", "Result", "Finding", "ZoningRequest", "ZoningResponse", "Question",
@@ -493,3 +518,301 @@ def test_the_api_package_holds_no_rules():
         assert "seattle.json" not in source and "run_checks" not in source, module.__name__
     main_source = inspect.getsource(api_main)
     assert "audit.audit(" in main_source and "agent.answer(" in main_source and "zoning.check_address(" in main_source
+
+
+# ---------------------------------------------------------------- Q1: "Not sure" intake answers
+def test_a_not_sure_answer_is_sent_as_null_and_never_becomes_a_pass(api):
+    facts = api.post("/api/plans/read", data={"case_id": "cafe_compliant"}).json()["facts"]
+    sent = lambda **answers: api.post("/api/checks", json={"facts": facts, "zoning": {"zone": "NC2-55 (M)"},
+                                                         "intake": {"business_type": "retail", **answers}})
+    unsure = sent(cooking_on_site=None, serves_alcohol=None)          # a shop whose plan shows a hood: does it cook?
+    assert unsure.status_code == 201, unsure.text
+    result = unsure.json()["result"]
+    assert result["intake"]["cooking_on_site"] is None and result["intake"]["serves_alcohol"] is None   # stored as unknown
+    hood = [f for f in result["findings"] if f["rule_id"] == "MECH-1"]
+    assert hood and all(f["status"] == "review" and "answered Not sure" in f["detail"] for f in hood)
+    assert [f for f in sent(cooking_on_site=True).json()["result"]["findings"] if f["rule_id"] == "MECH-1"][0]["status"] == "pass"
+    assert not [f for f in sent(cooking_on_site=False).json()["result"]["findings"] if f["rule_id"] == "MECH-1"]
+    alcohol = [p for p in result["permits_likely_required"] if p["id"] == "alcohol"]
+    assert alcohol and alcohol[0]["may_be_needed"].startswith("Check with the city.")
+
+    no = sent(cooking_on_site=False, serves_alcohol=False).json()["result"]
+    assert no == sent().json()["result"]                                          # left out means false, as before
+    assert not any("may_be_needed" in p for p in no["permits_likely_required"])   # the field is only there when it is set
+    assert sent(cooking_on_site="perhaps").status_code == 422                     # still only true, false or null
+
+    spec = api.get("/openapi.json").json()["components"]["schemas"]
+    assert {"type": "null"} in spec["Intake"]["properties"]["cooking_on_site"]["anyOf"]
+    assert "may_be_needed" in spec["Permit"]["properties"]
+
+
+# ---------------------------------------------------------------- /transcribe: spoken questions
+QUESTION_WAV = FIXTURES / "question.wav"
+
+
+@pytest.fixture
+def stt(monkeypatch):
+    """Speech to text "installed", with transcribe() replaced: no model is downloaded and faster-whisper need not exist."""
+    from checker import voice
+
+    heard = []
+    monkeypatch.setattr(voice, "stt_available", lambda: True)
+    monkeypatch.setattr(voice, "transcribe", lambda audio, **k: heard.append(audio) or "Why do I need a second exit for my cafe?")
+    return heard
+
+
+def _say(api, data: bytes, name="question.wav", kind="audio/wav"):
+    return api.post("/api/transcribe", files={"audio": (name, data, kind)})
+
+
+def test_a_spoken_question_reaches_transcribe_unchanged_and_its_words_come_back(api, stt):
+    clip = QUESTION_WAV.read_bytes()
+    assert 0 < len(clip) < 200 * 1024 and clip[:4] == b"RIFF" and clip[8:12] == b"WAVE"
+    r = _say(api, clip)
+    assert r.status_code == 200, r.text
+    assert r.json() == {"text": "Why do I need a second exit for my cafe?"}
+    assert stt == [clip]                                                 # the very bytes sent, once
+
+
+def test_transcribe_errors(api, stt, monkeypatch):
+    from checker import voice
+
+    _is_error(_say(api, b""), 400, "audio_needed")
+    _is_error(api.post("/api/transcribe", files={"other": ("x.wav", QUESTION_WAV.read_bytes(), "audio/wav")}), 400, "audio_needed")
+    _is_error(api.post("/api/transcribe", content=b"not a form", headers={"content-type": "text/plain"}), 400, "audio_needed")
+    _is_error(_say(api, _png(), "q.png", "image/png"), 415, "audio_not_supported")
+    _is_error(_say(api, _png(), "q.webm", "audio/webm"), 415, "audio_not_supported")          # the bytes aren't WebM
+    _is_error(_say(api, QUESTION_WAV.read_bytes(), "q.webm", "audio/webm"), 415, "audio_not_supported")
+    _is_error(_say(api, QUESTION_WAV.read_bytes(), "q", "application/octet-stream"), 415, "audio_not_supported")
+    monkeypatch.setenv("PERMIT_MAX_AUDIO_MB", "0.05")                    # about 50 KB: the 100 KB fixture is too large
+    _is_error(_say(api, QUESTION_WAV.read_bytes()), 413, "audio_too_large")
+    monkeypatch.delenv("PERMIT_MAX_AUDIO_MB")
+    for heard in (None, "", "   "):
+        monkeypatch.setattr(voice, "transcribe", lambda audio, h=heard, **k: h)
+        _is_error(_say(api, QUESTION_WAV.read_bytes()), 422, "speech_not_understood")
+    assert stt == []                                                     # no rejected clip reached transcribe()
+    monkeypatch.setattr(voice, "stt_available", lambda: False)
+    assert "Type the question" in _is_error(_say(api, QUESTION_WAV.read_bytes()), 503, "no_speech_to_text")["message"]
+
+
+def test_without_faster_whisper_the_route_says_so(api):
+    """The test app sets PERMIT_STT=off, as a server without faster-whisper would be."""
+    assert api.get("/api/meta").json()["features"]["speech_to_text"] is False
+    _is_error(_say(api, QUESTION_WAV.read_bytes()), 503, "no_speech_to_text")
+
+
+def test_a_wav_question_is_never_written_to_disk(api, stt, monkeypatch):
+    import builtins
+    import tempfile
+
+    written = []
+    real_open = builtins.open
+
+    def watch_open(file, mode="r", *a, **k):
+        if any(c in str(mode) for c in "wax+"):
+            written.append(str(file))
+        return real_open(file, mode, *a, **k)
+
+    def refuse(*a, **k):
+        raise AssertionError("a temporary file was made while transcribing")
+
+    clip = QUESTION_WAV.read_bytes()
+    big = clip + b"\0" * (1_500_000 - len(clip))           # larger than Starlette's 1 MB in-memory limit for uploads
+    monkeypatch.setattr(builtins, "open", watch_open)
+    for name in ("SpooledTemporaryFile", "NamedTemporaryFile", "TemporaryFile", "mkstemp"):
+        monkeypatch.setattr(tempfile, name, refuse)
+    for data in (clip, big):
+        assert _say(api, data).status_code == 200
+    assert written == [] and stt == [clip, big]
+
+
+# ---------------------------------------------------------------- browser recordings: WebM, MP4, Ogg through ffmpeg
+FFMPEG = shutil.which("ffmpeg")
+needs_ffmpeg = pytest.mark.skipif(not FFMPEG, reason="ffmpeg is not installed (README: Turn on spoken questions)")
+# The formats the browser's MediaRecorder gives, made from the fixture question at test time (no binary in the repo).
+BROWSER_FORMATS = {"webm": ("audio/webm;codecs=opus", ["-c:a", "libopus", "-f", "webm"]),
+                   "mp4": ("audio/mp4", ["-c:a", "aac", "-f", "mp4"]),
+                   "ogg": ("audio/ogg;codecs=opus", ["-c:a", "libopus", "-f", "ogg"])}
+
+
+@pytest.fixture(scope="module")
+def recordings(tmp_path_factory) -> dict[str, bytes]:
+    if not FFMPEG:
+        pytest.skip("ffmpeg is not installed")
+    out = {}
+    folder = tmp_path_factory.mktemp("recordings")
+    for name, (_type, args) in BROWSER_FORMATS.items():
+        path = folder / f"question.{name}"
+        subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", str(QUESTION_WAV), *args, str(path)], check=True)
+        out[name] = path.read_bytes()
+    return out
+
+
+def _wav_info(data: bytes) -> tuple[int, int, int]:
+    """(channels, sample rate, bits) of a PCM WAV."""
+    assert data[:4] == b"RIFF" and data[8:12] == b"WAVE"
+    return int.from_bytes(data[22:24], "little"), int.from_bytes(data[24:28], "little"), int.from_bytes(data[34:36], "little")
+
+
+@needs_ffmpeg
+@pytest.mark.parametrize("name", list(BROWSER_FORMATS))
+def test_a_browser_recording_is_converted_to_wav_and_transcribed(api, stt, recordings, name):
+    """The faster-whisper model is mocked (stt): it cannot be downloaded in CI. What it receives is checked instead:
+    16 kHz mono 16-bit WAV, about as long as the question."""
+    kind, _ = BROWSER_FORMATS[name]
+    r = _say(api, recordings[name], f"question.{name}", kind)
+    assert r.status_code == 200, r.text
+    assert r.json() == {"text": "Why do I need a second exit for my cafe?"}
+    assert len(stt) == 1 and _wav_info(stt[0]) == (1, 16000, 16)
+    seconds = (len(stt[0]) - 44) / 32000
+    original = (len(QUESTION_WAV.read_bytes()) - 44) / (int.from_bytes(QUESTION_WAV.read_bytes()[28:32], "little"))
+    assert abs(seconds - original) < 0.3
+
+
+@needs_ffmpeg
+def test_a_recording_must_carry_its_own_type(api, stt, recordings):
+    """The content type must name the format and the bytes must match it."""
+    _is_error(_say(api, recordings["webm"], "q.mp4", "audio/mp4"), 415, "audio_not_supported")
+    _is_error(_say(api, recordings["ogg"], "q.webm", "audio/webm"), 415, "audio_not_supported")
+    _is_error(_say(api, recordings["mp4"], "q", "video/mp4"), 415, "audio_not_supported")
+    broken = recordings["webm"][:64]                                       # a WebM header with no audio after it
+    _is_error(_say(api, broken, "q.webm", "audio/webm"), 422, "speech_not_understood")
+    assert stt == []
+
+
+@needs_ffmpeg
+def test_server_side_audio_is_deleted_after_transcription(api, stt, recordings, monkeypatch, tmp_path):
+    """Every recording is written only inside one private temporary folder, which is gone when the request ends,
+    after a good conversion and after a failed one."""
+    import tempfile
+    from api import audio
+
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    made = []
+    real = tempfile.TemporaryDirectory
+
+    def watch(*a, **k):
+        d = real(*a, **k)
+        made.append(Path(d.name))
+        return d
+
+    monkeypatch.setattr(tempfile, "TemporaryDirectory", watch)
+    for name, (kind, _) in BROWSER_FORMATS.items():
+        assert _say(api, recordings[name], f"q.{name}", kind).status_code == 200
+    _is_error(_say(api, recordings["webm"][:64], "q.webm", "audio/webm"), 422, "speech_not_understood")
+    assert len(made) == 4 and all(d.name.startswith(audio.TEMP_PREFIX) for d in made)
+    assert not any(d.exists() for d in made) and list(scratch.iterdir()) == []
+    assert _say(api, QUESTION_WAV.read_bytes()).status_code == 200 and len(made) == 4      # a WAV is never written
+
+
+def test_without_ffmpeg_a_browser_recording_is_refused_and_meta_says_no_voice(api, stt, monkeypatch):
+    from api import audio
+
+    monkeypatch.setattr(audio, "ffmpeg", lambda: None)
+    assert api.get("/api/meta").json()["features"]["speech_to_text"] is False
+    webm = b"\x1a\x45\xdf\xa3" + b"\0" * 100
+    _is_error(_say(api, webm, "q.webm", "audio/webm"), 503, "no_speech_to_text")
+    assert _say(api, QUESTION_WAV.read_bytes()).status_code == 200                       # WAV needs no ffmpeg
+
+
+def test_the_audio_kinds(monkeypatch):
+    from api import audio
+
+    assert audio.kind("audio/webm;codecs=opus", b"\x1a\x45\xdf\xa3....") == "webm"
+    assert audio.kind("audio/mp4", b"\0\0\0\x18ftypM4A ") == "mp4"
+    assert audio.kind("audio/ogg; codecs=opus", b"OggS....") == "ogg"
+    assert audio.kind("AUDIO/WAV", b"RIFF\0\0\0\0WAVE") == "wav"
+    assert audio.kind("audio/webm", b"OggS....") is None and audio.kind("", b"OggS") is None
+    assert audio.kind("audio/flac", b"fLaC") is None
+
+
+def test_meta_reports_the_audio_limits(api, monkeypatch):
+    monkeypatch.setenv("PERMIT_MAX_AUDIO_MB", "3")
+    limits = api.get("/api/meta").json()["limits"]
+    assert limits["max_audio_mb"] == 3 and limits["max_audio_seconds"] == 30
+    spec = api.get("/openapi.json").json()
+    body = spec["paths"]["/api/transcribe"]["post"]["requestBody"]["content"]["multipart/form-data"]["schema"]
+    assert body["required"] == ["audio"] and "Transcript" in spec["components"]["schemas"]
+
+
+def _whisper_model_present() -> bool:
+    try:
+        import faster_whisper  # noqa: F401
+        from huggingface_hub import try_to_load_from_cache
+    except ImportError:
+        return False
+    from checker import voice
+    return isinstance(try_to_load_from_cache(f"Systran/faster-whisper-{voice.STT_MODEL}", "model.bin"), str)
+
+
+@pytest.mark.skipif(not _whisper_model_present(), reason="faster-whisper and its model are not on this machine (never in CI)")
+def test_the_fixture_clip_with_the_real_model(api, monkeypatch):
+    """Runs on a laptop that already has faster-whisper and the base.en model; downloads nothing."""
+    monkeypatch.setenv("PERMIT_STT", "faster-whisper")
+    r = _say(api, QUESTION_WAV.read_bytes())
+    assert r.status_code == 200, r.text
+    words = r.json()["text"].lower()
+    assert "second exit" in words and "caf" in words
+
+
+def test_meta_counts_the_rules_at_each_check_level(api, monkeypatch):
+    """The Start page and Help read how many rules are at each level from /api/meta; nothing is counted in the browser."""
+    entries = {k: v for k, v in api_main.rules()["rules"].items() if not k.startswith("_")}
+    rulebook = api.get("/api/meta").json()["rulebook"]
+    assert rulebook["rules"] == len(entries) == 21
+    assert (rulebook["unchecked"], rulebook["transcribed"], rulebook["reviewed"]) == (21, 0, 0)
+    assert "rules_unverified" not in rulebook
+    checked = json.loads(json.dumps(api_main.rules()))
+    for k in entries:
+        checked["rules"][k] |= {"check_level": "reviewed", "transcribed_by": "A. Person", "transcribed_on": "2026-12-01",
+                                "reviewed_by": {"name": "B. Expert", "role": "architect"}, "reviewed_on": "2026-12-02"}
+    checked["rules"]["OL-0"]["check_level"] = "transcribed"          # holds down every rule that uses the occupant load
+    monkeypatch.setattr(api_main, "rules", lambda: checked)
+    rulebook = api.get("/api/meta").json()["rulebook"]
+    held = 1 + sum("OL-0" in v.get("depends_on", []) for v in entries.values())
+    held += sum(1 for v in entries.values() if "OL-0" not in v.get("depends_on", [])
+                and any("OL-0" in entries[d].get("depends_on", []) for d in v.get("depends_on", [])))
+    assert (rulebook["unchecked"], rulebook["transcribed"], rulebook["reviewed"]) == (0, held, 21 - held)
+    spec = api.get("/openapi.json").json()["components"]["schemas"]
+    assert {"rules", "unchecked", "transcribed", "reviewed"} <= set(spec["Rulebook"]["required"])
+
+
+def test_each_finding_gives_its_check_level_and_where_it_comes_from(api, monkeypatch):
+    check = _new_check(api, "cafe")
+    entries = api_main.rules()["rules"]
+    findings = check["result"]["findings"]
+    assert findings
+    for f in findings:
+        assert f["check_level"] == rules_engine.rule_level(api_main.rules(), f["rule_id"])
+        assert f["rule_source"] == entries[f["rule_id"]]["source"]
+        assert "rule_verified" not in f and "rule_reviewed_by" not in f and "rule_reviewed_on" not in f
+    assert {f["check_level"] for f in findings} == {"unchecked"}       # no rule is transcribed yet
+    assembly = [p for p in check["result"]["permits_likely_required"] if p.get("check_level") == "unchecked"]
+    assert {p["id"] for p in assembly} == {"assembly", "sprinkler"}    # listed because of the number of people
+    assert all("check_level" not in p for p in check["result"]["permits_likely_required"] if p not in assembly)
+    assert check["result"]["rule_levels"] == {"rules": 21, "unchecked": 21, "transcribed": 0, "reviewed": 0}
+    again = api.get(f"/api/checks/{check['id']}").json()                         # stored and read back unchanged
+    assert [(f["check_level"], f["rule_source"]) for f in again["result"]["findings"]] == \
+           [(f["check_level"], f["rule_source"]) for f in findings]
+    assert check["result"]["occupant_load"]["check_level"] == "unchecked"
+    props = api.get("/openapi.json").json()["components"]["schemas"]["Finding"]["properties"]
+    assert props["check_level"]["enum"] == ["unchecked", "transcribed", "reviewed"] and props["check_level"]["default"] == "unchecked"
+    assert "rule_verified" not in props and {"rule_reviewed_by", "rule_reviewed_on"} <= set(props)
+    # A reviewed rule reaches the API with its reviewer and date.
+    reviewed = json.loads(json.dumps(api_main.rules()))
+    reviewed["rules"]["EG-3"] |= {"check_level": "reviewed", "transcribed_by": "A. Person", "transcribed_on": "2026-12-01",
+                                  "reviewed_by": {"name": "B. Expert", "role": "architect"}, "reviewed_on": "2026-12-02"}
+    monkeypatch.setattr(rules_engine, "load_rules", lambda name="seattle": reviewed)
+    door = next(f for f in _new_check(api, "cafe")["result"]["findings"] if f["rule_id"] == "EG-3")
+    assert (door["check_level"], door["rule_reviewed_by"], door["rule_reviewed_on"]) == ("reviewed", "B. Expert, architect", "2026-12-02")
+    assert props["rule_source"]["type"] == "string"
+
+
+def test_a_sign_answer_sent_as_null_is_not_sure_and_left_out_is_the_default(api):
+    facts = _demo_facts("salon_flawed")
+    sent = api.post("/api/checks", json={"facts": facts, "intake": {"business_type": "retail", "new_signage": None}}).json()
+    left = api.post("/api/checks", json={"facts": facts, "intake": {"business_type": "retail"}}).json()
+    sign = lambda c: next(p for p in c["result"]["permits_likely_required"] if p["id"] == "sign")
+    assert "a new sign" in sign(sent)["may_be_needed"] and "may_be_needed" not in sign(left)
