@@ -6,8 +6,9 @@ whether anything complies; that is rules_engine.py's job.
 Needs ANTHROPIC_API_KEY in the environment. Model is set by PERMIT_VISION_MODEL
 (default claude-sonnet-5-5).
 
-STATUS: the request is tested with the API mocked. No real model has read the demo plans
-from this code yet; run `python -m evaluation.evaluate_extraction --vision` to do that.
+STATUS: the real model read the three demo plans from this code on 21 November 2026
+(results: reports/extraction_eval.md). It has NOT read a real, non-demo floor plan yet,
+and the demo plans are drawn to be easy to read.
 """
 from __future__ import annotations
 
@@ -146,8 +147,10 @@ USER = (
     "- List aisle and corridor widths that are dimensioned, including gaps between tables, shelves or stations.\n"
     "- For each restroom: fixtures, door width and turning-circle diameter.\n"
     "- Note any kitchen equipment, hood and sinks, plus exit signs, extinguishers and sprinkler notes.\n"
+    "Call record_floor_plan exactly once with what you read, and write nothing else.\n"
     "Business context from the owner: {context}"
 )
+ATTEMPTS = 2    # the tool call cannot be forced on this model, so a reply without one is asked for once more
 
 
 def load_image_b64(path: str | Path) -> tuple[str, str]:
@@ -177,28 +180,31 @@ def extract_floor_plan(path: str | Path, context: str = "", *, client=None, mode
 
         client = anthropic.Anthropic()
     media_type, data = load_image_b64(path)
-    resp = client.messages.create(
-        model=model,
-        max_tokens=4000,
-        system=SYSTEM,
-        tools=[{
-            "name": "record_floor_plan",
-            "description": "Record the facts read from the floor plan.",
-            "input_schema": FLOOR_PLAN_SCHEMA,
-        }],
-        tool_choice={"type": "tool", "name": "record_floor_plan"},
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}},
-                {"type": "text", "text": USER.format(context=context or "none given")},
-            ],
-        }],
-    )
-    for block in resp.content:
-        if getattr(block, "type", None) == "tool_use":
-            return dict(block.input)
-    raise RuntimeError("Model returned no structured extraction.")
+    for _attempt in range(ATTEMPTS):
+        resp = client.messages.create(
+            model=model,
+            max_tokens=4000,
+            system=SYSTEM,
+            tools=[{
+                "name": "record_floor_plan",
+                "description": "Record the facts read from the floor plan.",
+                "input_schema": FLOOR_PLAN_SCHEMA,
+            }],
+            # "auto", not a forced tool: current models reject tool_choice "tool" and "any" with a 400.
+            # The user message asks for exactly one record_floor_plan call instead.
+            tool_choice={"type": "auto"},
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}},
+                    {"type": "text", "text": USER.format(context=context or "none given")},
+                ],
+            }],
+        )
+        for block in resp.content:
+            if getattr(block, "type", None) == "tool_use" and getattr(block, "name", "record_floor_plan") == "record_floor_plan":
+                return dict(block.input)
+    raise RuntimeError(f"Model returned no structured extraction: it did not call record_floor_plan in {ATTEMPTS} attempts.")
 
 
 if __name__ == "__main__":

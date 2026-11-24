@@ -29,7 +29,7 @@ except ImportError:
     pass
 from app import app_common as ac  # noqa: E402
 
-st.set_page_config(page_title="Seattle Permit Pre-Check (demo)", page_icon="📐", layout="centered")
+st.set_page_config(page_title="Seattle Permit Pre-Check (demo)", page_icon="📐", layout="wide")
 
 st.title("Seattle Permit Pre-Check")
 st.caption("A student prototype. It is a pre-submission check, not a code determination, and it is "
@@ -46,4 +46,10 @@ pages = {
         st.Page(ac.PAGE_ABOUT, title="About"),
     ],
 }
-st.navigation(pages, position="top").run()
+page = st.navigation(pages, position="top")
+if page.title == "Check a floor plan":
+    page.run()                               # uses the full width: the drawing sits beside the reading
+else:
+    _, middle, _ = st.columns([1, 3, 1])     # the reading pages keep a comfortable line length on a wide screen
+    with middle:
+        page.run()

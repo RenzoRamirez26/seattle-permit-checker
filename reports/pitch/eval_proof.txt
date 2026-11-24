@@ -1,0 +1,79 @@
+SEATTLE PERMIT PRE-CHECK: PROOF OF THE EVALUATIONS
+Every number below is copied from the two report files in the repository
+(reports/extraction_eval.md and reports/voice_eval.md). The "Total" figures
+are the sums of the rows in those reports. Nothing was re-run to make this file.
+
+Repository: https://github.com/RenzoRamirez26/seattle-permit-checker
+Commit of main: f0d758576c229cef977a1fc0535db505ef9767ba
+  (merge of pull request #6, 21 November 2026)
+Tests: 97 automated tests, all passing on that commit
+  (python -m pytest, run on 21 November 2026; no test calls a model).
+
+
+1. PLAN READING (reports/extraction_eval.md)
+
+Date of the run: 21 November 2026. One run.
+Model the code used: claude-sonnet-5-5 (the vision model that reads the plan).
+Commands, from the repository root:
+  python -m evaluation.evaluate_extraction --vision
+      Read the three test plans with the model (three model calls) and saved
+      each reading.
+  python -m evaluation.evaluate_extraction --saved --label "vision model claude-sonnet-5-5, run on 21 November 2026 (three model calls); scored from the saved readings"
+      Scored those saved readings and wrote the report. No model call.
+
+Results:
+  Plan                              Facts   Read       Real      Caught  Flagged     Missed  False
+                                    checked correctly  problems          to confirm          alarms
+  Café with planted problems           38      35         11        9        2          0       0
+  Café that passes                     44      44          0        0        0          0       0
+  Hair salon with planted problems     25      24          3        3        0          0       0
+  Total                               107     103         14       12        2          0       0
+
+The four misreads, as listed in the report:
+  Café with planted problems
+    - Misread kitchen: hand_sinks: read None, should be 0
+    - Misread fire_safety: exit_signs_shown: read None, should be 0
+    - Misread fire_safety: fire_extinguishers_shown: read None, should be 0
+  Hair salon with planted problems
+    - Misread Door 1: swing: read 'outward', should be 'inward'
+
+The two problems flagged to confirm instead of caught, as listed in the report:
+    - Missing exit signs
+    - No handwashing sink in the food prep area
+
+How scoring works: each fact the model read is compared with a hand-written
+answer key for the plan (areas must be within 2 percent, widths and counts must
+match exactly), and the same rules are then run on the model's reading and on
+the answer key to count which real problems were caught, flagged to confirm,
+missed, and which were false alarms.
+
+Limits: one run, on three invented test plans drawn to be easy to read, with
+dimensions printed on them. Real drawings have not been tested.
+
+
+2. SPOKEN QUESTIONS (reports/voice_eval.md)
+
+Date of the run: 20 November 2026. One run, on one laptop (CPU only).
+Command: python -m evaluation.evaluate_voice
+Models: Kokoro (text to speech, voice af_heart) spoke ten typical owner
+questions; faster-whisper base.en (speech to text) transcribed them.
+
+Results:
+  - 9 of 10 questions came back word for word.
+  - 10 of 10 would get the same answer from the agent.
+  - Speaking a question took 0.8 s on average and transcribing it 0.7 s.
+  - The one difference: "Is my business allowed in this zoning?" was heard as
+    "Is my business allowed in the zoning?"
+  - With the list of code words given to the speech model: 9 of 10 as spoken,
+    8 of 10 with hiss added. Without it: 9 of 10 as spoken, 7 of 10 with hiss.
+
+Limits: the questions were machine-spoken, in a clear voice with no accent or
+background noise. Real voices will do worse and have not been measured. Ten
+questions is a small sample.
+
+
+FILES IN THIS FOLDER
+  eval_table.png     plan-reading table (1920 x 1080)
+  eval_headline.png  plan-reading headline (1920 x 1080)
+  voice_table.png    spoken-questions table (1920 x 1080)
+  eval_proof.txt     this file

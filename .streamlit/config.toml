@@ -1,10 +1,17 @@
 [theme]
 base = "light"
-primaryColor = "#12406b"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f2f5f8"
-textColor = "#16202a"
+# Paper background, dark text. The primary colour is used for links and for the one primary button in each step.
+primaryColor = "#1F4E8C"
+backgroundColor = "#FAF8F3"
+secondaryBackgroundColor = "#EFEADF"
+textColor = "#1B1F24"
+linkColor = "#1F4E8C"
 font = "sans serif"
+# Status colours. On the check page they mean one thing each, always with an icon and words:
+# red = Fix, orange (amber) = Check with the city, green = OK.
+redColor = "#B3261E"
+orangeColor = "#7A4F00"
+greenColor = "#1E6B3A"
 
 [browser]
 gatherUsageStats = false

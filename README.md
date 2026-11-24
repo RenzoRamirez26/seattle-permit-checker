@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green"></a>
 </p>
 
-> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. Two things have **not** been run against the real services yet: the vision model on a plan and the live Seattle download. The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
+> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. The vision model has now read the three demo plans (21 November 2026), but no real floor plan yet. One thing has **not** been run against the real service: the live Seattle download. The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
 
 ## Contents
 
@@ -48,8 +48,8 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Rulebook | `checker/rules/seattle.json` | **Real.** Six business types. Most numbers checked against the 2021 Seattle Building Code PDFs | Check the items listed in [docs/rulebook.md](docs/rulebook.md) |
 | Rules engine | `checker/rules_engine.py` | **Real and tested** on three demo plans and on each business type | More checks (travel distance, parking, signage) |
 | Zoning | `checker/zoning.py` | Logic tested; the live lookup is tested with the network mocked | Run one real address |
-| Plan reading | `checker/extract.py` | Request tested with the API mocked | **Run it on the demo plans with a key** |
-| Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested | **No results yet**: run `--vision` |
+| Plan reading | `checker/extract.py` | **The real model has read the three demo plans** (21 November 2026, one run): 103 of 107 facts read correctly. The demo plans are fictional and drawn to be easy to read | **Read a real floor plan** (with permission); accuracy on real drawings is unknown |
+| Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested. First results in [reports/extraction_eval.md](reports/extraction_eval.md): of 14 real problems on the two flawed plans, 12 were caught as problems, 2 were flagged to confirm, none missed, no false alarms. One run, three demo plans | Repeat the run to see how much it varies; add more plans |
 | Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked | Try it with a key |
 | Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). **Spoken questions do not work in Safari yet**: use Chrome, or type ([known issue](docs/voice.md#known-issues)) |
