@@ -391,7 +391,9 @@ function ZoningFound({ z, businessType, again, finding }: { z: NonNullable<Check
         <p className="m-0 break-words"><span className="text-ink-muted">Overlays: </span>{overlayWords(z.overlays).join(", ")}</p>
       ) : null}
       {typeof z.fix === "string" && z.fix ? <p className="m-0 break-words measure"><span className="font-medium">What to do: </span>{z.fix}</p> : null}
-      {finding ? <p className="m-0 font-mono text-ink-muted break-words" translate="no">{finding.citation}</p> : null}
+      {finding?.citation || typeof z.cite === "string" ? (
+        <p className="m-0 font-mono text-ink-muted break-words" translate="no">{finding?.citation || (z.cite as string)}</p>
+      ) : null}
       {!finding || ruleUnverified(finding) ? <p className="m-0 measure text-body text-ink-muted">{UNVERIFIED_FINDING}</p> : null}
     </div>
   );

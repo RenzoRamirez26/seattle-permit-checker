@@ -22,7 +22,7 @@ export const HELP: HelpTopic[] = [
   },
   {
     id: "not-sure", question: "What if I am not sure of an answer?",
-    answer: "Choose Not sure. Any check that needs an answer or a plan value left as Not sure becomes Check with the city, and a permit that depends on it is listed as May be needed.",
+    answer: "Choose Not sure. Any check that needs an answer or a plan value left as Not sure becomes Check with the city, unless the rest of the plan already shows something to fix, and a permit that depends on it is listed as May be needed.",
     words: ["not sure", "don't know", "dont know", "unsure", "unknown"],
   },
   {

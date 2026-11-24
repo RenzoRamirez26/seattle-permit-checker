@@ -164,7 +164,7 @@ export const NOT_SURE = "Not sure";
 
 /** The Answers page (step 3): its groups, notes and messages. Words only. */
 export const ANSWERS = {
-  intro: "Change anything that's wrong. Any check that needs a value left as Not sure becomes Check with the city.",
+  intro: "Change anything that's wrong. Any check that needs a value left as Not sure becomes Check with the city, unless the rest of the plan already shows something to fix.",
   checkFirst: "Check these first",
   /**
    * Under a row the reading left empty. The API marks no single reading as uncertain (its `uncertainties` is a free-text

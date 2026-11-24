@@ -266,6 +266,10 @@ test("state: no zoning result offers the address, Try again and the city's map",
   await panel.getByRole("button", { name: "Try again" }).click();
   await expect(panel).toContainText(`Zone: ${zoning.zoning.district}`);
   await expect(panel).toContainText("This is not in your result yet. Run the check again to include it.");
+  // a zoning found again still shows its code section, and says its rule is still being checked (no finding yet)
+  expect(typeof zoning.zoning.cite).toBe("string");
+  await expect(panel.getByText(zoning.zoning.cite, { exact: true })).toBeVisible();
+  await expect(panel.getByText("This rule's value is still being checked against the code.")).toBeVisible();
 });
 
 /** The rail's items, with their state: current, seen or next. */
