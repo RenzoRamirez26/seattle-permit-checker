@@ -35,7 +35,7 @@ Say what is not yet checked, once, next to what it affects (rules 4 and 11):
   the code."
 - once beside the results and on the first page of each PDF: "Some rule values are still being checked against the
   code."
-- on Start, while any rule is unverified: "Seattle's rules decide (some values still being checked)".
+- on Start, while any rule is unverified: "Rules based on Seattle's code decide (some values still being checked)".
 - under the occupant-load table in the PDFs: "Some of these square-feet-per-person values are still being checked
   against the code."
 
@@ -60,6 +60,9 @@ The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unver
 | Always shown, never behind a tab | (removed) | 9 |
 | This server cannot read uploaded plans yet. | This server can't read uploaded plans yet. | 10 |
 | Invalid file | We can't read this kind of file. Upload a PDF, PNG or JPG. | 3 |
+| Exit signs: Your plan shows 3 exit signs. | Your plan shows 3 exit signs. Each of the 2 exits needs one. | 2: every No issues found row says what the plan shows and what it meets |
+| Seattle's rules decide | Rules based on Seattle's code decide | claims no larger than the evidence: the rules are our coding of the code, not the city's own |
+| Run Seattle's rules (Checking) | Run the rules | the same |
 | Read by the vision model. Check every value against your plan. | The model read your plan. Check each value against the drawing. | 6, 10 |
 | You are entering the measurements yourself. Leave anything you are not sure of empty. | You're entering the measurements yourself. Leave anything you're not sure of empty. | 10 |
 | No plan has been read in this browser tab yet. | We haven't read a plan in this browser tab yet. | 6 |

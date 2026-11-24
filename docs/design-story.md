@@ -4,7 +4,7 @@ PermitOS is for someone about to sign a lease on a café, a salon or a small sho
 
 That person can be hurt by a careless design in two ways. A screen that looks like an approval can send them into a lease the city later blocks. A screen that looks like a wall of warnings can scare them off a space that was fine. Every decision below comes back to that: **the design has to be calm, exact and honest about what we checked and what we didn't.**
 
-The product's core rule shapes the design too. A model reads facts off the plan. The owner confirms them. Written rules decide. Anything unknown is never reported as fine. The interface has to make that order visible.
+The product's core rule shapes the design too. A model reads facts off the plan. The owner confirms them. Rules based on Seattle's code decide. Anything unknown is never reported as fine. The interface has to make that order visible.
 
 This document tells the story of how we got from the hackathon version to the current one, including the mistakes. The tokens and components themselves are in [`DESIGN.md`](../DESIGN.md), the writing rules are in [`CONTENT.md`](../CONTENT.md), and the short decision log is in [`decisions.md`](decisions.md).
 
@@ -37,12 +37,15 @@ We looked for evidence rather than taste, in four places:
 | "OK (9)" | **No issues found (9)** | "OK" reads like a pass. We only know what we checked. |
 | "Tables on the sidewalk" | **Ask about sidewalk tables** | Every finding says what to do next. |
 | A whole "What PermitOS is not" section | One line beside the results | Say a caveat once, where it matters. |
+| "Seattle's rules decide", "Run Seattle's rules" | **Rules based on Seattle's code decide**, **Run the rules** | The rules are our coding of Seattle's code, and some of their values are still being checked. Crediting the city claimed more than we know. |
 
 We also dropped *please*, *sorry* and *oops*, and words like *invalid*, *illegal* and *fail*. Every results page now ends with one next step and one place to go for help.
 
 ### A mistake we corrected
 
 At first we read "say each caveat once" as "put the disclaimer in the footer". Our own evaluation checklist caught it: the disclaimer has to sit **next to the result**, because that is where someone decides whether to trust it. The results heading now carries *"A pre-check from the checks we ran, not a city approval."*
+
+We made a second mistake of the same kind. Start and the Checking page said "Seattle's rules decide" and "Run Seattle's rules". An independent review of the checklist pointed out that the rules are our coding of Seattle's code, and that most of their values had not yet been checked against the code text. The words now say "Rules based on Seattle's code decide" and "Run the rules", and every finding whose rule value is still being checked says so.
 
 ---
 

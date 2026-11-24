@@ -6,6 +6,22 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · No issues found rows name the requirement; numbers only from the rulebook
+
+- **Decision:** Every "No issues found" message has two sentences: what the plan shows, then what it meets ("Your plan
+  shows 3 exit signs. Each of the 2 exits needs one."). Requirement numbers come from `seattle.json`. The 36 in. door
+  in two fix texts, the 28 to 34 in. table height and the 5 to 7 months for a land use approval moved into the
+  rulebook. A test reads the engine's and zoning's source and fails on any number written into a message, title or
+  fix. On Answers, "We couldn't read this from your plan." sits under each reading the API left empty, not under the
+  row's title. "Seattle's rules decide" became "Rules based on Seattle's code decide", and "Run Seattle's rules" became
+  "Run the rules".
+- **Why:** The independent re-score failed T4 (the requirement was missing from No issues found rows) and L4 (the line
+  covered whole rows that were mostly read, and the wording credited the city with our coding).
+- **Rejected:** a runtime check of every number in every message against the rulebook. Messages also carry numbers
+  from the plan and from arithmetic (106 people, 21.2 in.), so the source check is the reliable one. Also rejected:
+  one line per row listing the empty readings, which is shorter but reads less clearly beside each "Not sure".
+- **Who:** owner (wording and scope); team (how).
+
 ## 2026-11-24 · Rules not yet checked against the code are marked
 
 - **Decision:** The rulebook gives every rule id a `verified` (true or false) and a `source` (code edition and
