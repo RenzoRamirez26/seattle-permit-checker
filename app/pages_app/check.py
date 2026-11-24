@@ -332,7 +332,7 @@ if result:
         with side_col:
             st.markdown("**Permits and approvals you will likely need**")
             permits = pd.DataFrame([{"name": p["name"], "agency": p["agency"],
-                                     "note": " ".join(([p["may_be_needed"]] if p.get("may_be_needed") else [])
+                                     "note": " ".join(([rules_engine.may_be_needed_words(p)] if p.get("may_be_needed") else [])
                                                       + ([rules_engine.UNVERIFIED_PERMIT] if p.get("rule_verified") is False else [])
                                                       + ([rules_engine.UNVERIFIED_ENTRY] if p.get("entry_verified") is False else []))}
                                     for p in result["permits_likely_required"]])

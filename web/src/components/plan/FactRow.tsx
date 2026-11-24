@@ -50,13 +50,16 @@ export function leftEmpty(fields: FieldSpec[], item: Item | null | undefined): b
 }
 
 export function FactRow({ rowId, title, fields, item, original, editing, onEdit, onCancel, onSave, onRemove, onProblems,
-  level = 3, unsure = false, context, onFocusChange }: {
+  level = 3, unsure = false, context, onFocusChange, isRead = () => true }: {
   rowId: string;
   title: string;
   /** The row title's heading level: 3 directly under a group, 4 under a sub-group. */
   level?: 3 | 4;
   /** The reading left one of this row's values empty: shown with the hollow "?" and a line saying so. */
   unsure?: boolean;
+  /** Whether a rule reads this value (/api/meta facts_checked). A value no rule reads says "not checked" and never
+   *  gets the empty-reading line. */
+  isRead?: (f: FieldSpec) => boolean;
   /** A short muted line above the title naming the kind of thing ("Doors"), where the rows are not sub-grouped. */
   context?: string;
   /** Focus moved into the row (true) or out of it (false). */
@@ -79,7 +82,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
   const where = whereField ? (item?.[whereField.key] as string | null) : null;
   const Title = level === 4 ? "h4" : "h3";
   /** The API's reading left this value empty and it is still empty: not an added row, not a manual entry, not filled in. */
-  const readEmpty = (f: FieldSpec) => !!original && displayValue(f, original[f.key]).unsure && displayValue(f, item?.[f.key]).unsure;
+  const readEmpty = (f: FieldSpec) => isRead(f) && !!original && displayValue(f, original[f.key]).unsure && displayValue(f, item?.[f.key]).unsure;
 
   useEffect(() => {
     if (wasEditing.current && !editing) changeRef.current?.focus();
@@ -120,7 +123,7 @@ export function FactRow({ rowId, title, fields, item, original, editing, onEdit,
             const d = displayValue(f, item?.[f.key]);
             return (
               <div key={f.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 py-1">
-                <dt className="min-w-0 text-ink-muted">{f.label}</dt>
+                <dt className="min-w-0 text-ink-muted">{f.label}{isRead(f) ? null : <> · {ANSWERS.notChecked}</>}</dt>
                 <dd className={cn("m-0 text-right break-words", d.mono && "font-mono nums", d.unsure && "text-blue font-medium")}>{d.text}</dd>
                 {readEmpty(f) ? <dd className="col-span-2 m-0"><EmptyLine /></dd> : null}
               </div>

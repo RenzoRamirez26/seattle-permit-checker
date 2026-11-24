@@ -172,6 +172,18 @@
         "title": "Add a Type I hood over the cooking line"
       },
       {
+        "citation": "SBC 903.2.1.2 (Group A-2)",
+        "detail": "Your plan says there are no sprinklers. This Group A-2 space needs them: 106 people, which is 100 or more (limit: 100 people or 5,000 sq ft).",
+        "fix": "Ask the landlord whether the building has sprinklers and note it on the plan. If it has none, budget for a system or plan for fewer people.",
+        "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
+        "rule_id": "FS-2",
+        "rule_source": "SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7",
+        "rule_verified": false,
+        "severity": "critical",
+        "status": "fail",
+        "title": "Add a sprinkler system"
+      },
+      {
         "citation": "SBC 1010.1.2.1",
         "detail": "Your plan shows this exit door swinging inward. A space for 106 people needs exit doors that swing out, the way people leave.",
         "fix": "Re-hang the door to swing outward. Check that it doesn't block the sidewalk or a required clear space.",
@@ -266,18 +278,6 @@
         "severity": "high",
         "status": "fail",
         "title": "Add a handwashing sink in the food prep area"
-      },
-      {
-        "citation": "SBC 903.2.1.2 (Group A-2)",
-        "detail": "Your plan says there are no sprinklers. This Group A-2 space needs them: 106 people, which is 100 or more (limit: 100 people or 5,000 sq ft). This depends on whether the space is above or below the street-level floor, which was answered Not sure.",
-        "fix": "Ask the landlord whether the building has sprinklers and note it on the plan. If it has none, budget for a system or plan for fewer people.",
-        "reviewed_by": "Seattle Fire Department review, SBC Ch. 9 Fire Protection",
-        "rule_id": "FS-2",
-        "rule_source": "SBC 2021 903.2.1.2; SBC 2021 903.2.1.3; SBC 2021 903.2.7",
-        "rule_verified": false,
-        "severity": "critical",
-        "status": "review",
-        "title": "Add a sprinkler system"
       },
       {
         "citation": "SBC Chapter 11; ADA 226.1",
@@ -520,7 +520,7 @@
         "agency": "Washington State Liquor and Cannabis Board",
         "entry_verified": true,
         "id": "alcohol",
-        "may_be_needed": "May be needed: check with the city. It depends on whether alcohol will be served, which was answered Not sure.",
+        "may_be_needed": "Check with the city. It depends on whether alcohol will be served, which was answered Not sure.",
         "name": "Liquor license",
         "rule_verified": true
       },
@@ -535,7 +535,7 @@
         "agency": "Seattle Department of Transportation (SDOT)",
         "entry_verified": true,
         "id": "patio",
-        "may_be_needed": "May be needed: check with the city. It depends on whether there will be outdoor seating, which was answered Not sure.",
+        "may_be_needed": "Check with the city. It depends on whether there will be outdoor seating, which was answered Not sure.",
         "name": "Sidewalk café or tables-and-chairs permit",
         "rule_verified": true
       },
@@ -543,7 +543,7 @@
         "agency": "Seattle Department of Neighborhoods",
         "entry_verified": true,
         "id": "historic",
-        "may_be_needed": "May be needed: check with the city. It depends on whether the building is a landmark or in a historic district, which was answered Not sure.",
+        "may_be_needed": "Check with the city. It depends on whether the building is a landmark or in a historic district, which was answered Not sure.",
         "name": "Certificate of Approval (landmark building or historic district)",
         "rule_verified": true
       }
@@ -553,11 +553,11 @@
       "business_type": "cafe_restaurant",
       "exits_required": 2,
       "exits_shown": 1,
-      "fails": 10,
+      "fails": 11,
       "occupancy_group": "A-2",
       "occupant_load": 106,
       "passes": 6,
-      "reviews": 3
+      "reviews": 2
     },
     "zoning": {
       "address": "",

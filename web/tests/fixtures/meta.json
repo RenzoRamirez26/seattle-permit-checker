@@ -66,6 +66,35 @@
       "zone": "NR3"
     }
   ],
+  "facts_checked": [
+    "gross_area_sqft",
+    "seat_count",
+    "accessible_seat_count",
+    "outdoor_seating_shown",
+    "spaces.use",
+    "spaces.area_sqft",
+    "spaces.width_ft",
+    "spaces.length_ft",
+    "doors.clear_width_in",
+    "doors.is_exit",
+    "doors.swing",
+    "aisles.min_width_in",
+    "restrooms.designation",
+    "restrooms.water_closets",
+    "restrooms.urinals",
+    "restrooms.lavatories",
+    "restrooms.turning_circle_diameter_in",
+    "restrooms.door_clear_width_in",
+    "kitchen.grease_producing_cooking",
+    "kitchen.type1_hood_shown",
+    "kitchen.hand_sinks",
+    "kitchen.three_compartment_sink",
+    "kitchen.mop_or_service_sink",
+    "fire_safety.exit_signs_shown",
+    "fire_safety.fire_extinguishers_shown",
+    "fire_safety.class_k_extinguisher_shown",
+    "fire_safety.sprinklers_noted"
+  ],
   "features": {
     "kokoro_voice": false,
     "model_api_key": false,
@@ -86,6 +115,10 @@
       ".png"
     ]
   },
+  "room_uses_without_load": [
+    "restroom",
+    "corridor"
+  ],
   "rulebook": {
     "code_basis": "2021 Seattle Building Code and related 2021 Seattle codes (2021 model codes with Washington State and Seattle amendments); Seattle Plumbing Code (Uniform Plumbing Code); 2010 ADA Standards for Accessible Design; King County Board of Health Code and the Washington State Retail Food Code (chapter 246-215 WAC) for food businesses.",
     "edition_date": null,

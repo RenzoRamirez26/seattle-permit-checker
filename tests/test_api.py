@@ -525,7 +525,7 @@ def test_a_not_sure_answer_is_sent_as_null_and_never_becomes_a_pass(api):
     assert [f for f in sent(cooking_on_site=True).json()["result"]["findings"] if f["rule_id"] == "MECH-1"][0]["status"] == "pass"
     assert not [f for f in sent(cooking_on_site=False).json()["result"]["findings"] if f["rule_id"] == "MECH-1"]
     alcohol = [p for p in result["permits_likely_required"] if p["id"] == "alcohol"]
-    assert alcohol and alcohol[0]["may_be_needed"].startswith("May be needed: check with the city.")
+    assert alcohol and alcohol[0]["may_be_needed"].startswith("Check with the city.")
 
     no = sent(cooking_on_site=False, serves_alcohol=False).json()["result"]
     assert no == sent().json()["result"]                                          # left out means false, as before

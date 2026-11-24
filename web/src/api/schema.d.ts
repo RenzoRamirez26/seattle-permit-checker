@@ -529,8 +529,18 @@ export interface components {
             business_types: components["schemas"]["BusinessType"][];
             /** Demo Cases */
             demo_cases: components["schemas"]["DemoCase"][];
+            /**
+             * Facts Checked
+             * @description The plan values the rules read, as "field" or "group.field". The others are recorded with the check but no rule reads them.
+             */
+            facts_checked: string[];
             features: components["schemas"]["Features"];
             limits: components["schemas"]["Limits"];
+            /**
+             * Room Uses Without Load
+             * @description Room uses whose size no rule reads (restrooms, corridors).
+             */
+            room_uses_without_load: string[];
             rulebook: components["schemas"]["Rulebook"];
         };
         /** OccupantLoad */

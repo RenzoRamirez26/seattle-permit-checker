@@ -35,7 +35,8 @@ Say what is not yet checked, once, next to what it affects (rules 4 and 11):
   the code."
 - once beside the results and on the first page of each PDF: "Some rule values are still being checked against the
   code."
-- on Start, while any rule is unverified: "Rules based on Seattle's code decide (some values still being checked)".
+- on Start's strip, saying the same as step 4: "Rules based on Seattle's code decide (none checked against the code text
+  yet)" while no rule is checked, "(some values still being checked)" while some are.
 - beside the occupant load, the occupancy group and the exits required in the PDFs, and beside a permit listed because
   of the number of people (website and PDFs): "Listed because of a value still being checked against the code."
 - under the occupant-load table in the PDFs: "Some of these square-feet-per-person values are still being checked
@@ -65,8 +66,11 @@ The API decides which rules these are (`rule_verified`, `/api/meta` `rules_unver
 | Exit signs: Your plan shows 3 exit signs. | Your plan shows 3 exit signs. Each of the 2 exits needs one. | 2: every No issues found row says what the plan shows and what it meets |
 | Checked by: SDCI Ordinance review | Who to ask: SDCI Ordinance review | claims no larger than the evidence: the city has not checked anything |
 | Your plan doesn't show fire extinguishers. | Your plan doesn't show fire extinguishers. Each floor needs at least one within 75 ft of travel. | 2: Check with the city rows state the requirement too |
-| Rules we coded from Seattle's building codes list what to fix… | Our team coded these rules from Seattle's building codes and other city requirements. … None of the 21 rules is checked against the code text yet. | claims no larger than the evidence (the count comes from the API) |
+| Rules we coded from Seattle's building codes list what to fix… | Our team coded these rules from Seattle's building and plumbing codes, the federal accessibility standards, and the King County and Washington State food codes. … None of the 21 rules is checked against the code text yet. | claims no larger than the evidence (the count comes from the API) |
 | It does not look at … ventilation | It checks for a kitchen exhaust hood where there is cooking, but not ventilation rates … | say what is checked |
+| May be needed · May be needed: check with the city. It depends on … | May be needed · Check with the city. It depends on … | say it once |
+| Also used in the check | Also read from your plan (values no rule reads say "not checked") | claims no larger than the evidence |
+| Every exit door on your plan swings outward (with a sliding door) | Check the exit door: your plan shows this exit door as sliding, not swinging. … | 2: observation first, nothing the plan doesn't show |
 | Seattle's rules decide | Rules based on Seattle's code decide | claims no larger than the evidence: the rules are our coding of the code, not the city's own |
 | Run Seattle's rules (Checking) | Run the rules | the same |
 | Read by the vision model. Check every value against your plan. | The model read your plan. Check each value against the drawing. | 6, 10 |

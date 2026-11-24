@@ -104,8 +104,8 @@ test("adding a second exit changes the result, and a refresh keeps the edited fa
 test("keyboard only: from the first Change to Run the check", async ({ page }) => {
   await seed(page, { caseId: "cafe_flawed" });
   await page.goto("/check/");
-  // The whole space was read in full, so it is the first row under "Also used in the check".
-  const firstChange = page.getByRole("region", { name: "Also used in the check" }).getByRole("button", { name: /^Change / }).first();
+  // The whole space was read in full, so it is the first row under "Also read from your plan".
+  const firstChange = page.getByRole("region", { name: "Also read from your plan" }).getByRole("button", { name: /^Change / }).first();
   await expect(firstChange).toHaveAccessibleName("Change The whole space");
   for (let i = 0; i < 40 && !(await firstChange.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Tab");
   await expect(firstChange).toBeFocused();

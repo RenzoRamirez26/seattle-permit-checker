@@ -21,7 +21,7 @@ import os
 import re
 from typing import Any, Optional
 
-from .rules_engine import PRECHECK_NOTE, SOME_UNVERIFIED, UNVERIFIED_ENTRY, UNVERIFIED_NOTE, UNVERIFIED_PERMIT
+from .rules_engine import PRECHECK_NOTE, may_be_needed_words, SOME_UNVERIFIED, UNVERIFIED_ENTRY, UNVERIFIED_NOTE, UNVERIFIED_PERMIT
 
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
@@ -115,7 +115,7 @@ def spoken_summary(result: dict, limit: int = 3) -> str:
 def _permit_words(p: dict) -> str:
     """A permit as the answer names it, with its "May be needed" sentence and the unchecked note, as the pages show."""
     out = f"{p['name']} from {p['agency']}"
-    notes = ([p["may_be_needed"]] if p.get("may_be_needed") else []) + ([UNVERIFIED_PERMIT] if p.get("rule_verified") is False else []) \
+    notes = ([may_be_needed_words(p)] if p.get("may_be_needed") else []) + ([UNVERIFIED_PERMIT] if p.get("rule_verified") is False else []) \
         + ([UNVERIFIED_ENTRY] if p.get("entry_verified") is False else [])
     return out + "".join(f" ({n.rstrip('.')[0].lower()}{n.rstrip('.')[1:]})" for n in notes)
 

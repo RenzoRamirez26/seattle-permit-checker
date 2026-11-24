@@ -86,9 +86,9 @@ test("Start: the last step says some values are still being checked while the AP
   expect(meta.rulebook.rules_unverified).toBeGreaterThan(0);
   await page.goto("/");
   const strip = page.getByRole("list", { name: "How it works, in short" });
-  await expect(strip.getByRole("listitem").last()).toHaveText(/Rules based on Seattle's code decide \(some values still being checked\)$/);
+  await expect(strip.getByRole("listitem").last()).toHaveText(/Rules based on Seattle's code decide \(none checked against the code text yet\)$/);
   const how = page.getByRole("region", { name: "How it works" });
-  await expect(how).toContainText("Our team coded these rules from Seattle's building codes and other city requirements.");
+  await expect(how).toContainText("Our team coded these rules from Seattle's building and plumbing codes, the federal accessibility standards, and the King County and Washington State food codes.");
   const { rules: n, rules_unverified: u } = meta.rulebook;            // the count comes from /api/meta
   await expect(how).toContainText(u === n ? `None of the ${n} rules is checked against the code text yet.` : `${u} of the ${n} rules`);
 });

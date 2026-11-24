@@ -15,7 +15,8 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import type { Facts } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { ANSWERS, GROUPS, type GroupSpec } from "@/content/facts";
+import { ANSWERS, GROUPS, readByRules, type GroupSpec } from "@/content/facts";
+import { useMeta } from "@/components/layout/Providers";
 import { FactRow, leftEmpty, type RowProblem } from "./FactRow";
 import type { Item } from "./factForm";
 
@@ -38,6 +39,9 @@ export function FactsEditor({ facts, original, editing, setEditing, onChange, on
 }) {
   const [fresh, setFresh] = useState<string | null>(null);   // a row added and not yet saved
   const [removed, setRemoved] = useState<Removed | null>(null);
+  const { meta } = useMeta();
+  // Only values a rule reads count toward "Check these first" (an empty grease-interceptor note is not asked about).
+  const read = (g: GroupSpec, item: Item | null | undefined) => g.fields.filter((f) => f.isName || readByRules(meta, g, f, item));
   const [focused, setFocused] = useState<string | null>(null);
 
   const titleOf = (g: GroupSpec, item: Item | null, index?: number): string => {
@@ -51,7 +55,7 @@ export function FactsEditor({ facts, original, editing, setEditing, onChange, on
     const id = rowIdFor(g.id, index);
     const orig = original ? originalOf(g, original, index) : undefined;
     const fromReading = !!original && fresh !== id && readHere(g, original, index);
-    return { g, item, index, id, title: titleOf(g, item, index), orig, unsure: fromReading && leftEmpty(g.fields, orig) };
+    return { g, item, index, id, title: titleOf(g, item, index), orig, unsure: fromReading && leftEmpty(read(g, orig), orig) };
   }));
   const first = all.filter((r) => r.unsure);
   const rest = all.filter((r) => !r.unsure);
@@ -90,6 +94,7 @@ export function FactsEditor({ facts, original, editing, setEditing, onChange, on
         context={context}
         unsure={r.unsure}
         fields={g.fields}
+        isRead={(f) => readByRules(meta, g, f, item)}
         item={item}
         original={fresh === id ? undefined : r.orig}
         editing={editing === id}
