@@ -34,7 +34,7 @@ BODY, SMALL, H1, H2 = 9.5, 8.5, 16, 11.5      # point sizes
 LINE = 4.6           # mm, line height of body text
 GREY = 232           # light fill behind headings and the notice: prints as pale grey, text stays black
 
-REPORT_NAME = "Seattle Permit Pre-Check"
+REPORT_NAME = "PermitOS"
 
 
 class _Doc(FPDF):

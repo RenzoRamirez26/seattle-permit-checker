@@ -7,12 +7,12 @@ import { CircleCheck, CircleHelp, CircleX, type LucideIcon } from "lucide-react"
 import type { Finding, Schemas } from "@/api/client";
 
 export type Status = Finding["status"];
-type Look = { word: string; group: string; Icon: LucideIcon; text: string; tint: string; border: string };
+type Look = { word: string; group: string; empty: string; Icon: LucideIcon; text: string; tint: string; border: string };
 
 const LOOKS: Record<Status, Look> = {
-  fail: { word: "Fix", group: "Fix before you apply", Icon: CircleX, text: "text-fix", tint: "bg-fix-tint", border: "border-fix" },
-  review: { word: "Check with the city", group: "Check with the city", Icon: CircleHelp, text: "text-city", tint: "bg-city-tint", border: "border-city" },
-  pass: { word: "OK", group: "OK", Icon: CircleCheck, text: "text-ok", tint: "bg-ok-tint", border: "border-ok" },
+  fail: { word: "Fix", group: "Fix before you apply", empty: "Nothing to fix before you apply.", Icon: CircleX, text: "text-fix", tint: "bg-fix-tint", border: "border-fix" },
+  review: { word: "Check with the city", group: "Check with the city", empty: "Nothing to check with the city.", Icon: CircleHelp, text: "text-city", tint: "bg-city-tint", border: "border-city" },
+  pass: { word: "OK", group: "OK", empty: "No item was found to be fine.", Icon: CircleCheck, text: "text-ok", tint: "bg-ok-tint", border: "border-ok" },
 };
 
 /** Fix first, then Check with the city, then OK. */
@@ -26,9 +26,17 @@ export const isOk = (status: string) => status === "pass";
 
 export type Numbered = { finding: Finding; index: number };
 
+/** The group a finding's status belongs to: an unknown status goes with Check with the city. */
+export const groupOf = (s: string): Status => (s in LOOKS ? (s as Status) : "review");
+
+/** The findings tab selected first: Fix before you apply, unless it has none, then the first group with findings. */
+export function defaultGroup(counts: Record<Status, number>): Status {
+  return counts.fail ? "fail" : (STATUS_ORDER.find((st) => counts[st]) ?? "fail");
+}
+
 /** The findings in the three groups, each keeping its position in the result (its anchor is finding-<index>). */
 export function groups(findings: Finding[]): { status: Status; items: Numbered[] }[] {
-  const known = (s: string): Status => (s in LOOKS ? (s as Status) : "review");
+  const known = groupOf;
   return STATUS_ORDER.map((status) => ({
     status,
     items: findings.map((finding, index) => ({ finding, index })).filter(({ finding }) => known(finding.status) === status),

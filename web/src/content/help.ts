@@ -12,7 +12,7 @@ export const HELP: HelpTopic[] = [
   },
   {
     id: "city", question: "Is this a City of Seattle service?",
-    answer: "No. It is a prototype made by the Seattle Permit Pre-Check team. It does not approve anything and its results are not a code decision. The city's plan reviewers decide; a licensed design professional can confirm before you apply.",
+    answer: "No. It is a prototype made by the PermitOS team. It does not approve anything and its results are not a code decision. The city's plan reviewers decide; a licensed design professional can confirm before you apply.",
     words: ["city", "official", "approve", "government", "seattle service"],
   },
   {

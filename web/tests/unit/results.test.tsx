@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { Check, Finding } from "@/api/client";
 import { groups, look, STATUS_ORDER } from "@/components/results/status";
 import { recordLines } from "@/components/results/RecordLines";
 import { countsSentence } from "@/components/results/CountsSentence";
+import { revealFinding } from "@/state/resultsTabs";
 import { fixture } from "./fixtures";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
@@ -38,16 +39,53 @@ describe("status words", () => {
 });
 
 describe("the results page", () => {
-  it("renders Fix, then Check with the city, then OK collapsed, with every finding anchored by its position", () => {
+  const tab = (name: string | RegExp) => screen.getByRole("tab", { name });
+
+  it("shows two tab rows in order, In short and Fix before you apply selected, each label with its count", () => {
+    render(<Results check={flawed()} />);
+    const lists = screen.getAllByRole("tablist");
+    expect(lists.map((l) => l.getAttribute("aria-label"))).toEqual(["Summary", "What the check found"]);
+    expect(within(lists[0]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["In short", "Zoning", "Downloads"]);
+    expect(within(lists[1]).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Fix before you apply (11)", "Check with the city (2)", "OK (6)"]);
+    expect(tab("In short").getAttribute("aria-selected")).toBe("true");
+    expect(tab("Fix before you apply (11)").getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel", { name: "Fix before you apply (11)" })).toBeTruthy();
+    expect(shownCards()).toHaveLength(11);
+    fireEvent.click(tab("OK (6)"));
+    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    expect(shownCards()).toHaveLength(6);
+    expect(screen.queryByTestId("counts")).toBeTruthy();
+    fireEvent.click(tab("Downloads"));
+    expect(screen.queryByTestId("counts")).toBeNull();              // only the selected panel is shown
+  });
+
+  it("selects the first group with findings when there is nothing to fix", () => {
+    render(<Results check={fixture<Check>("check_cafe_compliant")} />);
+    expect(tab("Fix before you apply (0)").getAttribute("aria-selected")).toBe("false");
+    expect(tab(/^OK \(/).getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(tab("Fix before you apply (0)"));
+    expect(screen.getByText("Nothing to fix before you apply.")).toBeTruthy();
+  });
+
+  it("keeps the selected tabs for this check across a refresh", () => {
     const check = flawed();
+    const first = render(<Results check={check} />);
+    fireEvent.click(tab("Zoning"));
+    fireEvent.click(tab("Check with the city (2)"));
+    first.unmount();
     render(<Results check={check} />);
-    const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    expect(headings.indexOf("Fix before you apply (11)")).toBeLessThan(headings.indexOf("Check with the city (2)"));
-    expect(headings.indexOf("Check with the city (2)")).toBeLessThan(headings.findIndex((h) => h?.startsWith("OK")));
-    expect(screen.getByRole("button", { name: "OK (6)" }).getAttribute("aria-expanded")).toBe("false");
-    expect(shownCards()).toHaveLength(13);
-    fireEvent.click(screen.getByRole("button", { name: "OK (6)" }));
-    expect(shownCards()).toHaveLength(19);
+    expect(tab("Zoning").getAttribute("aria-selected")).toBe("true");
+    expect(tab("Check with the city (2)").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("opens a finding's tab before scrolling to it when a link asks for it", async () => {
+    const check = flawed();
+    const okIndex = check.result.findings.findIndex((f) => f.status === "pass");
+    render(<Results check={check} />);
+    expect(document.getElementById(`finding-${okIndex}`)).toBeNull();
+    await act(async () => revealFinding(okIndex));
+    expect(tab("OK (6)").getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement?.id).toBe(`finding-${okIndex}`);
   });
 
   it("gives two findings with the same rule id different anchors", () => {
@@ -72,6 +110,7 @@ describe("the results page", () => {
 
   it("links the two PDFs to their API routes", () => {
     render(<Results check={flawed()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Downloads" }));
     expect(screen.getByRole("link", { name: "Download the fix list (PDF)" }).getAttribute("href")).toBe("http://api.test/api/checks/fixture-cafe_flawed/report.pdf");
     expect(screen.getByRole("link", { name: "Download the permit preparation sheet (PDF)" }).getAttribute("href")).toBe("http://api.test/api/checks/fixture-cafe_flawed/preparation-sheet.pdf");
   });

@@ -16,17 +16,18 @@ async function runExample(page: Page, title: string) {
   await expect(page).toHaveURL(/\/check\/$/);
   await page.getByRole("button", { name: "Run the check" }).click();
   await expect(page).toHaveURL(/\/results\/\?check=/);
-  await expect(page.getByRole("heading", { name: /^Fix before you apply|^OK/ }).first()).toBeVisible();
+  await expect(page.getByTestId("counts")).toBeVisible();
   return new URL(page.url()).searchParams.get("check")!;
 }
 
-test("the flawed café: counts, Fix then Check with the city then OK, code reference, permits, and a PDF", async ({ page, request }) => {
+test("the flawed café: counts, the two tab rows, code reference, permits, and a PDF", async ({ page, request }) => {
   const id = await runExample(page, "Café with planted problems");
   await expect(page.getByTestId("counts")).toHaveText("11 things to fix before you apply, 2 to check with the city, 6 fine.");
-  const h2 = await page.getByRole("heading", { level: 2 }).allTextContents();
-  expect(h2.indexOf("Fix before you apply (11)")).toBeLessThan(h2.indexOf("Check with the city (2)"));
-  await expect(page.getByRole("button", { name: "OK (6)" })).toHaveAttribute("aria-expanded", "false");
-  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(13);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("text-align", "center");
+  await expect(page.getByRole("tablist", { name: "Summary" }).getByRole("tab")).toHaveText(["In short", "Zoning", "Downloads"]);
+  await expect(page.getByRole("tablist", { name: "What the check found" }).getByRole("tab")).toHaveText(["Fix before you apply (11)", "Check with the city (2)", "OK (6)"]);
+  await expect(page.getByRole("tab", { name: "Fix before you apply (11)" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(11);
   await expect(page.getByText("Seattle’s review records are not loaded on this server", { exact: false })).toBeVisible();
   await expect(page.getByText(/This check is kept until .*20\d\d/)).toBeVisible();
   await axeBoth(page, "results top");
@@ -39,12 +40,14 @@ test("the flawed café: counts, Fix then Check with the city then OK, code refer
   const card = page.locator("#finding-0");
   await card.getByRole("button", { name: "Show the code reference" }).click();
   await expect(card.locator(".font-mono")).toBeVisible();
-  await page.getByRole("button", { name: "OK (6)" }).click();
-  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(19);
-  await axeBoth(page, "results with code reference and OK open");
+  await axeBoth(page, "results with code reference open");
   await card.scrollIntoViewIfNeeded();
   await shoot(page, "stage-3", "card-code-reference", { fullPage: false });
+  await page.getByRole("tab", { name: "OK (6)" }).click();
+  await expect(page.locator("article[id^=finding-]:visible")).toHaveCount(6);
+  await axeBoth(page, "results with OK selected");
 
+  await page.getByRole("tab", { name: "Downloads" }).click();
   const download = page.getByRole("link", { name: "Download the fix list (PDF)" });
   await expect(download).toHaveAttribute("href", `${API}/api/checks/${id}/report.pdf`);
   const pdf = await request.get(`${API}/api/checks/${id}/report.pdf`);
@@ -54,15 +57,66 @@ test("the flawed café: counts, Fix then Check with the city then OK, code refer
   expect(sheet.headers()["content-type"]).toBe("application/pdf");
 });
 
-test("the summary stays in view on a wide screen while the findings scroll", async ({ page }) => {
+test("the tabs work by keyboard, each panel is labelled by its tab, and the selection survives a refresh", async ({ page }) => {
   await runExample(page, "Café with planted problems");
+  const inShort = page.getByRole("tab", { name: "In short" });
+  await inShort.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Zoning" })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "Zoning" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "Zoning" })).toContainText("Zone: NC2-55 (M)");
+  const fixTab = page.getByRole("tab", { name: "Fix before you apply (11)" });
+  await fixTab.focus();
+  await page.keyboard.press("ArrowRight");
+  const cityTab = page.getByRole("tab", { name: "Check with the city (2)" });
+  await expect(cityTab).toBeFocused();
+  await expect(cityTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "Check with the city (2)" }).locator("article")).toHaveCount(2);
+  await page.keyboard.press("End");
+  await expect(page.getByRole("tab", { name: "OK (6)" })).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowLeft");
+  await expect(cityTab).toHaveAttribute("aria-selected", "true");
+  // the selected tab has the tint: the summary tab blue on the tab tint, the findings tab its status tint
+  await expect(page.getByRole("tab", { name: "Zoning" })).toHaveCSS("background-color", "rgb(232, 239, 248)");
+  await expect(page.getByRole("tab", { name: "Zoning" })).toHaveCSS("color", "rgb(31, 78, 140)");
+  await expect(page.getByRole("tab", { name: "Zoning" })).toHaveCSS("border-bottom-width", "3px");
+  await expect(cityTab).toHaveCSS("background-color", "rgb(251, 241, 226)");
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "Zoning" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Check with the city (2)" })).toHaveAttribute("aria-selected", "true");
+  await axeBoth(page, "tabs after a refresh");
+});
+
+test("a link to a finding in another tab opens that tab first, then scrolls to the finding and focuses it", async ({ page }) => {
+  const id = await runExample(page, "Café with planted problems");
+  const check = await (await page.request.get(`${API}/api/checks/${id}`)).json();
+  const okIndex = check.result.findings.findIndex((f: { status: string }) => f.status === "pass");
+  const cityIndex = check.result.findings.findIndex((f: { status: string }) => f.status === "review");
+  await page.goto("/help/");
+  await page.goto(`/results/?check=${id}#finding-${okIndex}`);                    // a page load at the finding
+  await expect(page.getByRole("tab", { name: "OK (6)" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(`#finding-${okIndex}`)).toBeFocused();
+  await expect(page.locator(`#finding-${okIndex}`)).toBeInViewport();
+  await page.evaluate((i) => { window.location.hash = `finding-${i}`; }, cityIndex);   // the same page, a new finding
+  await expect(page.getByRole("tab", { name: "Check with the city (2)" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(`#finding-${cityIndex}`)).toBeFocused();
+
+  // The assistant's "From your result" link to the same OK finding, from the Fix tab.
+  await page.getByRole("tab", { name: "Fix before you apply (11)" }).click();
+  const rule = check.result.findings[okIndex].rule_id;
+  await page.route("**/api/checks/*/ask", (route) => route.fulfill({
+    json: { text: "Here is the finding you asked about.", cited_rules: [rule], generated_by: "template", problems: [] },
+    headers: { "access-control-allow-origin": "*" },
+  }));
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.mouse.wheel(0, 1600);
-  await page.waitForTimeout(200);
-  const box = await page.getByRole("heading", { name: "In short" }).boundingBox();
-  expect(box!.y).toBeGreaterThanOrEqual(0);
-  expect(box!.y).toBeLessThan(200);
-  await shoot(page, "stage-3", "summary-sticky", { fullPage: false });
+  await page.getByRole("button", { name: "Ask", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Ask about the pre-check" });
+  await dialog.getByRole("textbox", { name: "Your question" }).fill("Which items passed?");
+  await dialog.getByRole("button", { name: "Send" }).click();
+  await dialog.getByRole("link", { name: `${check.result.findings[okIndex].title} (OK)` }).click();
+  await expect(page.getByRole("tab", { name: "OK (6)" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(`#finding-${okIndex}`)).toBeFocused();
+  await expect(page.locator(`#finding-${okIndex}`)).toBeInViewport();
 });
 
 test("the compliant café and the salon render", async ({ page }) => {
@@ -71,7 +125,8 @@ test("the compliant café and the salon render", async ({ page }) => {
   await axeBoth(page, "compliant café");
   await shoot(page, "stage-3", "cafe-compliant");
   await runExample(page, "Hair salon with planted problems");
-  await expect(page.getByRole("heading", { name: /^Fix before you apply/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^Fix before you apply \(\d+\)$/ })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Zoning" }).click();
   await expect(page.getByText("Zone: NR3")).toBeVisible();
   await axeBoth(page, "salon");
 });
@@ -80,7 +135,7 @@ test("with Seattle's records (served from the fixture), every record line says h
   const check = fixture("check_cafe_flawed_with_records");
   await page.route(`**/api/checks/${check.id}`, (route) => route.fulfill({ json: check, headers: { "access-control-allow-origin": "*" } }));
   await page.goto(`/results/?check=${check.id}`);
-  const records = page.getByRole("region", { name: "What Seattle’s records show" }).or(page.locator("section[aria-labelledby=records]"));
+  const records = page.getByRole("region", { name: "What Seattle’s records show about businesses like yours" });
   await expect(records.locator("li").first()).toBeVisible();
   const lines = await records.locator("li").allTextContents();
   expect(lines.length).toBeGreaterThan(3);
@@ -97,7 +152,7 @@ test("Not sure answers show as Check with the city and May be needed permits", a
   await page.route(`**/api/checks/${check.id}`, (route) => route.fulfill({ json: check, headers: { "access-control-allow-origin": "*" } }));
   await page.goto(`/results/?check=${check.id}`);
   await expect(page.getByText("May be needed", { exact: true })).toHaveCount(3);
-  await expect(page.getByRole("heading", { name: "Check with the city (3)" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Check with the city (3)" })).toBeVisible();
   await axeBoth(page, "not sure");
 });
 
@@ -118,4 +173,25 @@ test("Delete this check now: confirm, then back to Start; the address no longer 
   await expect(page.getByRole("status").filter({ hasText: "The check was deleted from the server." })).toBeVisible();
   await page.goto(`/results/?check=${id}`);
   await expect(page.getByText("This check is no longer kept. It was deleted or it expired. Start a new check.")).toBeVisible();
+});
+
+test("screenshots: PermitOS results tabs and palette", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "PermitOS" })).toBeVisible();
+  await expect(page).toHaveTitle("Check your floor plan before you apply | PermitOS");
+  await shoot(page, "permitos", "start", { fullPage: false });
+  await runExample(page, "Café with planted problems");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shoot(page, "permitos", "results-top", { fullPage: false });
+  await shoot(page, "permitos", "results-full");
+  await page.getByRole("tab", { name: "Zoning" }).click();
+  await page.getByRole("tab", { name: "Check with the city (2)" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shoot(page, "permitos", "results-zoning-city", { fullPage: false });
+  await page.getByRole("tab", { name: "Downloads" }).click();
+  await page.getByRole("tab", { name: "OK (6)" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shoot(page, "permitos", "results-downloads-ok", { fullPage: false });
+  await page.goto("/check/");
+  await shoot(page, "permitos", "check", { fullPage: false });
 });

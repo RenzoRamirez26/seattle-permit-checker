@@ -275,7 +275,7 @@ def create_app() -> FastAPI:
         store.purge_expired()       # checks past their expiry are deleted when the server starts
         yield
 
-    app = FastAPI(title="Seattle Permit Pre-Check API", version="0.1.0", lifespan=lifespan,
+    app = FastAPI(title="PermitOS API", version="0.1.0", lifespan=lifespan,
                   description="Exposes the permit pre-check to a web front end. A pre-submission check, not a code "
                               "determination. Every error is JSON shaped {\"error\": {\"code\", \"message\"}}.")
     app.add_middleware(CORSMiddleware, allow_origins=[config.cors_origin()], allow_methods=["GET", "POST", "DELETE"],

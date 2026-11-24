@@ -21,6 +21,7 @@ import { useMeta } from "@/components/layout/Providers";
 import { BEFORE_RESULT, CAN_AND_CANNOT, HELP, matchHelp, RESULT_SUGGESTIONS, SUGGESTIONS } from "@/content/help";
 import { useHydrated } from "@/lib/hydrated";
 import { assistant, type Message } from "@/state/assistant";
+import { revealFinding } from "@/state/resultsTabs";
 import { flow } from "@/state/flow";
 
 const WIDE = "(min-width: 64rem)";
@@ -454,14 +455,10 @@ function MessageItem({ m, check, checkId, onLink, onTopic, showTopics, suggestio
                   href={onResults() ? `#${findingAnchor(i)}` : `/results/?check=${encodeURIComponent(checkId ?? "")}#${findingAnchor(i)}`}
                   className="inline-flex min-h-11 items-center break-words"
                   onClick={(e) => {
-                    const el = document.getElementById(findingAnchor(i));
-                    if (!el) return;
+                    if (!onResults()) return;          // another page: the address opens the results at this finding
                     e.preventDefault();
                     onLink?.();
-                    requestAnimationFrame(() => {
-                      el.scrollIntoView({ block: "start" });
-                      el.focus({ preventScroll: true });
-                    });
+                    requestAnimationFrame(() => revealFinding(i));   // the results page opens the finding's tab, then scrolls
                   }}
                 >
                   {f.title} ({look(f.status).word})

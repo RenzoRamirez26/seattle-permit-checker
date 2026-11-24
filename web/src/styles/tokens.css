@@ -1,22 +1,23 @@
 /* The design tokens from DESIGN.md, once. If a token changes, change DESIGN.md first, then here.
-   Contrast figures are WCAG 2 ratios on paper (DESIGN.md, Colour). */
+   Contrast figures are WCAG 2 ratios (DESIGN.md, Colour). */
 @import "tailwindcss";
 
 @theme {
-  /* Colour: paper, ink, one blue, three status pairs. Nothing else. */
-  --color-paper: #faf8f3;
-  --color-ink: #1b1f24;          /* 15.6 : 1 */
-  --color-ink-muted: #55606b;    /* 6.1 : 1 */
-  --color-blue: #1f4e8c;         /* 7.8 : 1; white on it 8.3 : 1 */
-  --color-fix: #b3261e;          /* 6.2 : 1, 5.6 on its tint */
-  --color-fix-tint: #fbe9e7;
-  --color-city: #7a4f00;         /* 6.7 : 1, 6.3 on its tint */
-  --color-city-tint: #fbf0d9;
-  --color-ok: #1e6b3a;           /* 6.2 : 1, 5.6 on its tint */
-  --color-ok-tint: #e4f2e8;
-  --color-field: #7c8691;        /* 3.5 : 1, control outlines */
-  --color-hairline: #d9d4c8;     /* dividers only */
-  --color-white: #ffffff;
+  /* Colour: paper and white, ink, one blue with its tab tint, three status pairs. Nothing else. */
+  --color-paper: #faf7f2;        /* warm paper: the page */
+  --color-white: #ffffff;        /* cards and panels */
+  --color-ink: #1d2430;          /* 14.6 : 1 on paper, 15.6 on white */
+  --color-ink-muted: #56606c;    /* 6.0 : 1 on paper, 6.4 on white, 5.5 on the tab tint */
+  --color-blue: #1f4e8c;         /* 7.8 : 1 on paper, 7.2 on the tab tint; white on it 8.3 : 1 */
+  --color-tab-tint: #e8eff8;     /* the selected tab, with blue text and a 3 px blue bottom border */
+  --color-fix: #b3261e;          /* 6.1 : 1 on paper, 5.6 on its tint */
+  --color-fix-tint: #fbeae7;
+  --color-city: #8a5a14;         /* 5.5 : 1 on paper, 5.3 on its tint */
+  --color-city-tint: #fbf1e2;
+  --color-ok: #256b45;           /* 6.0 : 1 on paper, 5.6 on its tint */
+  --color-ok-tint: #e7f3ec;
+  --color-field: #8a8f96;        /* 3.05 : 1 on paper, 3.3 on white: field and card borders */
+  --color-hairline: #e4ded3;     /* dividers only */
 
   /* shadcn's variable names, mapped onto the tokens only (DESIGN.md, Colour) */
   --color-background: var(--color-paper);

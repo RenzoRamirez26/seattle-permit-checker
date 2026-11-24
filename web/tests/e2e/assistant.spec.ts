@@ -175,6 +175,7 @@ test("Ask about this opens the panel with the question in the box, not sent", as
 test("the whole flow finishes with the assistant closed", async ({ page }) => {
   await toResults(page);
   await expect(panel(page)).toBeHidden();
+  await page.getByRole("tab", { name: "Downloads" }).click();
   await expect(page.getByRole("link", { name: "Download the fix list (PDF)" })).toBeVisible();
 });
 
