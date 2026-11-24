@@ -139,9 +139,9 @@ test("results: an answer from the API links to its findings and scrolls the page
   await askButton(page).click();
   await panel(page).getByRole("button", { name: "What should I fix first?" }).click();
   const log = panel(page).getByRole("log", { name: "Conversation" });
-  await expect(log).toContainText("I found 11 problems and 2 items to confirm.");
+  await expect(log).toContainText("I found 11 items to fix before you apply and 2 to check with the city.");
   await expect(log).toContainText("Written from your result by a template.");
-  const link = log.getByRole("link", { name: "No Type I hood over cooking equipment (Fix before you apply)" });
+  const link = log.getByRole("link", { name: "Add a Type I hood over the cooking line (Fix before you apply)" });
   await expect(link).toBeVisible();
   await axeBoth(page, "panel on results");
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -161,11 +161,11 @@ test("results: an answer from the API links to its findings and scrolls the page
 
 test("Ask about this opens the panel with the question in the box, not sent", async ({ page }) => {
   await toResults(page);
-  await page.getByRole("button", { name: "Ask about this: Not enough exits" }).click();
+  await page.getByRole("button", { name: "Ask about this: Add a second exit" }).click();
   const box = panel(page).getByRole("textbox", { name: "Your question" });
-  await expect(box).toHaveValue("Tell me more about “Not enough exits”.");
+  await expect(box).toHaveValue("Tell me more about “Add a second exit”.");
   await expect(box).toBeFocused();
-  await expect(panel(page).getByRole("log")).not.toContainText("Not enough exits");
+  await expect(panel(page).getByRole("log")).not.toContainText("Add a second exit");
   await page.keyboard.press("Control+Enter");
   await expect(panel(page).getByRole("log")).toContainText("Written from your result");
   await panel(page).getByRole("button", { name: "Clear the conversation" }).click();
