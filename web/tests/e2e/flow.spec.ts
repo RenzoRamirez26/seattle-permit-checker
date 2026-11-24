@@ -55,7 +55,10 @@ test("step 1: errors next to the field and in the summary; Back and refresh keep
   await expect(page.getByRole("radio").first()).toBeFocused();
   await page.getByText("Café or restaurant").click();
   await page.getByLabel("Zone from the zoning map (optional)").fill("NC2-55 (M)");
+  await page.route("**/api/zoning", (route) => route.fulfill({ json: fixture("zoning_address"), headers: { "access-control-allow-origin": "*" } }));
   await page.getByLabel("Street address in Seattle (optional)").fill("1420 5th Ave");
+  await page.keyboard.press("Tab");                                            // leaving the address looks it up (stage 5)
+  await expect(page.getByRole("region", { name: "Is this the right place?" })).toContainText("Found:");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(summary).toContainText("Answer whether there will be cooking that makes grease or smoke, or choose Not sure.");
   await expect(summary).toContainText("Answer whether you will serve alcohol, or choose Not sure.");

@@ -11,7 +11,8 @@ import Link from "next/link";
 import { Dialog, Disclosure, DisclosurePanel, Heading, Modal, ModalOverlay, Button as AriaButton } from "react-aria-components";
 import { ChevronDown, Download, MessageCircleQuestion, Trash2 } from "lucide-react";
 import { assistant } from "@/state/assistant";
-import { api, ApiProblem, call, forgetCheck, loadCheck, reportUrl, sheetUrl, type Check } from "@/api/client";
+import { api, ApiProblem, call, forgetCheck, loadCheck, reportUrl, sheetUrl, type Check, type ZoningResponse } from "@/api/client";
+import { LazyPlaceMap } from "@/components/map/LazyPlaceMap";
 import { errorWords } from "@/api/errors";
 import { PageShell } from "@/components/flow/PageShell";
 import { Button } from "@/components/ui/button";
@@ -172,8 +173,9 @@ function Summary({ check }: { check: Check }) {
           <div className="flex flex-col items-start gap-2">
             <StatusTag status={zw.status} word={zw.word} />
             <p className="m-0"><span className="text-ink-muted">Zone: </span><span className="font-mono font-semibold" translate="no">{z.district ?? "Not found"}</span></p>
-            {typeof z.address === "string" ? <p className="m-0 break-words"><span className="text-ink-muted">Address: </span>{z.address}</p> : null}
+            {typeof z.address === "string" && z.address.trim() ? <p className="m-0 break-words"><span className="text-ink-muted">Address: </span>{z.address}</p> : null}
             <p className="m-0 break-words">{z.detail}</p>
+            {typeof z.address === "string" && z.address.trim() ? <ZoningMap address={z.address} businessType={s.business_type} zone={z.district} /> : null}
             {overlayWords(z.overlays).length ? (
               <p className="m-0 break-words"><span className="text-ink-muted">Overlays: </span>{overlayWords(z.overlays).join(", ")}</p>
             ) : null}
@@ -185,6 +187,21 @@ function Summary({ check }: { check: Check }) {
       </section>
     </>
   );
+}
+
+/** The zoning card's map: the pin, the zone's outline and its name, for a check that used an address (POST /api/zoning once). */
+function ZoningMap({ address, businessType, zone }: { address: string; businessType: string; zone: string | null }) {
+  const [place, setPlace] = useState<ZoningResponse | null>(null);
+  useEffect(() => {
+    let live = true;
+    call(() => api.POST("/api/zoning", { body: { address, business_type: businessType } })).then((z) => live && setPlace(z), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, [address, businessType]);
+  if (!place?.point) return null;           // no point: no map; the zoning is written out above and below
+  return <LazyPlaceMap point={place.point} outline={place.outline} zoneName={zone}
+    label={`Map of ${address} with the outline of zone ${zone ?? "unknown"}`} />;
 }
 
 /** "Ask about this": opens the assistant with a question about this finding in the box. Nothing is sent until Send. */

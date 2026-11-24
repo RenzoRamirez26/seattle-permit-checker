@@ -205,3 +205,15 @@
   .sheet[data-entering] { animation: none; }
 }
 .ask-button { margin-bottom: env(safe-area-inset-bottom); margin-right: env(safe-area-inset-right); }
+
+/* The map's pin and the zone's name, drawn as page elements (no map fonts are hosted). */
+.map-pin {
+  display: block; width: 18px; height: 18px; margin-bottom: 2px;
+  border: 3px solid var(--color-white); border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--color-blue); outline: 1px solid var(--color-ink);
+}
+.map-zone-label {
+  font: 600 14px/20px var(--font-mono); color: var(--color-ink);
+  background: var(--color-paper); border: 1px solid var(--color-ink); padding: 0 6px; border-radius: 2px;
+  white-space: nowrap;
+}

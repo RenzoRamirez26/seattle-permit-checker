@@ -18,6 +18,7 @@ import { RadioGroup } from "@/components/ui/radio-group";
 import { TextField } from "@/components/ui/text-field";
 import { ADDRESS, OPTIONAL_FOR_FOOD, OPTIONAL_OTHERS, QUESTIONS, type QuestionKey } from "@/content/business";
 import { errorWords } from "@/api/errors";
+import { AddressCheck } from "@/components/map/AddressCheck";
 import { flow, type Business } from "@/state/flow";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +88,7 @@ export function BusinessForm() {
   const { required, optional } = questionsFor(meta, type);
   const optionalAnswered = optional.some((k) => values[k]);
   const summary = useRef<HTMLDivElement>(null);
+  const [placeAddress, setPlaceAddress] = useState(() => getValues("address").trim());   // looked up when the field is left
 
   useEffect(() => {
     writeDraft(getValues());
@@ -143,9 +145,11 @@ export function BusinessForm() {
         <Controller name="address" control={control} render={({ field }) => (
           <div id="address">
             <TextField label={ADDRESS.label} hint={ADDRESS.hint} name="street-address" autoComplete="street-address"
-              value={field.value} onChange={field.onChange} onBlur={field.onBlur} spellCheck="false" />
+              value={field.value} onChange={field.onChange} spellCheck="false"
+              onBlur={() => { field.onBlur(); setPlaceAddress(field.value.trim()); }} />
           </div>
         )} />
+        {placeAddress && placeAddress === (values.address ?? "").trim() ? <AddressCheck address={placeAddress} businessType={type} /> : null}
         <Controller name="zone" control={control} render={({ field }) => (
           <div id="zone">
             <TextField label={ADDRESS.zoneLabel} hint={ADDRESS.zoneHint} name="zone" autoComplete="off" error={errorFor("zone")}

@@ -14,7 +14,7 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | 2. Start, business, plan, reading | Finished | [stage-2](screenshots/stage-2/) |
 | 3. Results and downloads | Finished | [stage-3](screenshots/stage-3/) |
 | 4. The assistant | Finished | [stage-4](screenshots/stage-4/) |
-| 5. The map | Not started | |
+| 5. The map | Finished | [stage-5](screenshots/stage-5/) |
 | 6. Voice | Not started | |
 
 ## Backend changes
@@ -62,6 +62,11 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | D4-5 | "Ask about this" puts "Tell me more about “<title>”." in the question box and focuses it; nothing is sent until Send. | Brief: the owner stays in control; the same as a spoken question in stage 6. |
 | D4-6 | The conversation is kept in memory only; a refresh clears it. "Clear the conversation" is a button in the panel's footer rather than a menu. | A one-item menu adds a step for nothing. |
 | D4-7 | The API client looks up `fetch` when a request is made, not when it is created. | Lets unit tests stand in for `fetch`; no change in the browser. |
+| D5-1 | The map is not interactive (no pan or zoom) and is fitted to the pin and outline. | Brief section 9 asks for no layer switcher or search; a still map holds no keyboard focus, so keyboard users pass straight by, and the same facts are written beside it. |
+| D5-2 | The zone's name and the pin are page elements placed on the map (MapLibre markers), not map-drawn text. | Map-drawn text needs font files (glyphs) from a server; none are hosted. The name is real text in Plex Mono on paper with an ink border, never a colour alone. |
+| D5-3 | The tiled style is written by hand from the Protomaps layer names (`water`, `buildings`, `roads`) in paper, hairline and field colours, with no labels. | The plan names no style package; `@protomaps/basemaps` would be another dependency. |
+| D5-4 | MapLibre's web worker (`maplibre-gl-worker.mjs`) is copied into `public/` by `scripts/copy-demo.mjs` (git-ignored) and set with `setWorkerUrl`. | MapLibre 6 draws GeoJSON in a worker it cannot find in a static export ("Worker failed to load"). Same approach as the PDF.js worker. |
+| D5-5 | On step 1 the address is looked up when the field is left (and again on a refresh), not on every key press. | One request per address. |
 | B7 | `tests/test_web_guard.py` also checks the generated types (`openapi.sh --check`) and the fixtures (`make-fixtures.py --check`). | So a backend change that would break the front end fails `python -m pytest` too, not only CI. |
 
 ## Not testable in this environment
@@ -326,3 +331,51 @@ answer, which goes through the same route and the same grounding check).
 **Screenshots.** Panel on step 1 [375](screenshots/stage-4/panel-step-1-375.png), [1280](screenshots/stage-4/panel-step-1-1280.png);
 panel on results with an answer and its links [375](screenshots/stage-4/panel-results-375.png), [1280](screenshots/stage-4/panel-results-1280.png);
 the sheet on a phone [375](screenshots/stage-4/sheet-results-375.png) ([1280](screenshots/stage-4/sheet-results-1280.png) shows the side panel).
+
+---
+
+## Stage 5: The map (finished)
+
+**Built.** `PlaceMap` (MapLibre, loaded only where a map is shown, client only): a still map fitted to the pin, and
+in the results to the zone's outline (ink dashed line, blue at 8% fill) with the zone's name written above it as
+text. Tiles from `public/tiles/seattle.pmtiles` through `pmtiles` when that file exists (Q4, `scripts/fetch-tiles.sh`
+downloads it and needs the network and the `pmtiles` tool), restyled to paper and ink with the attribution
+"Map data © OpenStreetMap contributors, Protomaps" under it; without the file, a blank paper background, so the
+browser asks no other host for anything. Step 1: leaving the address field calls `POST /api/zoning` and shows
+"Is this the right place?" with the address found, the zone, and the pin; an address not found says so and
+suggests the zone. Results: when the check used an address, the zoning card calls `POST /api/zoning` once and shows
+the map under the zoning words; no point, no map. If MapLibre cannot draw (no WebGL), the map is left out and the
+words remain.
+
+**Tested.**
+- `python -m pytest`: 149 passed (no backend change).
+- `npm test`: 34 passed (no change).
+- `npm run e2e`: 49 passed (5 new). Step 1: the address request carries the address and business type, the map draws (pin present, canvas full width) from the fixture with no request to any host but the site and the API, axe clean, refresh looks it up again; an address not found shows the sentence and no map. Results: pin, outline and the zone's name as text on the map, the same zone and address in words, nothing focusable on the map, no other host; with `outline: null` the pin only and no label; with `point: null` no map and the words stay; a zone typed by hand gives no map and no zoning request. A stage 2 test was updated to wait for the new address lookup before pressing Continue.
+
+**Found and fixed in this stage.** The map was "drawn" but 1 px wide in the results card (a flex column shrank it);
+the test now also asserts the canvas width. A zone typed by hand came back with `address: ""`, which had sent a
+pointless zoning request; only a non-empty address does now.
+
+**Design review, brief section 12** (step 1 with the map, the zoning card).
+
+| Check | Result | How |
+|---|---|---|
+| Keyboard alone | Yes | The map holds no tab stop (`[tabindex]` other than -1: none). |
+| axe | Yes | 0 violations with the map on step 1 and in the results, both widths. |
+| Labels | Yes | The map is `role="img"` with a label naming the address and zone; the facts are also written out. |
+| Contrast, not colour alone | Yes | The zone is named in text; the outline is an ink dashed line; the pin is blue with a white ring and an ink edge. |
+| 44 px targets | Yes | Playwright, step 1 with the map. |
+| 320 px | Yes | The map is `w-full`, aspect 4:3. |
+| Assistant closed, voice off | Yes | Unchanged. |
+| Refresh keeps entries | Yes | The address is kept and looked up again. |
+| Screenshots | Yes | `docs/screenshots/stage-5/`. |
+
+**Vercel `AGENTS.md`.** Met: the map is lazy-loaded; the space for it is reserved (aspect ratio) so nothing shifts
+when it draws; decorative map controls are off; the pin and the zone name are not the only cue (words beside).
+
+**Not tested here.** The Protomaps tiles: `scripts/fetch-tiles.sh` needs `build.protomaps.com` and the `pmtiles`
+tool, neither reachable here, so every map in this environment is on the blank background. A real address through
+the city's geocoder and zoning layer (the API's own STATUS note: not yet run against the real services).
+
+**Screenshots.** Step 1 with a pin [375](screenshots/stage-5/step-1-pin-375.png), [1280](screenshots/stage-5/step-1-pin-1280.png);
+the zoning card [375](screenshots/stage-5/zoning-card-375.png), [1280](screenshots/stage-5/zoning-card-1280.png).
