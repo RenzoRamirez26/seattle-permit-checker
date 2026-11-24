@@ -31,7 +31,7 @@
 
 ## What it does
 
-Opening a small business in Seattle means a construction permit, and most plans do not pass the first time: of 529 restaurant-related tenant build-outs since 2019 that went through plan review, 87% needed two or more rounds ([details](#what-seattles-data-showed)). Each round is weeks of rent with no revenue. This prototype:
+Opening a small business in Seattle means a construction permit, and most plans do not pass the first time: of 656 food-and-drink tenant build-outs since 2019 that went through plan review, 88% needed two or more rounds, and the median time in review was 74 days ([details](#what-seattles-data-showed)). Each round is weeks of rent with no revenue. This prototype:
 
 - **reads the floor plan** with a vision model, which only reports facts (areas, door widths, fixtures) and never judges them,
 - **shows what it read** so the owner can correct a misread number before anything is checked,

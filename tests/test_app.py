@@ -334,7 +334,7 @@ def test_other_pages_load_without_a_database(app):
     at = app
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception and any("python -m pipeline.run_pipeline --seattle" in i.value for i in at.info)
-    assert at.dataframe[0].value["Number"].tolist()[2] == "462 (87%)"
+    assert at.dataframe[0].value["Number"].tolist()[2] == "575 (88%)"
     at.switch_page("pages_app/evidence.py").run()
     assert not at.exception and any("No results yet" in w.value for w in at.warning)
     rows = at.dataframe[0].value.to_dict("records")
@@ -366,7 +366,7 @@ def test_an_old_seattle_database_is_explained_on_the_page(monkeypatch, tmp_path)
     assert any("different column names" in e.value and "python -m pipeline.run_pipeline --seattle" in e.value for e in at.error)
     at.switch_page("pages_app/seattle_data.py").run()
     assert not at.exception and any("different column names" in e.value for e in at.error)
-    assert at.dataframe[0].value["Number"].tolist()[2] == "462 (87%)"                 # the preview is shown meanwhile
+    assert at.dataframe[0].value["Number"].tolist()[2] == "575 (88%)"                 # the preview is shown meanwhile
 
 
 def test_evidence_page_shows_a_report_when_there_is_one(app, tmp_path):

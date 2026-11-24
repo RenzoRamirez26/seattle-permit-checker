@@ -17,13 +17,15 @@ st.subheader("Seattle's review records")
 st.caption("Source: Seattle Department of Construction and Inspections open data (Building Permits, Plan Review, "
            "Plan Comments). Tenant build-outs only: additions and alterations, not new buildings.")
 
-# Queried by hand on 20 November 2026 with the portal's text search for "restaurant".
+# Food and drink, from the pipeline's download on 21 November 2026 (pipeline.query.review_summary and
+# corrections_by_review_type). Shown only when this computer has no database yet.
 PREVIEW = pd.DataFrame({
-    "What": ["Restaurant-related alteration permits that went through plan review (applied since 2019)",
+    "What": ["Food-and-drink tenant build-outs that went through plan review (applied since 2019)",
              "Passed in one round", "Needed two or more rounds",
              "Building-code (Ordinance) review, round 1: sent back / approved",
-             "Zoning review, round 1: sent back / approved"],
-    "Number": ["529", "67 (13%)", "462 (87%)", "153 / 24", "188 / 406"],
+             "Zoning review, round 1: sent back / approved",
+             "Median days in review"],
+    "Number": ["656", "81 (12%)", "575 (88%)", "182 / 31", "203 / 458", "74"],
 })
 
 if not ac.has_database():
@@ -33,10 +35,9 @@ if not ac.has_database():
         st.info("The database has not been built on this computer yet. From the repository root run:\n\n"
                 "`python -m pipeline.run_pipeline --seattle`\n\n"
                 "It needs internet, no key, and takes a few minutes.", icon="⬇️")
-    st.markdown("**Preview: numbers queried directly from the city's portal on 20 November 2026**")
+    st.markdown("**Preview: food and drink, from the pipeline's download on 21 November 2026**")
     st.dataframe(PREVIEW, hide_index=True, width="stretch")
-    st.caption("These used the portal's text search for the word \"restaurant\", so the pipeline's own numbers "
-               "will differ a little. Use the pipeline's numbers once it has run.")
+    st.caption("Build the database on this computer to see current numbers and the other kinds of business.")
     st.stop()
 
 con = db.connect(ac.DB_PATH)
