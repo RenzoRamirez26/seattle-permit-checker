@@ -15,6 +15,7 @@ Follow `docs/website_plan.md` stage by stage. `DESIGN.md`, `docs/design_brief.md
 - The front end lives in `web/` and only calls the FastAPI backend in `api/`.
 - No building-code numbers, no pass/fail logic and no model calls in `web/`.
 - Do not change `checker/rules/seattle.json` or `checker/rules_engine.py`. If the backend needs a change, keep it small, add a test, and list it in the progress file.
+- Two exceptions, approved by the owner and described in `docs/website_plan.md`: the Q1 change in `checker/rules_engine.py` (an intake answer of `null` gives "Check with the city", never a pass, including the Q9 permit note) and the Q2 `edition_date` field in `_meta` of `checker/rules/seattle.json`. Add tests for each. Change nothing else in those two files.
 - There is no API key and no Seattle database here. Use the demo plans and the test fixtures.
 - Add only the dependencies the plan names. If you need another one, write down why.
 
