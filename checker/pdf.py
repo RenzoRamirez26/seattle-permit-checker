@@ -185,7 +185,7 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
 
     pdf.heading("Permits and approvals you will likely need")
     pdf.grid(["Permit or approval", "Who issues it"],
-             [[p["name"], p["agency"]] for p in result["permits_likely_required"]], [1.25, 1])
+             [[permit_name(p), p["agency"]] for p in result["permits_likely_required"]], [1.25, 1])
 
     _markdown_lines(pdf, rules_engine.local_data_markdown(result.get("local_review_data")))
 
@@ -203,6 +203,11 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
     pdf.ln(2)
     pdf.box([(f"Code basis: {result['code_basis']}", False), (result["disclaimer"], True)], fill=True)   # last thing in the document
     return pdf.finish()
+
+
+def permit_name(p: dict) -> str:
+    """A permit's name, with the rules engine's "May be needed" sentence when it depends on an answer left as Not sure."""
+    return f"{p['name']}. {p['may_be_needed']}" if p.get("may_be_needed") else p["name"]
 
 
 # ---------------------------------------------------------------- the permit application preparation sheet
@@ -231,7 +236,7 @@ def permit_sheet_pdf(result: dict) -> bytes:
 
     pdf.heading(permit_draft.SECTIONS[3])
     pdf.paragraph(permit_draft.PERMITS_HEADING, bold=True)
-    pdf.grid(["Permit or approval", "Who issues it"], [[p["name"], p["agency"]] for p in d["permits"]], [1.25, 1])
+    pdf.grid(["Permit or approval", "Who issues it"], [[permit_name(p), p["agency"]] for p in d["permits"]], [1.25, 1])
     pdf.paragraph(f"{permit_draft.OPEN_HEADING} ({len(d['open_items'])})", bold=True)
     for line in d["open_items"]:
         pdf.bullet(line)

@@ -62,8 +62,15 @@ export const flow = {
   setFacts: (f: Facts | null) => write(KEYS.facts, f),
   checkId: () => read<string>(KEYS.check),
   setCheckId: (id: string | null) => write(KEYS.check, id),
+  /** The step 1 form as typed (so an unanswered question stays unanswered after Back or a refresh). */
+  clearBusinessDraft: () => write("precheck.business.draft", null),
+  /** "Start again": everything this tab kept, and the plan file in memory. */
   clear: () => {
-    for (const k of Object.values(KEYS)) write(k, null);
+    try {
+      for (const k of Object.keys(window.sessionStorage)) if (k.startsWith("precheck.")) window.sessionStorage.removeItem(k);
+    } catch {
+      /* storage blocked: nothing was kept */
+    }
     planFile.clear();
   },
 };

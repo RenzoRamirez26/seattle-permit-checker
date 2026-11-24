@@ -11,7 +11,7 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 |---|---|---|
 | 0. Skeleton | Finished | [stage-0](screenshots/stage-0/) |
 | 1. Check what we read | Finished | [stage-1](screenshots/stage-1/) |
-| 2. Start, business, plan, reading | Not started | |
+| 2. Start, business, plan, reading | Finished | [stage-2](screenshots/stage-2/) |
 | 3. Results and downloads | Not started | |
 | 4. The assistant | Not started | |
 | 5. The map | Not started | |
@@ -21,6 +21,7 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 
 | Change | Files | Tests |
 |---|---|---|
+| Q1: intake answers accept `null` ("Not sure"). `null` is unknown, never false: the checks run with the answer as no and as yes; a finding that differs becomes `review` (citation and `reviewed_by` kept, the question named), never `pass`; a permit listed only one way is still listed with `may_be_needed` naming the question (Q9). Left out still means false. | `checker/rules_engine.py` (`UNSURE_ANSWERS`, `run_checks` wraps the old body, now `_run_checks`, and `_merge_unsure`; no rule value changes), `api/schemas.py` (six `Optional[bool]` answers; `Permit.may_be_needed`, sent only when set), `api/main.py` (`create_check` keeps `null` instead of dropping it, which had turned it into false), `checker/pdf.py` (`permit_name()`: the PDFs say "May be needed" too, brief section 10) | `tests/test_rules.py`: for each of the six answers, `null` vs `true` and `false` over five plans and business types (every finding that depends on it is `review`, with its citation, reviewer and the question; the others unchanged; summary recounted; each answer shown to matter in at least one case); the three permit-only answers list the permit as "May be needed" / as today / not at all; several unknowns at once; an omitted answer and explicit `false` give today's results (flawed café 11 / 2 / 6) for all three examples; the command-line audit is unchanged. `tests/test_api.py`: `null` accepted, stored and turned into `review`; omitted equals `false`; `"perhaps"` refused; OpenAPI shows `null` and `may_be_needed`. `tests/test_pdf.py`: both PDFs say "May be needed". |
 | Q2: `_meta.edition_date` placeholder; `/api/meta` returns `rulebook: {edition_date, code_basis}`, with `edition_date` `null` while it is the placeholder | `checker/rules/seattle.json` (one `_meta` line, no rule values), `docs/rulebook.md`, `api/schemas.py` (`Rulebook`), `api/main.py` (`edition_date()`) | `tests/test_api.py::test_meta_gives_the_rulebook_edition_date_only_once_the_owner_has_set_it` |
 
 ## Decisions the plan did not cover
@@ -40,6 +41,13 @@ Web Interface Guidelines, screenshots, this file, a commit and a push.
 | C5 | On wide screens the plan stays in view (sticky) while the facts scroll. | The owner compares each fact with the drawing. |
 | C6 | `scripts/copy-demo.mjs` also writes `public/demo/plans.json`, the picture file for each example plan id. | `/api/meta` names the example plans but not their pictures; the browser needs the file name. It holds ids and file names only. |
 | C7 | "Changed by you" compares a row with the reading by its position. After removing a door, the doors after it are marked changed. | Facts have no ids (plan finding 3 is the same issue for findings). Wording stays true: the values differ from what was read at that position. |
+| D2-1 | Questions a business type does not ask are sent as `false` (a salon is not asked about cooking or alcohol); only a question asked and answered "Not sure", or an optional question left unanswered, is sent as `null`. | Otherwise every salon check would ask the city about a kitchen hood. The API's business types say which questions apply (`serves_food`, `serves_alcohol`). |
+| D2-2 | Step 1 also has "Zone from the zoning map (optional)" beside the address. | The API takes an address or a zone; the end-to-end tests and the examples use a zone so no geocoder is called. Entering both is an error ("Enter an address or a zone, not both"). |
+| D2-3 | The zoning lookup with the pin is left to stage 5 (the map). In stage 2 the address is sent with the check, which screens the zoning. | "Is this the right place?" needs the map to mean anything. |
+| D2-4 | Step 2's four states are empty, chosen, read, failed. The "uploading" state is the Reading page, where the file is sent. | The file is sent only by "Read my plan"; the Reading page is where it is in flight. A fifth state, "refused before sending", is shown in the screenshots. |
+| D2-5 | An example plan opens through the Reading page (`/plan/reading/?example=<id>`) and sets that example's own answers (its business type, cooking, zone; the rest no). | Same path as an upload, and the example gives the same result as `python -m checker.audit` (11 / 2 / 6). |
+| D2-6 | Step 1 keeps a draft as it is typed (`precheck.business.draft`), so a refresh before Continue keeps the answers, and an unanswered question stays unanswered rather than turning into "Not sure". | Brief section 2: refresh keeps the work. |
+| D2-7 | "Take a photo of the plan" is shown on touch screens only (`pointer: coarse`). | On a laptop `capture` is ignored and the button would just open the file picker under a misleading name. |
 | B7 | `tests/test_web_guard.py` also checks the generated types (`openapi.sh --check`) and the fixtures (`make-fixtures.py --check`). | So a backend change that would break the front end fails `python -m pytest` too, not only CI. |
 
 ## Not testable in this environment
@@ -153,3 +161,56 @@ one row in Change state [375](screenshots/stage-1/row-change-375.png), [1280](sc
 manual entry [375](screenshots/stage-1/manual-entry-375.png), [1280](screenshots/stage-1/manual-entry-1280.png);
 refresh without the plan [375](screenshots/stage-1/refresh-without-plan-375.png), [1280](screenshots/stage-1/refresh-without-plan-1280.png);
 error summary [375](screenshots/stage-1/error-summary-375.png), [1280](screenshots/stage-1/error-summary-1280.png).
+
+---
+
+## Stage 2: Start, your business, your floor plan, reading (finished)
+
+**Built.** Start (text only, Q5; serif heading, D2): what it does, what you need, how it works, that it is not
+a city service, Start, "Start again (clears your answers)" when the tab holds answers, and the example plans from
+`/api/meta`. Step 1: six radio cards from `/api/meta`; cooking for food businesses and alcohol for food and bar
+types, each Yes / No / Not sure; address or zone; "A few more questions (optional)" (React Aria Disclosure) with
+the other questions; errors next to each field and in the summary; focus to the first error. Step 2: drop area,
+Choose a file, Take a photo (phones), type and size checked against `/api/meta` limits before sending; states
+empty, chosen, read, failed with "Other ways to go on" (manual entry and every example plan). Reading: "Reading
+<file>" and Cancel (aborts the request), no stage names (D4). Every API error code has a sentence in
+`src/api/errors.ts`. Backend: Q1 and Q9 (see Backend changes).
+
+**Tested.**
+- `python -m pytest`: 158 passed (135 before the stage; 9 new rules-engine tests, 1 API, 1 PDF, and the guard and fixtures checks now cover the new contract and a "Not sure" fixture). The strengthened summary test was checked to fail against an earlier version of the merge that miscounted `passes`.
+- `npm test`: 19 passed. Cooking and alcohol are asked exactly for the types the API marks; "Not sure" is sent as `null`, never `false`; an unanswered optional question is `null`; a question not asked is `false`; address trimmed; a 12 MB file is refused using the API's 10 MB limit; a GIF is refused in the brief's words; every API error code has a sentence with no "please", "sorry", "invalid", "oops".
+- `npm run e2e`: 29 passed (9 new). Start lists the API's examples and has no image; an example plan runs Start to step 3 and gives 11 / 2 / 6; step 1 errors in both places, summary links focus the field, refresh and Back keep every answer, and the request carries `null` for "Not sure" and unanswered optional questions; step 2 in each state, a 12 MB file refused with no request sent; with no key the real API's `503 no_model_key` shows the message and offers the examples and manual entry; an intercepted `200` reading opens step 3 with the uploaded plan beside the facts (and the request is multipart with the file and business type); Cancel returns to step 2 with the file still chosen; refresh on Reading explains the file is gone; Start again clears everything. axe at 375 and 1280 on every page and state: zero violations, no `incomplete`.
+
+**Design review, brief section 12** (Start, step 1, step 2, Reading).
+
+| Check | Result | How |
+|---|---|---|
+| Keyboard alone, focus visible | Yes | Radio groups use arrow keys (React Aria); the drop area has a "Choose a file" button; summary links focus the field; the new page's `h1` takes focus. |
+| axe | Yes | 0 violations, every state, both widths. |
+| Labels; errors next to the field and in the summary | Yes | Playwright checks both places for step 1 and step 2. |
+| Contrast | Yes | `DESIGN.md` pairs only; the no-key note is ink on the city tint (14 to 1 or better). |
+| 44 px targets | Yes | Playwright on Start, step 1, step 2. |
+| 320 px | Yes | Playwright. Long file names break (`break-all`). |
+| Assistant closed, voice off | Not applicable | Not built yet. |
+| Refresh keeps entries | Yes | Step 1 (draft), step 2 (read state), Reading (says the file is gone; D12). |
+| Screenshots | Yes | `docs/screenshots/stage-2/`. |
+
+**Vercel `AGENTS.md`.** Met: `autocomplete="street-address"` and `spellcheck=false` on the address and zone;
+placeholder text not used as labels; Enter submits step 1; focus to the first error; incomplete submission allowed
+to show errors; "Read my plan" stays enabled until pressed; no dead ends (every error offers a next step); radio
+label and control share one target (whole card); URL reflects state (`?problem=`, `?example=`); `…` in loading
+text; the drop area has a keyboard and click alternative. Not applicable: unsaved-changes warning on step 1
+(answers are saved as typed).
+
+**Not tested here.** A real upload read by the model (no key in this environment); the camera button on a real
+phone; drag and drop from the desktop (React Aria's DropZone is used; Playwright chose files through the button).
+
+**Screenshots.** [Start 375](screenshots/stage-2/start-375.png), [1280](screenshots/stage-2/start-1280.png);
+step 1 empty [375](screenshots/stage-2/business-empty-375.png), [1280](screenshots/stage-2/business-empty-1280.png);
+step 1 with errors [375](screenshots/stage-2/business-errors-375.png), [1280](screenshots/stage-2/business-errors-1280.png);
+step 2 empty [375](screenshots/stage-2/plan-empty-375.png), [1280](screenshots/stage-2/plan-empty-1280.png);
+chosen [375](screenshots/stage-2/plan-chosen-375.png), [1280](screenshots/stage-2/plan-chosen-1280.png);
+read [375](screenshots/stage-2/plan-read-375.png), [1280](screenshots/stage-2/plan-read-1280.png);
+failed [375](screenshots/stage-2/plan-failed-375.png), [1280](screenshots/stage-2/plan-failed-1280.png);
+refused before sending [375](screenshots/stage-2/plan-refused-375.png), [1280](screenshots/stage-2/plan-refused-1280.png);
+Reading [375](screenshots/stage-2/reading-375.png), [1280](screenshots/stage-2/reading-1280.png).

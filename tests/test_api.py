@@ -508,3 +508,29 @@ def test_the_api_package_holds_no_rules():
         assert "seattle.json" not in source and "run_checks" not in source, module.__name__
     main_source = inspect.getsource(api_main)
     assert "audit.audit(" in main_source and "agent.answer(" in main_source and "zoning.check_address(" in main_source
+
+
+# ---------------------------------------------------------------- Q1: "Not sure" intake answers
+def test_a_not_sure_answer_is_sent_as_null_and_never_becomes_a_pass(api):
+    facts = api.post("/api/plans/read", data={"case_id": "cafe_compliant"}).json()["facts"]
+    sent = lambda **answers: api.post("/api/checks", json={"facts": facts, "zoning": {"zone": "NC2-55 (M)"},
+                                                         "intake": {"business_type": "retail", **answers}})
+    unsure = sent(cooking_on_site=None, serves_alcohol=None)          # a shop whose plan shows a hood: does it cook?
+    assert unsure.status_code == 201, unsure.text
+    result = unsure.json()["result"]
+    assert result["intake"]["cooking_on_site"] is None and result["intake"]["serves_alcohol"] is None   # stored as unknown
+    hood = [f for f in result["findings"] if f["rule_id"] == "MECH-1"]
+    assert hood and all(f["status"] == "review" and "answered Not sure" in f["detail"] for f in hood)
+    assert [f for f in sent(cooking_on_site=True).json()["result"]["findings"] if f["rule_id"] == "MECH-1"][0]["status"] == "pass"
+    assert not [f for f in sent(cooking_on_site=False).json()["result"]["findings"] if f["rule_id"] == "MECH-1"]
+    alcohol = [p for p in result["permits_likely_required"] if p["id"] == "alcohol"]
+    assert alcohol and alcohol[0]["may_be_needed"].startswith("May be needed: check with the city.")
+
+    no = sent(cooking_on_site=False, serves_alcohol=False).json()["result"]
+    assert no == sent().json()["result"]                                          # left out means false, as before
+    assert not any("may_be_needed" in p for p in no["permits_likely_required"])   # the field is only there when it is set
+    assert sent(cooking_on_site="perhaps").status_code == 422                     # still only true, false or null
+
+    spec = api.get("/openapi.json").json()["components"]["schemas"]
+    assert {"type": "null"} in spec["Intake"]["properties"]["cooking_on_site"]["anyOf"]
+    assert "may_be_needed" in spec["Permit"]["properties"]

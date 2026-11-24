@@ -196,3 +196,14 @@ def test_command_line_also_writes_the_pdf(tmp_path, capsys):
     data = out.with_suffix(".pdf").read_bytes()
     assert data[:5] == b"%PDF-" and "Permit pre-check: Salon, barbershop or spa" in _text(data)
     assert not (tmp_path / "report_sheet.pdf").exists() and len(list(tmp_path.glob("*.pdf"))) == 1   # the report only
+
+
+def test_a_permit_that_may_be_needed_says_so_in_both_pdfs():
+    """Q1/Q9: the PDFs use the site's words for a permit that depends on an answer left as Not sure."""
+    from tests.conftest import ROOT
+    extraction = json.loads((ROOT / "demo" / "flawed_extraction.json").read_text(encoding="utf-8"))
+    result = audit.audit(None, {"business_type": "cafe_restaurant", "cooking_on_site": True, "serves_alcohol": None},
+                         extraction=extraction, zoning_override="NC2-55 (M)")
+    for data in (pdf.report_pdf(result), pdf.permit_sheet_pdf(result)):
+        text = _text(data)
+        assert "May be needed: check with the city." in text and "whether alcohol will be served" in text

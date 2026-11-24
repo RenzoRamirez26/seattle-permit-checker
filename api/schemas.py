@@ -200,14 +200,17 @@ class ZoningResponse(BaseModel):
 
 
 # ---------------------------------------------------------------- /checks
+_UNSURE = "true, false, or null for \"Not sure\": null is treated as unknown, never as false. Left out, it means false."
+
+
 class Intake(BaseModel):
     business_type: str
-    cooking_on_site: bool = False
-    food_prep: bool = False
-    serves_alcohol: bool = False
-    outdoor_seating: bool = False
-    upper_floor: bool = False
-    historic_district: bool = False
+    cooking_on_site: Optional[bool] = Field(default=False, description=_UNSURE)
+    food_prep: Optional[bool] = Field(default=False, description=_UNSURE)
+    serves_alcohol: Optional[bool] = Field(default=False, description=_UNSURE)
+    outdoor_seating: Optional[bool] = Field(default=False, description=_UNSURE)
+    upper_floor: Optional[bool] = Field(default=False, description=_UNSURE)
+    historic_district: Optional[bool] = Field(default=False, description=_UNSURE)
     new_signage: Optional[bool] = Field(default=None, description="Leave out to use the checker's default.")
 
 
@@ -247,6 +250,8 @@ class Permit(BaseModel):
     id: str
     name: str
     agency: str
+    may_be_needed: Optional[str] = Field(default=None, exclude_if=lambda v: v is None, description="Set when the permit depends on an answer left as Not sure: "
+                                                                   "a sentence naming the question. The permit is listed, never dropped.")
 
 
 class OccupantLoadRow(BaseModel):

@@ -1,6 +1,10 @@
 """The rules engine: occupant load, exits, accessibility, plumbing, fire, permits, for each business type."""
+import json
+
+import pytest
+
 from checker import rules_engine, zoning
-from tests.conftest import ids
+from tests.conftest import ROOT, ids
 
 CAFE = {"business_type": "cafe_restaurant", "cooking_on_site": True}
 
@@ -151,3 +155,93 @@ def test_report_markdown(rules, load):
     md = rules_engine.to_markdown(rules_engine.run_checks(load("salon_flawed"), {"business_type": "salon"}, rules, z))
     assert md.startswith("# Permit pre-check: Salon, barbershop or spa") and "Checked by: SDCI Ordinance" in md
     assert "Washington State Department of Licensing" in md and "Atlanta" not in md and "Georgia" not in md
+
+
+# ---------------------------------------------------------------- Q1: "Not sure" answers are unknown, never "no"
+UNSURE = list(rules_engine.UNSURE_ANSWERS)
+
+
+def _cases(load):
+    """Plans and business types where each answer can matter: food, sprinklers, permits."""
+    retail = load("compliant") | {"kitchen": load("compliant")["kitchen"] | {"grease_producing_cooking": False}}
+    return [("cafe_restaurant", load("flawed")), ("cafe_restaurant", load("compliant")), ("salon", load("salon_flawed")),
+            ("retail", retail), ("bar", load("compliant"))]
+
+
+def _numbered(result):
+    return rules_engine._numbered(result)
+
+
+@pytest.mark.parametrize("answer", UNSURE)
+def test_a_not_sure_answer_turns_every_finding_that_depends_on_it_into_review(rules, load, answer):
+    findings_differ = permits_differ = False
+    for business, facts in _cases(load):
+        base = {"business_type": business}
+        yes, no = (rules_engine.run_checks(facts, base | {answer: v}, rules) for v in (True, False))
+        unsure = rules_engine.run_checks(facts, base | {answer: None}, rules)
+        y, n, u = _numbered(yes), _numbered(no), _numbered(unsure)
+        assert set(u) == set(y) | set(n)                                    # nothing dropped, nothing invented
+        for key in u:
+            if y.get(key) == n.get(key):
+                assert u[key] == y[key], key                                # does not depend on the answer: unchanged
+            else:
+                findings_differ = True
+                assert u[key]["status"] == "review", (business, key)          # depends on it: never pass, never decided
+                assert u[key]["citation"] == (y.get(key) or n.get(key))["citation"]
+                assert u[key]["reviewed_by"] == (y.get(key) or n.get(key))["reviewed_by"]
+                assert rules_engine.UNSURE_ANSWERS[answer] in u[key]["detail"] and "Not sure" in u[key]["detail"]
+        assert not [f for f in unsure["findings"] if f["status"] == "pass" and (f != y.get((f["rule_id"], 0)) or f != n.get((f["rule_id"], 0)))]
+        s = unsure["summary"]
+        assert set(s) == set(no["summary"])                                  # the same summary fields, recounted
+        assert (s["fails"], s["reviews"], s["passes"]) == tuple(sum(f["status"] == x for f in unsure["findings"]) for x in ("fail", "review", "pass"))
+        listed = lambda r: {p["id"] for p in r["permits_likely_required"]}
+        permits_differ |= listed(yes) != listed(no)
+    assert findings_differ or permits_differ, f"{answer} changes nothing in these cases: the test would prove nothing"
+
+
+@pytest.mark.parametrize("answer, permit", [("serves_alcohol", "alcohol"), ("outdoor_seating", "patio"), ("historic_district", "historic")])
+def test_a_permit_that_depends_on_a_not_sure_answer_is_listed_as_may_be_needed(rules, load, answer, permit):
+    facts, base = load("flawed"), {"business_type": "cafe_restaurant", "cooking_on_site": True}
+    by_id = lambda r: {p["id"]: p for p in r["permits_likely_required"]}
+    yes, no, unsure = (by_id(rules_engine.run_checks(facts, base | {answer: v}, rules)) for v in (True, False, None))
+    assert permit in yes and "may_be_needed" not in yes[permit]                  # yes: listed as today
+    assert permit not in no                                                       # no: not listed
+    note = unsure[permit]["may_be_needed"]                                        # not sure: listed, and says why
+    assert note.startswith("May be needed: check with the city.") and rules_engine.UNSURE_ANSWERS[answer] in note
+    assert {k: v for k, v in unsure[permit].items() if k != "may_be_needed"} == yes[permit]
+    assert [k for k, p in unsure.items() if "may_be_needed" in p] == [permit]
+    assert rules_engine.run_checks(facts, base | {answer: None}, rules)["findings"] == rules_engine.run_checks(facts, base, rules)["findings"]
+
+
+def test_several_not_sure_answers_at_once(rules, load):
+    facts = _cases(load)[3][1]
+    all_unsure = rules_engine.run_checks(facts, {"business_type": "retail", **{k: None for k in UNSURE}}, rules)
+    assert all_unsure["summary"]["passes"] <= rules_engine.run_checks(facts, {"business_type": "retail"}, rules)["summary"]["passes"]
+    for f in all_unsure["findings"]:
+        if "answered Not sure" in f["detail"]:
+            assert f["status"] == "review"
+    notes = [p for p in all_unsure["permits_likely_required"] if p.get("may_be_needed")]
+    assert {p["id"] for p in notes} >= {"alcohol", "patio", "historic", "mechanical", "health"}
+
+
+def test_an_omitted_answer_and_an_explicit_false_give_todays_results(rules, load):
+    for case in json.loads((ROOT / "demo" / "cases.json").read_text(encoding="utf-8")):
+        facts = json.loads((ROOT / "demo" / case["extraction"]).read_text(encoding="utf-8"))
+        z = zoning.classify(case["zoning"], rules, business_type=case["intake"]["business_type"], area_sqft=facts.get("gross_area_sqft"))
+        omitted = rules_engine.run_checks(facts, case["intake"], rules, z)
+        explicit = rules_engine.run_checks(facts, {k: False for k in UNSURE} | case["intake"], rules, z)
+        assert omitted == explicit == rules_engine._run_checks(facts, case["intake"], rules, z)
+        if case["id"] == "cafe_flawed":
+            assert (omitted["summary"]["fails"], omitted["summary"]["reviews"], omitted["summary"]["passes"]) == (11, 2, 6)
+        assert not any("may_be_needed" in p for p in omitted["permits_likely_required"])
+
+
+def test_the_command_line_audit_is_unchanged(tmp_path, capsys):
+    from checker import audit as audit_mod
+
+    out = tmp_path / "r"
+    audit_mod.main(["--extraction", str(ROOT / "demo" / "flawed_extraction.json"), "--business", "cafe_restaurant", "--cooking",
+                    "--zoning", "NC2-55 (M)", "--db", str(tmp_path / "none.sqlite"), "--out", str(out)])
+    result = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
+    assert (result["summary"]["fails"], result["summary"]["reviews"], result["summary"]["passes"]) == (11, 2, 6)
+    assert "Not sure" not in capsys.readouterr().out and "may_be_needed" not in json.dumps(result)

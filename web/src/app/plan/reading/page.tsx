@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { PageShell } from "@/components/flow/PageShell";
+import { Suspense } from "react";
+import { ReadingPage } from "./ReadingPage";
 
 export const metadata: Metadata = { title: "Reading your plan" };
 
 export default function Page() {
-  return <PageShell step={2} title="Reading your plan" />;
+  return (
+    <Suspense>
+      <ReadingPage />
+    </Suspense>
+  );
 }

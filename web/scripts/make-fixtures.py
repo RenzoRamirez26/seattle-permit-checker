@@ -108,6 +108,15 @@ def build(tmp: Path) -> dict[str, object]:
                     a = c.post(f"/api/checks/{check['id']}/ask", json={"question": q}).json()
                     out[f"ask_{case['id']}_{q_name}"] = {"question": q, "answer": a}
 
+            # Q1: answers left as "Not sure" are sent as null; the result marks what depends on them
+            reading = out["reading_cafe_flawed"]
+            r = c.post("/api/checks", json={"facts": reading["facts"], "zoning": {"zone": "NC2-55 (M)"},
+                                            "intake": {"business_type": "cafe_restaurant", "cooking_on_site": True, "food_prep": None,
+                                                       "serves_alcohol": None, "outdoor_seating": None, "upper_floor": None,
+                                                       "historic_district": None}})
+            assert r.status_code == 201, r.text
+            out["check_cafe_flawed_unsure"] = fixed(r.json(), "cafe_flawed_unsure")
+
             with patched(zoning.requests, "get", fake_city):
                 out["zoning_address"] = c.post("/api/zoning", json={"address": "123 Example St, Seattle, WA",
                                                                     "business_type": "cafe_restaurant", "area_sqft": 2400}).json()

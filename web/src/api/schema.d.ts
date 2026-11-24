@@ -405,19 +405,22 @@ export interface components {
             business_type: string;
             /**
              * Cooking On Site
+             * @description true, false, or null for "Not sure": null is treated as unknown, never as false. Left out, it means false.
              * @default false
              */
-            cooking_on_site: boolean;
+            cooking_on_site: boolean | null;
             /**
              * Food Prep
+             * @description true, false, or null for "Not sure": null is treated as unknown, never as false. Left out, it means false.
              * @default false
              */
-            food_prep: boolean;
+            food_prep: boolean | null;
             /**
              * Historic District
+             * @description true, false, or null for "Not sure": null is treated as unknown, never as false. Left out, it means false.
              * @default false
              */
-            historic_district: boolean;
+            historic_district: boolean | null;
             /**
              * New Signage
              * @description Leave out to use the checker's default.
@@ -425,19 +428,22 @@ export interface components {
             new_signage?: boolean | null;
             /**
              * Outdoor Seating
+             * @description true, false, or null for "Not sure": null is treated as unknown, never as false. Left out, it means false.
              * @default false
              */
-            outdoor_seating: boolean;
+            outdoor_seating: boolean | null;
             /**
              * Serves Alcohol
+             * @description true, false, or null for "Not sure": null is treated as unknown, never as false. Left out, it means false.
              * @default false
              */
-            serves_alcohol: boolean;
+            serves_alcohol: boolean | null;
             /**
              * Upper Floor
+             * @description true, false, or null for "Not sure": null is treated as unknown, never as false. Left out, it means false.
              * @default false
              */
-            upper_floor: boolean;
+            upper_floor: boolean | null;
         };
         /** Kitchen */
         Kitchen: {
@@ -520,6 +526,11 @@ export interface components {
             agency: string;
             /** Id */
             id: string;
+            /**
+             * May Be Needed
+             * @description Set when the permit depends on an answer left as Not sure: a sentence naming the question. The permit is listed, never dropped.
+             */
+            may_be_needed?: string | null;
             /** Name */
             name: string;
         } & {

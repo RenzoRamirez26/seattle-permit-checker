@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import asdict, dataclass
+from itertools import product
 from pathlib import Path
 from typing import Any, Optional
 
@@ -140,8 +141,104 @@ def sprinkler_trigger(group: str, n: int, area: float, upper_floor: bool, rules:
     return {"reasons": reasons, "cite": rule["cite"], "thresholds": " or ".join(limits)}
 
 
-# ---------------------------------------------------------------- checks
+# ---------------------------------------------------------------- answers the owner is not sure of
+# The intake answers an owner may leave as "Not sure" (null), and how the result names them.
+# An unknown answer is never taken as "no": see run_checks().
+UNSURE_ANSWERS = {
+    "cooking_on_site": "whether there will be cooking that makes grease or smoke",
+    "food_prep": "whether food will be prepared on site",
+    "serves_alcohol": "whether alcohol will be served",
+    "outdoor_seating": "whether there will be outdoor seating",
+    "upper_floor": "whether the space is above or below the street-level floor",
+    "historic_district": "whether the building is a landmark or in a historic district",
+}
+STATUS_ORDER = {"fail": 0, "review": 1, "pass": 2}
+
+
 def run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[dict] = None) -> dict[str, Any]:
+    """The checks for one plan. An intake answer of None ("Not sure") is unknown, not "no".
+
+    The checks are run with every unknown answer as no and as yes. A finding that comes out the same
+    either way is kept as it is. One that differs, or appears only one way, gets status "review" with
+    its citation and reviewer, and names the question; it is never "pass". A permit listed only one way
+    is still listed, with "may_be_needed" naming the question. Leaving an answer out means "no", as before.
+    """
+    unsure = [k for k in UNSURE_ANSWERS if k in intake and intake[k] is None]
+    if not unsure:
+        return _run_checks(extraction, intake, rules, zoning)
+    combos = list(product((False, True), repeat=len(unsure)))
+    variants = {c: _run_checks(extraction, intake | dict(zip(unsure, c)), rules, zoning) for c in combos}
+    return _merge_unsure(variants, unsure, rules)
+
+
+def _numbered(result: dict) -> dict[tuple[str, int], dict]:
+    """Findings keyed by rule id and how many of that rule came before (a rule can apply to several doors)."""
+    seen: dict[str, int] = {}
+    out = {}
+    for f in result["findings"]:
+        n = seen.get(f["rule_id"], 0)
+        seen[f["rule_id"]] = n + 1
+        out[(f["rule_id"], n)] = f
+    return out
+
+
+def _depends_on(unsure: list[str], value_for: dict[tuple, Any]) -> list[str]:
+    """The unknown answers whose yes or no changes this value, holding the others fixed."""
+    out = []
+    for i, key in enumerate(unsure):
+        for c, v in value_for.items():
+            if not c[i] and value_for[c[:i] + (True,) + c[i + 1:]] != v:
+                out.append(key)
+                break
+    return out or list(unsure)
+
+
+def _questions(keys: list[str]) -> str:
+    words = [UNSURE_ANSWERS[k] for k in keys]
+    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
+
+
+def _merge_unsure(variants: dict[tuple, dict], unsure: list[str], rules: dict) -> dict[str, Any]:
+    base = variants[tuple(False for _ in unsure)]
+    numbered = {c: _numbered(r) for c, r in variants.items()}
+    keys = list(dict.fromkeys(k for c in variants for k in numbered[c]))
+
+    findings = []
+    for key in keys:
+        value_for = {c: numbered[c].get(key) for c in variants}
+        present = [f for f in value_for.values() if f is not None]
+        if len(present) == len(value_for) and all(f == present[0] for f in present):
+            findings.append(present[0])
+            continue
+        worst = min(present, key=lambda f: (STATUS_ORDER[f["status"]], SEVERITY_ORDER[f["severity"]]))
+        asked = _questions(_depends_on(unsure, value_for))
+        findings.append(worst | {
+            "status": "review",
+            "severity": worst["severity"] if worst["status"] != "pass" else "medium",
+            "detail": f"{worst['detail']} This depends on {asked}, which was answered Not sure.",
+            "fix": worst["fix"] or f"Answer {asked}, then run the check again.",
+        })
+    findings.sort(key=lambda f: (STATUS_ORDER[f["status"]], SEVERITY_ORDER[f["severity"]]))
+
+    listed = {c: {p["id"]: p for p in r["permits_likely_required"]} for c, r in variants.items()}
+    permits = []
+    for p in rules["permits"]:
+        value_for = {c: p["id"] in listed[c] for c in variants}
+        if not any(value_for.values()):
+            continue
+        entry = next(listed[c][p["id"]] for c in variants if value_for[c])
+        if not all(value_for.values()):
+            entry = entry | {"may_be_needed": f"May be needed: check with the city. It depends on "
+                                              f"{_questions(_depends_on(unsure, value_for))}, which was answered Not sure."}
+        permits.append(entry)
+
+    count = lambda status: sum(f["status"] == status for f in findings)
+    summary = base["summary"] | {"fails": count("fail"), "reviews": count("review"), "passes": count("pass")}
+    return base | {"summary": summary, "findings": findings, "permits_likely_required": permits}
+
+
+# ---------------------------------------------------------------- checks
+def _run_checks(extraction: dict, intake: dict, rules: dict, zoning: Optional[dict] = None) -> dict[str, Any]:
     F: list[Finding] = []
     bt = business(rules, intake.get("business_type"))
     ol = occupant_load(extraction, rules, bt["key"])

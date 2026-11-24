@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { PageShell } from "@/components/flow/PageShell";
+import { BusinessPage } from "./BusinessShell";
 
 export const metadata: Metadata = { title: "What kind of business is it?" };
 
 export default function Page() {
-  return <PageShell step={1} back="/" title="What kind of business is it?" />;
+  return <BusinessPage />;
 }
