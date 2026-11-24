@@ -113,7 +113,7 @@ test("Path A: on this device, keyboard only: words appear live, no audio is sent
   await page.keyboard.press("Enter");                      // Stop, still focused
   await expect(panel(page).getByTestId("heard")).toHaveText(`We heard: “${HEARD}”. Correct it if needed, then press Send.`);
   await expect(panel(page).getByTestId("heard")).toHaveAttribute("aria-live", "polite");
-  if (process.env.SHOTS) await page.screenshot({ path: "../docs/screenshots/voice-hybrid/path-a-heard-1280.png" });   // before a resize remounts it
+  await shoot(page, "voice-hybrid", "path-a-heard", { fullPage: false });   // the line survives the resize to 375 and back
   const log = await page.evaluate(() => (window as unknown as { __speech: unknown[] }).__speech);
   expect(log).toContainEqual(["available", { langs: ["en-US"], processLocally: true }]);
   expect(log).toContainEqual(["start", true, true, "en-US"]);
@@ -273,6 +273,26 @@ test("a half-typed question survives the panel changing to a sheet", async ({ pa
   await panel(page).getByRole("textbox", { name: "Your question" }).fill("Do I need");
   await page.setViewportSize({ width: 375, height: 812 });
   await expect(panel(page).getByRole("textbox", { name: "Your question" })).toHaveValue("Do I need");
+});
+
+test("the We heard line survives the panel changing to a sheet right after speaking", async ({ page }) => {
+  await onDeviceRecognition(page, "available");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/business/");
+  await page.getByRole("button", { name: "Ask", exact: true }).click();
+  await panel(page).getByRole("button", { name: START }).click();
+  const box = panel(page).getByRole("textbox", { name: "Your question" });
+  await expect(box).toHaveValue(HEARD);
+  await panel(page).getByRole("button", { name: STOP }).click();
+  const line = `We heard: “${HEARD}”. Correct it if needed, then press Send.`;
+  await expect(panel(page).getByTestId("heard")).toHaveText(line);
+  await expect(page.locator(".side-panel")).toHaveAttribute("data-open", "true");
+  await page.setViewportSize({ width: 375, height: 812 });           // the side panel is replaced by the sheet
+  await expect(page.locator(".sheet")).toBeVisible();
+  await expect(panel(page).getByRole("textbox", { name: "Your question" })).toHaveValue(HEARD);
+  await expect(panel(page).getByTestId("heard")).toHaveText(line);
+  await expect(panel(page).getByTestId("heard")).toBeVisible();
+  await expectNoAxeViolations(page, "heard after the change to a sheet");
 });
 
 test("the microphone shows on step 1 too, and Voice off hides it and is remembered", async ({ page }) => {
