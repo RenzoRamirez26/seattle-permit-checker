@@ -169,6 +169,8 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
     pdf.grid([label["fail"], label["review"], label["pass"], "Occupant load", "Occupancy group", "Exits"],
              [[s["fails"], s["reviews"], s["passes"], s["occupant_load"], f"Group {s['occupancy_group']}",
                f"{s['exits_shown']} shown / {s['exits_required']} required"]], [1.2, 1.2, 1.1, 1.1, 1.2, 1.6])
+    if figures_unverified(result):
+        pdf.paragraph(rules_engine.UNVERIFIED_FIGURES)                    # right under the figures it qualifies
     some_unverified = any(not f.get("rule_verified") for f in result["findings"])
     pdf.box([(rules_engine.PRECHECK_NOTE, True)]                           # beside the results it qualifies
             + ([(rules_engine.SOME_UNVERIFIED, False)] if some_unverified else []), fill=True)
@@ -182,7 +184,7 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
         if f.get("fix"):
             parts.append((f"Fix: {f['fix']}", False))
         if f.get("reviewed_by"):
-            parts.append((f"Checked by: {f['reviewed_by']}", False))
+            parts.append((f"Who to ask: {f['reviewed_by']}", False))
         parts.append((f"Code: {f['citation']}", False))
         if not f.get("rule_verified"):
             parts.append((rules_engine.UNVERIFIED_NOTE, False))
@@ -214,8 +216,16 @@ def report_pdf(result: dict, title: Optional[str] = None) -> bytes:
 
 
 def permit_name(p: dict) -> str:
-    """A permit's name, with the rules engine's "May be needed" sentence when it depends on an answer left as Not sure."""
-    return f"{p['name']}. {p['may_be_needed']}" if p.get("may_be_needed") else p["name"]
+    """A permit's name, with the rules engine's "May be needed" sentence when it depends on an answer left as Not sure,
+    and the unchecked note when it is listed because of a value still being checked against the code."""
+    name = f"{p['name']}. {p['may_be_needed']}" if p.get("may_be_needed") else p["name"]
+    return name if p.get("rule_verified", True) else f"{name}. {rules_engine.UNVERIFIED_PERMIT}"
+
+
+def figures_unverified(result: dict) -> bool:
+    """The occupant load, the group (OCC-1) or the exits required (EG-1) rest on values not yet checked."""
+    checked = {f["rule_id"]: f.get("rule_verified") for f in result["findings"]}
+    return not (result["occupant_load"].get("rule_verified") and checked.get("OCC-1") and checked.get("EG-1"))
 
 
 # ---------------------------------------------------------------- the permit application preparation sheet

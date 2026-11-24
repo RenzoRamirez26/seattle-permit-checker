@@ -57,7 +57,7 @@ def test_report_pdf(case, title, finding, permit, request):
     assert notice in last and last.index(notice) > last.index("Code basis:")              # and the disclaimer closes the last page
     labels = ("Fix before you apply", "Check with the city", "No issues found")
     assert first.index(note) > max(first.index(x) for x in labels)                        # beside the three status counts
-    assert not re.search(r"\b(OK|Pass|Passed|MUST FIX|FAIL|CONFIRM)\b", text)
+    assert not re.search(r"\b(OK|Pass|Passed|MUST FIX|FAIL|CONFIRM)\b", text) and "Checked by" not in text
     assert finding in text and any(permit in p["name"] and permit in text for p in result["permits_likely_required"])
     for n, page in enumerate(pages, 1):
         assert f"Page {n} of {len(pages)}" in page
@@ -74,7 +74,7 @@ def test_report_pdf(case, title, finding, permit, request):
         if not f["rule_verified"]:                                                       # the note right after the code section
             assert f"Code: {f['citation']} {rules_engine.UNVERIFIED_NOTE}" in text
         assert not f["fix"] or f"Fix: {f['fix']}" in text
-        assert not f["reviewed_by"] or f"Checked by: {f['reviewed_by']}" in text
+        assert not f["reviewed_by"] or f"Who to ask: {f['reviewed_by']}" in text
     # rules still being checked: one line on the first page, beside the pre-check note, and one per such finding
     unverified = [f for f in result["findings"] if not f["rule_verified"]]
     assert unverified and first.index(rules_engine.SOME_UNVERIFIED) > first.index(note)
@@ -238,3 +238,18 @@ def test_the_sheet_uses_the_engine_s_words_for_unverified_rules():
     assert permit_draft.UNVERIFIED_NOTE == rules_engine.UNVERIFIED_NOTE
     assert permit_draft.SOME_UNVERIFIED == rules_engine.SOME_UNVERIFIED
     assert permit_draft.UNVERIFIED_FACTORS == rules_engine.UNVERIFIED_FACTORS
+    assert permit_draft.UNVERIFIED_PERMIT == rules_engine.UNVERIFIED_PERMIT
+
+
+def test_the_report_marks_the_figures_and_the_assembly_permit_beside_them(cafe):
+    """Group A-2, the occupant load and the exits required, and a permit listed because of the number of people,
+    each say they rest on values still being checked, next to them, not only on page one."""
+    first = _pages(pdf.report_pdf(cafe))[0]
+    assert first.index(rules_engine.UNVERIFIED_FIGURES) < first.index(rules_engine.PRECHECK_NOTE)   # right under the figures
+    text = " ".join(_pages(pdf.report_pdf(cafe)))
+    assembly = [p for p in cafe["permits_likely_required"] if p["rule_verified"] is False]
+    assert assembly and all(pdf.permit_name(p).endswith(rules_engine.UNVERIFIED_PERMIT) for p in assembly)
+    assert text.count(rules_engine.UNVERIFIED_PERMIT) == len(assembly)
+    sheet = " ".join(_pages(pdf.permit_sheet_pdf(cafe)))
+    assert f"Group {cafe['summary']['occupancy_group']} (calculated by the pre-check; your designer confirms). " \
+           f"{permit_draft.UNVERIFIED_VALUE}" in sheet and sheet.count(rules_engine.UNVERIFIED_PERMIT) == len(assembly)

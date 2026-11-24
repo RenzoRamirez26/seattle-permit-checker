@@ -317,7 +317,7 @@ if result:
                     st.write(f["detail"])
                     if f["fix"]:
                         st.markdown(f"**Fix:** {f['fix']}")
-                    st.caption(f"Checked by: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
+                    st.caption(f"Who to ask: {f['reviewed_by'] or 'not routed'} · Code: {f['citation']}")
                     if not f.get("rule_verified"):
                         st.caption(rules_engine.UNVERIFIED_NOTE)
 

@@ -45,8 +45,10 @@ def test_cafe_sheet_is_filled_from_the_audit(cafe):
     assert rows["Area of proposed use"] == "2,400 sq ft (from the plan reading)"
     assert rows["Zone"] == "NC2-55 (M)"
     assert rows["Type of occupancy"].startswith(f"Group {s['occupancy_group']} ") and s["occupancy_group"] == "A-2"
-    assert rows["Occupant load calculations"] == "106 people (table below)" and s["occupant_load"] == 106
-    assert rows["Exits"] == "1 shown on the plan; the pre-check calculates 2 required"
+    # each figure that rests on values still being checked says so beside it (OL-0, OCC-1, EG-1 are unchecked)
+    assert rows["Occupant load calculations"] == f"106 people (table below). {permit_draft.UNVERIFIED_VALUE}" and s["occupant_load"] == 106
+    assert rows["Exits"] == f"1 shown on the plan; the pre-check calculates 2 required. {permit_draft.UNVERIFIED_VALUE}"
+    assert rows["Type of occupancy"].endswith(f"your designer confirms). {permit_draft.UNVERIFIED_VALUE}")
     assert rows["Building code used"] == cafe["code_basis"]
     assert "Tenant improvement for a café or restaurant, 2,400 sq ft." in rows["Application name and project description"]
     assert rows["Application name and project description"].startswith("Suggested, edit before use")
@@ -60,7 +62,8 @@ def test_cafe_sheet_is_filled_from_the_audit(cafe):
 
     # every permit; every open problem as one line (title and severity), with a pointer to the report; nothing that passed
     for p in cafe["permits_likely_required"]:
-        assert f"- {p['name']}: {p['agency']}" in sheet
+        note = "" if p["rule_verified"] else f". {permit_draft.UNVERIFIED_PERMIT}"   # the assembly permit rests on the load
+        assert f"- {p['name']}{note}: {p['agency']}" in sheet
     open_items = [f for f in cafe["findings"] if f["status"] != "pass"]
     assert f"To fix or check before you apply ({len(open_items)})" in sheet and len(open_items) == 13
     lines = sheet.splitlines()
@@ -82,8 +85,8 @@ def test_salon_sheet_differs_where_the_audit_differs(salon):
     rows = _rows(sheet)
     assert sheet.startswith("# Permit application preparation sheet: Salon")
     assert rows["Zone"] == "NR3" and rows["Area of proposed use"] == "800 sq ft (from the plan reading)"
-    assert rows["Type of occupancy"].startswith("Group B ") and rows["Occupant load calculations"] == "15 people (table below)"
-    assert rows["Exits"] == "1 shown on the plan; the pre-check calculates 1 required"
+    assert rows["Type of occupancy"].startswith("Group B ") and rows["Occupant load calculations"] == f"15 people (table below). {permit_draft.UNVERIFIED_VALUE}"
+    assert rows["Exits"] == f"1 shown on the plan; the pre-check calculates 1 required. {permit_draft.UNVERIFIED_VALUE}"
     assert any("Salon or shop licence" in p["name"] and p["name"] in sheet for p in salon["permits_likely_required"])
     assert "Food service" not in sheet and "To fix or check before you apply (5)" in sheet
     assert "Confirm the zoning: NR3" in sheet                                    # the zoning question is an open item, not hidden
@@ -144,3 +147,17 @@ def test_every_source_named_on_the_sheet_is_documented(cafe):
         key = field.split(" (")[0].split(",")[0].replace("King County parcel", "Parcel").replace(" of the property", "")
         key = key.replace(" from the last permit?", "").replace("Exit doors and swing", "Exits and door swing")
         assert key.lower() in doc.lower(), f"{field!r} is on the sheet but not in docs/permit_draft.md"
+
+
+def test_figures_and_permits_say_when_they_rest_on_values_still_being_checked(cafe):
+    """The sheet marks the group, the occupant load and the exits beside each value, and a permit listed because of the
+    number of people. With every rule checked, none of it is there."""
+    md = permit_draft.to_markdown(cafe)
+    assert md.count(permit_draft.UNVERIFIED_VALUE) == 3
+    assembly = [p for p in cafe["permits_likely_required"] if p["rule_verified"] is False]
+    assert assembly and all(f"- {p['name']}. {permit_draft.UNVERIFIED_PERMIT}: {p['agency']}" in md for p in assembly)
+    checked = cafe | {"findings": [f | {"rule_verified": True} for f in cafe["findings"]],
+                      "occupant_load": cafe["occupant_load"] | {"rule_verified": True},
+                      "permits_likely_required": [p | {"rule_verified": True} for p in cafe["permits_likely_required"]]}
+    md = permit_draft.to_markdown(checked)
+    assert permit_draft.UNVERIFIED_VALUE not in md and permit_draft.UNVERIFIED_PERMIT not in md
