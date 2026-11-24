@@ -53,7 +53,7 @@ export const UNKNOWN_ZONING: Schemas["ZoningScreen"]["status"] = "unknown";
 
 /** The zoning screen's status (checker/zoning.py) in words. */
 export const ZONING_WORDS: Record<Schemas["ZoningScreen"]["status"], { word: string; status: Status }> = {
-  likely_permitted: { word: "Likely allowed here", status: "pass" },
+  likely_permitted: { word: "No zoning issue found", status: "pass" },
   needs_review: { word: "Check with the city", status: "review" },
   not_permitted: { word: "Not allowed here", status: "fail" },
   unknown: { word: "Couldn’t tell", status: "review" },

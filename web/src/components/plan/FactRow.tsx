@@ -227,7 +227,7 @@ function RowForm({ rowId, fields, item, title, onCancel, onSave, onRemove, onPro
       <div className="flex flex-wrap items-center gap-4">
         <Button type="submit" variant="secondary" className="border-blue text-blue">Save changes</Button>
         <Button variant="quiet" onPress={() => { onProblems([]); onCancel(); }}>Cancel</Button>
-        {onRemove ? <Button variant="quiet" className="text-fix" onPress={() => { onProblems([]); onRemove(); }}>Remove {title}</Button> : null}
+        {onRemove ? <Button variant="quiet" className="text-ink" onPress={() => { onProblems([]); onRemove(); }}>Remove {title}</Button> : null}
       </div>
     </form>
   );

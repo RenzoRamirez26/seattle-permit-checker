@@ -12,7 +12,7 @@ const styles: Record<Variant, string> = {
   primary: "min-h-12 px-6 bg-blue text-white border border-blue data-[hovered]:bg-ink data-[hovered]:border-ink data-[pressed]:bg-ink",
   secondary: "min-h-12 px-4 bg-paper text-ink border border-field data-[hovered]:bg-white data-[hovered]:border-ink",
   quiet: "min-h-11 min-w-11 px-2 -mx-2 bg-transparent text-blue underline underline-offset-[3px] decoration-1 data-[hovered]:decoration-2",
-  danger: "min-h-12 px-5 bg-white text-fix border border-fix data-[hovered]:border-2",
+  danger: "min-h-12 px-5 bg-white text-ink border border-ink data-[hovered]:bg-paper"   // red is kept for Fix (DESIGN.md),
 };
 
 type Props = Omit<ButtonProps, "className" | "children"> & {

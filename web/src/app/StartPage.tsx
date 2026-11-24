@@ -18,7 +18,7 @@ const HOW = [
   { title: "You upload your plan", text: "A PDF or a photo of the floor plan. The file is deleted as soon as it is read." },
   { title: "The model reads it", text: "It notes the rooms, doors, exits and fixtures it can see. It decides nothing." },
   { title: "You confirm", text: "You check each reading against your plan and correct anything that is wrong." },
-  { title: "Seattle's rules decide", text: "Rules coded from Seattle's building code list what to fix, what to check with the city and the permits to expect." },
+  { title: "Seattle's rules decide", text: "Rules we coded from Seattle's building codes list what to fix, what to check with the city and the permits to expect. Some of their values are still being checked against the code." },
 ];
 
 export function StartPage() {

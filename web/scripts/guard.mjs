@@ -140,7 +140,7 @@ if (mode === "src") {
   for (const file of files(target).filter((f) => /\.(ts|tsx|css)$/.test(f))) {
     const rel = relative(web, file).split(sep).join("/");
     readFileSync(file, "utf8").split("\n").forEach((line, i) => {
-      const m = line.match(/\btext-(?:xs|sm|base|lg|[2-9]?xl)\b|\btext-\[\d|font-size:\s*(?!var\(|100%|inherit)[\d.]+/);
+      const m = line.match(/\btext-(?:xs|sm|base|lg|[2-9]?xl)\b|\btext-\[\d|font-size:\s*(?!var\(|100%|inherit)[\d.]+|\bfont:[^;]*?\b\d+(?:\.\d+)?(?:px|rem|em)\b/);
       if (m) problems.push(`${rel}:${i + 1}: type-scale: a type size outside the three tokens (found "${m[0]}")`);
     });
   }

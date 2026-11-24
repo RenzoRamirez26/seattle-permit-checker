@@ -67,7 +67,8 @@ def test_the_type_scale_has_at_most_three_sizes():
 
 def test_no_other_type_size_in_the_web_source():
     bad = []
-    pattern = re.compile(r"\btext-(?:xs|sm|base|lg|[2-9]?xl)\b|\btext-\[\d|font-size:\s*(?!var\(|100%|inherit)[\d.]+")
+    pattern = re.compile(r"\btext-(?:xs|sm|base|lg|[2-9]?xl)\b|\btext-\[\d|font-size:\s*(?!var\(|100%|inherit)[\d.]+"
+                         r"|\bfont:[^;]*?\b\d+(?:\.\d+)?(?:px|rem|em)\b")       # the font shorthand too
     for path in (WEB / "src").rglob("*"):
         if path.suffix in {".ts", ".tsx", ".css"} and not path.name.endswith(".d.ts"):
             for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

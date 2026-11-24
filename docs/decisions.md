@@ -6,6 +6,17 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 
 > We used Claude and Figma to draft and build; the decisions and testing were ours.
 
+## 2026-11-24 · Unverified rule values are not marked yet (open)
+
+- **Decision:** None yet. The checklist scoring found that findings built on rulebook values listed under
+  `_meta.verify` (entered from memory, not yet checked against the code) look the same as checked ones.
+- **Why it matters:** a claim must be no larger than its evidence (Landing L4; Trust T5).
+- **Rejected for now:** marking them in the front end, which would need the front end to know rule values.
+- **Source:** design checklist scoring of design-v3.
+- **Who:** evaluation checklist.
+- **TODO:** have `rules_engine.py` add `verified: false` to a finding whose numbers come from `_meta.verify`, return it
+  through the API, and show "This rule's value is still being checked" beside such findings and in the PDF.
+
 ## 2026-11-24 · The v3 Figma pages stop at the results page
 
 - **Decision:** The v3 Figma pages stop at the results page because the free Figma plan ran out of tool calls; the

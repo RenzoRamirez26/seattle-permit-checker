@@ -10,7 +10,7 @@ async function axeBoth(page: Page, label: string) {
 }
 
 const EXAMPLES: Record<string, string> = {
-  "Café with planted problems": "cafe_flawed", "Café that passes": "cafe_compliant", "Hair salon with planted problems": "salon_flawed",
+  "Café with planted problems": "cafe_flawed", "Café with no issues found": "cafe_compliant", "Hair salon with planted problems": "salon_flawed",
 };
 
 /** An example plan to the results, through the real API with no key. */
@@ -140,7 +140,7 @@ test("a link to a finding in another tab opens that tab first, then scrolls to t
 });
 
 test("the compliant café and the salon render", async ({ page }) => {
-  await runExample(page, "Café that passes");
+  await runExample(page, "Café with no issues found");
   await expect(page.getByTestId("counts")).toHaveText("Nothing to fix before you apply, and nothing to check with the city.");
   await axeBoth(page, "compliant café");
   await shoot(page, "stage-3", "cafe-compliant");
@@ -217,7 +217,7 @@ test("screenshots: design v3 results", async ({ page }) => {
 });
 
 test("state: nothing to fix shows one line with the No issues found mark", async ({ page }) => {
-  await runExample(page, "Café that passes");
+  await runExample(page, "Café with no issues found");
   const fix = page.getByRole("region", { name: "Fix before you apply (0)" });
   await expect(fix.getByText("Nothing to fix before you apply.")).toBeVisible();
   await expect(fix.locator("[data-mark=none]")).toHaveCount(1);
