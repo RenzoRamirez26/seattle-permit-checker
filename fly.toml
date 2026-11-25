@@ -1,30 +1,36 @@
-# Fly.io alternative to render.yaml (docs/launch.md). `fly launch --no-deploy --copy-config`, then `fly deploy`.
-app = "permitos-api"
-primary_region = "sea"
+# fly.toml app configuration file generated for permitos-api on 2026-11-24T21:45:28-05:00
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'permitos-api'
+primary_region = 'sjc'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PERMIT_PROXY_HOPS = "1"
-  PERMIT_DAILY_PLAN_READS = "6"    # docs/launch.md, Budget: with the asks, $8.92 a month at most
-  PERMIT_DAILY_ASK_CALLS = "5"
+  PERMIT_DAILY_ASK_CALLS = '5'
+  PERMIT_DAILY_PLAN_READS = '6'
+  PERMIT_PROXY_HOPS = '1'
+
+[[mounts]]
+  source = 'permitos_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 8000
-  force_https = true          # HTTP is redirected to HTTPS by Fly's edge
-  auto_stop_machines = "stop"
+  force_https = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  [[http_service.checks]]
-    path = "/api/health"
-    interval = "30s"
-    timeout = "5s"
 
-[mounts]
-  source = "permitos_data"
-  destination = "/data"
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    path = '/api/health'
 
 [[vm]]
-  memory = "2gb"
+  memory = '2gb'
+  cpu_kind = 'shared'
   cpus = 1
