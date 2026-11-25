@@ -7,13 +7,26 @@ without a change here.
 """
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+import re
+from typing import Annotated, Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from checker.extract import SPACE_USES
 
 from . import config
+
+
+# Server limits on what a request may hold (not code values): long enough for any real plan, short enough that a
+# request cannot make the server store or send the model an essay.
+MAX_ADDRESS_CHARS = 200
+MAX_ZONE_CHARS = 60
+Name = Annotated[str, StringConstraints(max_length=200)]
+Note = Annotated[str, StringConstraints(max_length=500)]
+Num = Optional[Annotated[float, Field(ge=0, le=1_000_000)]]
+Count = Optional[Annotated[int, Field(ge=0, le=100_000)]]
+_ZONE = re.compile(r"^[A-Za-z0-9 ()\-/.,']+$")
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 
 
 class _Facts(BaseModel):
@@ -21,12 +34,12 @@ class _Facts(BaseModel):
 
 
 class Space(_Facts):
-    name: str
+    name: Name
     use: Optional[str] = Field(default=None, json_schema_extra={"enum": SPACE_USES},
                                description="null when no use is chosen: like \"other\", the room's people are unknown.")
-    area_sqft: Optional[float] = None
-    width_ft: Optional[float] = None
-    length_ft: Optional[float] = None
+    area_sqft: Num = None
+    width_ft: Num = None
+    length_ft: Num = None
 
     @field_validator("use")
     @classmethod
@@ -37,42 +50,42 @@ class Space(_Facts):
 
 
 class Door(_Facts):
-    label: str
-    location: Optional[str] = None
-    clear_width_in: Optional[float] = None
+    label: Name
+    location: Optional[Name] = None
+    clear_width_in: Num = None
     is_exit: bool
     swing: Literal["outward", "inward", "sliding", "unknown"]
-    serves: Optional[str] = None
+    serves: Optional[Name] = None
 
 
 class Aisle(_Facts):
-    label: str
-    min_width_in: Optional[float] = None
+    label: Name
+    min_width_in: Num = None
 
 
 class Restroom(_Facts):
-    label: str
+    label: Name
     designation: Literal["men", "women", "all_gender", "unknown"]
-    water_closets: Optional[int] = None
-    urinals: Optional[int] = None
-    lavatories: Optional[int] = None
-    turning_circle_diameter_in: Optional[float] = None
-    door_clear_width_in: Optional[float] = None
+    water_closets: Count = None
+    urinals: Count = None
+    lavatories: Count = None
+    turning_circle_diameter_in: Num = None
+    door_clear_width_in: Num = None
 
 
 class Kitchen(_Facts):
-    cooking_appliances: list[str] = []
+    cooking_appliances: list[Name] = Field(default=[], max_length=100)
     grease_producing_cooking: Optional[bool] = None
     type1_hood_shown: Optional[bool] = None
-    hand_sinks: Optional[int] = None
+    hand_sinks: Count = None
     three_compartment_sink: Optional[bool] = None
     mop_or_service_sink: Optional[bool] = None
     grease_interceptor_shown: Optional[bool] = None
 
 
 class FireSafety(_Facts):
-    exit_signs_shown: Optional[int] = None
-    fire_extinguishers_shown: Optional[int] = None
+    exit_signs_shown: Count = None
+    fire_extinguishers_shown: Count = None
     class_k_extinguisher_shown: Optional[bool] = None
     sprinklers_noted: Optional[bool] = None
     emergency_lighting_noted: Optional[bool] = None
@@ -80,21 +93,21 @@ class FireSafety(_Facts):
 
 class Facts(_Facts):
     """What was read from the floor plan. The owner can correct any of it before a check is run."""
-    plan_title: Optional[str] = None
-    scale_note: Optional[str] = None
-    overall_width_ft: Optional[float] = None
-    overall_length_ft: Optional[float] = None
-    gross_area_sqft: Optional[float] = None
-    spaces: list[Space] = []
-    seat_count: Optional[int] = None
-    accessible_seat_count: Optional[int] = None
-    doors: list[Door] = []
-    aisles: list[Aisle] = []
-    restrooms: list[Restroom] = []
+    plan_title: Optional[Note] = None
+    scale_note: Optional[Note] = None
+    overall_width_ft: Num = None
+    overall_length_ft: Num = None
+    gross_area_sqft: Num = None
+    spaces: list[Space] = Field(default=[], max_length=200)
+    seat_count: Count = None
+    accessible_seat_count: Count = None
+    doors: list[Door] = Field(default=[], max_length=200)
+    aisles: list[Aisle] = Field(default=[], max_length=200)
+    restrooms: list[Restroom] = Field(default=[], max_length=100)
     kitchen: Optional[Kitchen] = None
     fire_safety: Optional[FireSafety] = None
     outdoor_seating_shown: Optional[bool] = None
-    uncertainties: list[str] = []
+    uncertainties: list[Note] = Field(default=[], max_length=100)
 
 
 # ---------------------------------------------------------------- /meta
@@ -119,6 +132,10 @@ class Features(BaseModel):
     seattle_database: bool = Field(description="Seattle's review records have been downloaded on the server.")
     speech_to_text: bool = Field(description="The server can turn a recorded question into text: faster-whisper, and ffmpeg to read WebM, MP4 and Ogg.")
     kokoro_voice: bool
+    reading_paused: bool = Field(description="Today's model calls are used up: uploaded plans cannot be read until tomorrow "
+                                             "(UTC). The examples and entering the measurements by hand still work.")
+    turnstile: bool = Field(description="Uploads and the assistant need a Cloudflare Turnstile token (header "
+                                        "cf-turnstile-response).")
 
 
 class Limits(BaseModel):
@@ -129,6 +146,8 @@ class Limits(BaseModel):
     check_days: float = Field(description="A stored check is deleted after this many days.")
     max_audio_mb: float = Field(description="The largest recording /api/transcribe accepts.")
     max_audio_seconds: int = Field(description="The browser stops recording a spoken question at this length.")
+    max_pdf_pages: int = Field(description="A PDF plan with more pages is refused; only the first page is read.")
+    max_address_chars: int = Field(description="The longest street address accepted.")
 
 
 class Rulebook(BaseModel):
@@ -168,21 +187,26 @@ class PlanReading(BaseModel):
 # ---------------------------------------------------------------- /zoning
 class ZoningInput(BaseModel):
     """Where the business is: a street address in Seattle to look up, or the zone as printed on the zoning map. Not both."""
-    address: Optional[str] = Field(default=None, max_length=200)
-    zone: Optional[str] = Field(default=None, max_length=60)
+    address: Optional[str] = Field(default=None, max_length=MAX_ADDRESS_CHARS)
+    zone: Optional[str] = Field(default=None, max_length=MAX_ZONE_CHARS)
 
     @model_validator(mode="after")
     def _one_or_none(self) -> "ZoningInput":
-        self.address = (self.address or "").strip() or None
-        self.zone = (self.zone or "").strip() or None
+        self.address = " ".join((self.address or "").split()) or None
+        self.zone = " ".join((self.zone or "").split()) or None
         if self.address and self.zone:
             raise ValueError("give an address or a zone, not both")
+        if self.address and (_CONTROL.search(self.address) or not re.search(r"\d", self.address)
+                             or not re.search(r"[A-Za-z]", self.address)):
+            raise ValueError("enter the street number and the street, for example 1420 5th Ave")
+        if self.zone and not _ZONE.match(self.zone):
+            raise ValueError("enter the zone as printed on the zoning map, for example NC2-55 (M)")
         return self
 
 
 class ZoningRequest(ZoningInput):
-    business_type: str
-    area_sqft: Optional[float] = Field(default=None, ge=0)
+    business_type: str = Field(max_length=60)
+    area_sqft: Optional[float] = Field(default=None, ge=0, le=1_000_000)
 
     @model_validator(mode="after")
     def _one(self) -> "ZoningRequest":
@@ -219,7 +243,7 @@ _UNSURE = "true, false, or null for \"Not sure\": null is treated as unknown, ne
 
 
 class Intake(BaseModel):
-    business_type: str
+    business_type: str = Field(max_length=60)
     cooking_on_site: Optional[bool] = Field(default=False, description=_UNSURE)
     food_prep: Optional[bool] = Field(default=False, description=_UNSURE)
     serves_alcohol: Optional[bool] = Field(default=False, description=_UNSURE)
@@ -346,12 +370,12 @@ class Deleted(BaseModel):
 # ---------------------------------------------------------------- /checks/{id}/ask
 class Turn(BaseModel):
     role: Literal["user", "assistant"]
-    content: str
+    content: str = Field(max_length=20_000)        # cut to MAX_HISTORY_TURN_CHARS before use; this only bounds the request
 
 
 class Question(BaseModel):
     question: str = Field(min_length=1, max_length=config.MAX_QUESTION_CHARS)
-    history: list[Turn] = Field(default=[], description=f"Earlier turns, oldest first. Only the last {config.MAX_HISTORY_TURNS} "
+    history: list[Turn] = Field(default=[], max_length=40, description=f"Earlier turns, oldest first. Only the last {config.MAX_HISTORY_TURNS} "
                                                         f"are used, each cut to {config.MAX_HISTORY_TURN_CHARS} characters.")
 
     @field_validator("question")

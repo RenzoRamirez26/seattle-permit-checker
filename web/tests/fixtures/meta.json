@@ -98,14 +98,18 @@
   "features": {
     "kokoro_voice": false,
     "model_api_key": false,
+    "reading_paused": false,
     "seattle_database": false,
-    "speech_to_text": false
+    "speech_to_text": false,
+    "turnstile": false
   },
   "limits": {
     "check_days": 30.0,
+    "max_address_chars": 200,
     "max_audio_mb": 2.0,
     "max_audio_seconds": 30,
     "max_history_turns": 6,
+    "max_pdf_pages": 10,
     "max_question_chars": 500,
     "max_upload_mb": 10.0,
     "upload_types": [

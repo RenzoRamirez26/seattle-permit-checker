@@ -2,7 +2,7 @@
   "body": {
     "error": {
       "code": "not_found",
-      "message": "There is nothing at this address. The API's routes are listed at /docs."
+      "message": "There is nothing at this address on the pre-check API."
     }
   },
   "status": 404

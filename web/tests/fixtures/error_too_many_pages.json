@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "too_many_pages",
+      "message": "The PDF has 2 pages. Upload only the floor plan page, or a PDF of up to 1 pages."
+    }
+  },
+  "status": 413
+}

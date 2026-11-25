@@ -26,6 +26,8 @@ FIXED = {"created_at": "2026-11-24T12:00:00+00:00", "expires_at": "2026-12-24T12
 os.environ["PYTHON_DOTENV_DISABLED"] = "1"
 os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ["PERMIT_STT"] = "off"
+for _bucket in ("PLAN_READ", "ASK", "TRANSCRIBE", "ZONING", "CHECKS", "PDF"):
+    os.environ[f"PERMIT_RATE_{_bucket}"] = "10000/60"      # the fixtures make many requests in a row; the limits have their own tests
 sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -80,6 +82,18 @@ def png() -> bytes:
 
     buf = io.BytesIO()
     Image.new("RGB", (40, 30), (250, 250, 250)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def pdf(pages: int) -> bytes:
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument.new()
+    for _ in range(pages):
+        doc.new_page(612, 792)
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
     return buf.getvalue()
 
 
@@ -142,6 +156,28 @@ def build(tmp: Path) -> dict[str, object]:
 
             app.dependency_overrides[api_main.model_client] = lambda: Broken()
             errors["plan_reading_failed"] = c.post("/api/plans/read", files={"file": ("plan.png", png(), "image/png")})
+            # the launch limits (api/limits.py, api/uploads.py): each is an error the site words for the owner
+            from api import limits as api_limits
+
+            class Reads:
+                messages = type("M", (), {"create": staticmethod(lambda **k: (_ for _ in ()).throw(RuntimeError("unused")))})()
+
+            app.dependency_overrides[api_main.model_client] = lambda: Reads()
+            with env(PERMIT_DAILY_MODEL_CALLS="0"):
+                errors["reading_paused"] = c.post("/api/plans/read", files={"file": ("plan.png", png(), "image/png")})
+            with env(PERMIT_TURNSTILE_SECRET="fixture-secret"):
+                errors["verification_needed"] = c.post("/api/plans/read", files={"file": ("plan.png", png(), "image/png")})
+            with env(PERMIT_MAX_IMAGE_MEGAPIXELS="0.0001"):
+                errors["image_too_large"] = c.post("/api/plans/read", files={"file": ("plan.png", png(), "image/png")})
+            with env(PERMIT_MAX_PDF_PAGES="1"):
+                errors["too_many_pages"] = c.post("/api/plans/read", files={"file": ("plan.pdf", pdf(2), "application/pdf")})
+            errors["request_too_large"] = c.post("/api/checks", content=b" " * (1024 * 1024),
+                                                 headers={"content-type": "application/json"})
+            with env(PERMIT_RATE_ZONING="1/600"):
+                api_limits.limiter.reset()
+                c.post("/api/zoning", json={"zone": "NC2-55 (M)", "business_type": "salon"})
+                errors["rate_limited"] = c.post("/api/zoning", json={"zone": "NC2-55 (M)", "business_type": "salon"})
+            api_limits.limiter.reset()
             app.dependency_overrides.clear()
             with patched(audit, "audit", lambda *a, **k: 1 / 0):
                 errors["server_error"] = c.post("/api/checks", json={"facts": {}, "intake": {"business_type": "salon"}})

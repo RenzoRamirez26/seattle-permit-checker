@@ -52,5 +52,5 @@ def zone_outline(lon: float, lat: float, rules: dict) -> Optional[dict[str, Any]
         return {"type": "Feature", "geometry": {"type": geometry["type"], "coordinates": geometry["coordinates"]},
                 "properties": {"district": district, "source": lookup["source_name"]}}
     except Exception as e:      # no network, a timeout, an error page, a shape we do not expect: the map goes without an outline
-        log.warning("zone outline not available: %s: %s", e.__class__.__name__, e)
+        log.warning("zone outline not available: %s", e.__class__.__name__)      # never the message: its URL holds the point
         return None

@@ -10,7 +10,7 @@ from datetime import timedelta
 import pytest
 from fastapi.testclient import TestClient
 
-from api import config, geo, schemas, store, uploads
+from api import config, geo, limits, schemas, store, uploads
 from api import main as api_main
 from checker import audit, extract, rules_engine, zoning
 from tests.conftest import FIXTURES, ROOT, FakeClient
@@ -27,8 +27,10 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setenv("PERMIT_SEATTLE_DB", str(tmp_path / "no_permits.sqlite"))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("PERMIT_STT", "off")
-    for name in ("PERMIT_CORS_ORIGIN", "PERMIT_CHECK_DAYS", "PERMIT_MAX_UPLOAD_MB"):
+    for name in ("PERMIT_CORS_ORIGIN", "PERMIT_CHECK_DAYS", "PERMIT_MAX_UPLOAD_MB", "PERMIT_ENV", "PERMIT_API_DOCS",
+                 "PERMIT_DAILY_MODEL_CALLS", "PERMIT_TURNSTILE_SECRET", "PERMIT_PROXY_HOPS"):
         monkeypatch.delenv(name, raising=False)
+    limits.limiter.reset()
     app = api_main.create_app()
     with TestClient(app) as client:
         client.app_ = app
@@ -40,6 +42,26 @@ def _png(size=(40, 30)) -> bytes:
 
     buf = io.BytesIO()
     Image.new("RGB", size, (250, 250, 250)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _jpg(size=(40, 30)) -> bytes:
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", size, (250, 250, 250)).save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+def _pdf(pages: int = 1, size_pt=(612, 792)) -> bytes:
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument.new()
+    for _ in range(pages):
+        doc.new_page(*size_pt)
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
     return buf.getvalue()
 
 
@@ -77,9 +99,11 @@ def test_meta_lists_what_the_form_needs(api):
     assert cases["cafe_flawed"] == {"id": "cafe_flawed", "title": "Café with planted problems", "business_type": "cafe_restaurant",
                                     "cooking_on_site": True, "zone": "NC2-55 (M)"}
     assert "salon_flawed" in cases
-    assert meta["features"] == {"model_api_key": False, "seattle_database": False, "speech_to_text": False, "kokoro_voice": False}
+    assert meta["features"] == {"model_api_key": False, "seattle_database": False, "speech_to_text": False, "kokoro_voice": False,
+                                "reading_paused": False, "turnstile": False}
     assert meta["limits"] == {"upload_types": [".jpeg", ".jpg", ".pdf", ".png"], "max_upload_mb": 10, "max_question_chars": 500,
-                              "max_history_turns": 6, "check_days": 30, "max_audio_mb": 2, "max_audio_seconds": 30}
+                              "max_history_turns": 6, "check_days": 30, "max_audio_mb": 2, "max_audio_seconds": 30,
+                              "max_pdf_pages": 10, "max_address_chars": 200}
 
 
 def test_meta_gives_the_rulebook_edition_and_the_date_it_took_effect(api):
@@ -109,7 +133,7 @@ def test_docs_page_and_contract(api):
     spec = api.get("/openapi.json").json()
     assert set(spec["paths"]) == {"/api/meta", "/api/plans/read", "/api/zoning", "/api/checks", "/api/checks/{check_id}",
                                   "/api/checks/{check_id}/report.pdf", "/api/checks/{check_id}/preparation-sheet.pdf",
-                                  "/api/checks/{check_id}/ask", "/api/transcribe"}
+                                  "/api/checks/{check_id}/ask", "/api/transcribe", "/api/health"}
     assert set(spec["paths"]["/api/checks/{check_id}"]) == {"get", "delete"}
     models = spec["components"]["schemas"]
     assert {"Facts", "Intake", "CheckRequest", "Check", "Result", "Finding", "ZoningRequest", "ZoningResponse", "Question",
@@ -244,12 +268,11 @@ def test_rejected_uploads(api, monkeypatch):
     def upload(name, data):
         return api.post("/api/plans/read", files={"file": (name, data, "application/octet-stream")})
 
-    assert "PNG, JPG or PDF" in _is_error(upload("plan.txt", b"hello"), 415, "unsupported_file_type")["message"]
+    assert "PDF, PNG or JPG" in _is_error(upload("plan.txt", b"hello"), 415, "unsupported_file_type")["message"]
     _is_error(upload("plan.docx", b"PK\x03\x04..."), 415, "unsupported_file_type")
-    _is_error(upload("no_extension", _png()), 415, "unsupported_file_type")
-    renamed = _is_error(upload("plan.png", b"MZ\x90\x00 this is a program, not a picture"), 415, "unsupported_file_type")
-    assert "contents are not that kind of file" in renamed["message"]
-    _is_error(upload("plan.pdf", _png()), 415, "unsupported_file_type")                   # a PNG named .pdf
+    _is_error(upload("plan.png", b"MZ\x90\x00 this is a program, not a picture"), 415, "unsupported_file_type")   # the name is ignored
+    _is_error(upload("plan.png", b"\x89PNG\r\n\x1a\n but not really a picture"), 415, "unsupported_file_type")  # right first bytes, no image
+    _is_error(upload("plan.pdf", b"%PDF-1.7 not really a PDF"), 415, "unsupported_file_type")
     _is_error(upload("plan.png", b""), 400, "empty_file")
     _is_error(api.post("/api/plans/read", data={}), 400, "plan_needed")                   # neither a case nor a file
     _is_error(api.post("/api/plans/read", data={"case_id": "cafe_flawed"}, files={"file": ("p.png", _png(), "image/png")}),
@@ -262,8 +285,9 @@ def test_rejected_uploads(api, monkeypatch):
     monkeypatch.delenv("PERMIT_MAX_UPLOAD_MB")
     api.app_.dependency_overrides.clear()                                                 # and with no key on the server:
     assert "demo plan" in _is_error(upload("plan.png", _png()), 503, "no_model_key")["message"]
-    for name, data in (("plan.pdf", b"%PDF-1.7 ..."), ("plan.jpg", b"\xff\xd8\xff\xe0...")):      # allowed types pass the check
-        assert uploads.check(name, data) == "." + name.split(".")[1]
+    for name, data, suffix in (("plan.pdf", _pdf(), ".pdf"), ("plan.jpg", _jpg(), ".jpg"), ("no_extension", _png(), ".png"),
+                               ("plan.pdf", _png(), ".png"), ("plan.exe", _jpg(), ".jpg")):    # the type comes from the bytes
+        assert uploads.check(name, data) == suffix
 
 
 # ---------------------------------------------------------------- zoning by address, with the map outline
@@ -491,9 +515,18 @@ def test_only_the_front_end_origin_may_call(api, monkeypatch):
         assert "access-control-allow-origin" not in api.get("/api/meta", headers={"Origin": other}).headers
 
     monkeypatch.setenv("PERMIT_CORS_ORIGIN", "https://precheck.example")                 # changeable with an environment variable
-    with TestClient(api_main.create_app()) as moved:
+    with TestClient(api_main.create_app()) as moved:                                     # in development, localhost as well
         assert moved.get("/api/meta", headers={"Origin": "https://precheck.example"}).headers["access-control-allow-origin"] == "https://precheck.example"
-        assert "access-control-allow-origin" not in moved.get("/api/meta", headers={"Origin": "http://localhost:3000"}).headers
+        assert moved.get("/api/meta", headers={"Origin": "http://localhost:3000"}).headers["access-control-allow-origin"] == "http://localhost:3000"
+    monkeypatch.setenv("PERMIT_ENV", "production")                                       # in production, only that origin
+    with TestClient(api_main.create_app()) as live:
+        assert live.get("/api/meta", headers={"Origin": "https://precheck.example"}).headers["access-control-allow-origin"] == "https://precheck.example"
+        for other in ("http://localhost:3000", "https://evil.example", "null"):
+            assert "access-control-allow-origin" not in live.get("/api/meta", headers={"Origin": other}).headers
+    monkeypatch.setenv("PERMIT_CORS_ORIGIN", "*")                                        # a wildcard is never honoured
+    with TestClient(api_main.create_app()) as wild:
+        assert "access-control-allow-origin" not in wild.get("/api/meta", headers={"Origin": "https://evil.example"}).headers
+        assert config.cors_origins() == []
 
 
 def test_an_unexpected_error_is_json_without_a_stack_trace(api, monkeypatch):

@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "verification_needed",
+      "message": "We couldn't confirm this request came from a person. Reload the page, then try again."
+    }
+  },
+  "status": 403
+}

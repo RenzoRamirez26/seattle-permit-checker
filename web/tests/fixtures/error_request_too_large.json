@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "request_too_large",
+      "message": "The request is larger than the pre-check accepts."
+    }
+  },
+  "status": 413
+}
