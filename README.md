@@ -12,7 +12,7 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green"></a>
 </p>
 
-> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. The vision model has now read the three demo plans (21 November 2026), but no real floor plan yet. One thing has **not** been run against the real service: the live Seattle download. The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
+> **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. The vision model has now read the three demo plans (21 November 2026), but no real floor plan yet. The live Seattle download ran on 21 November 2026 (1,588 permits, 11,391 review steps, 26,299 reviewer comments). The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
 
 ## Contents
 
@@ -33,7 +33,7 @@
 
 ## What it does
 
-Opening a small business in Seattle means a construction permit, and most plans do not pass the first time: of 529 restaurant-related tenant build-outs since 2019 that went through plan review, 87% needed two or more rounds ([details](#what-seattles-data-showed)). Each round is weeks of rent with no revenue. This prototype:
+Opening a small business in Seattle means a construction permit, and most plans do not pass the first time: of 656 food-and-drink tenant build-outs since 2019 that went through plan review, 88% needed two or more rounds, and the median time in review was 74 days ([details](#what-seattles-data-showed)). Each round is weeks of rent with no revenue. This prototype:
 
 - **reads the floor plan** with a vision model, which only reports facts (areas, door widths, fixtures) and never judges them,
 - **shows what it read** so the owner can correct a misread number before anything is checked,
@@ -52,7 +52,7 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Zoning | `checker/zoning.py` | Logic tested; the live lookup is tested with the network mocked | Run one real address |
 | Plan reading | `checker/extract.py` | **The real model has read the three demo plans** (21 November 2026, one run): 103 of 107 facts read correctly. The demo plans are fictional and drawn to be easy to read | **Read a real floor plan** (with permission); accuracy on real drawings is unknown |
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested. First results in [reports/extraction_eval.md](reports/extraction_eval.md): of 14 real problems on the two flawed plans, 12 were caught as problems, 2 were flagged to confirm, none missed, no false alarms. One run, three demo plans | Repeat the run to see how much it varies; add more plans |
-| Seattle data | `pipeline/` | Mappers tested on real records; queries tested on a small sample | **Run the live download once** |
+| Seattle data | `pipeline/` | **The live download has run** (21 November 2026): 1,588 permits, 11,391 review steps, 26,299 reviewer comments, the same counts the city's portal gave on 23 November. Mappers and queries tested | The data is not committed: each computer runs the download itself. Run it again with `--refresh` before quoting numbers |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked. One real answer (24 November 2026) came back grounded, in 101 words, and ended on its own. Fixed that day: empty answers (thinking is now off on this call) and answers cut off mid-sentence (the prompt asks for at most 120 words; `max_tokens` is 1,000) ([docs/launch.md](docs/launch.md#budget)) | Try more questions with a key, including follow-ups |
 | Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). The web front end now listens on the device where the browser can (Chrome), and otherwise records WebM, MP4 or Ogg for our API ([docs/voice.md](docs/voice.md#the-web-front-end-three-paths)); **neither path has been tried by a person yet, in Chrome or Safari** |
 | Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
@@ -228,10 +228,19 @@ Only one key is needed, and only for reading uploaded plans and for model-writte
 
 ## What Seattle's data showed
 
-Queried directly from the city's portal on 20 November 2026, using its text search for "restaurant". The pipeline's own numbers will differ a little; use those in a pitch once it has run.
+Source: the pipeline's download of Seattle's open data on 21 November 2026. Tenant build-outs (additions and alterations) that went through plan review:
 
-- Of 529 restaurant-related alteration permits applied for since 2019 that went through plan review, 67 (13%) passed in one round and 462 (87%) needed two or more.
-- In round 1 the building-code review sent back most of them (Ordinance: 153 sent back, 24 approved). Zoning and Fire approved most (Zoning: 406 approved, 188 sent back).
+| Business type | Permits | Needed two or more review rounds | Median days in review |
+|---|---|---|---|
+| Food and drink | 656 | 88% | 74 |
+| Retail | 391 | 86% | 63 |
+| Gym and fitness | 67 | 81% | 62.5 |
+| Salon | 43 | 79% | 43 |
+
+- In round 1, for food and drink, the building-code review sent back most permits (Ordinance: 182 sent back, 31 approved). Zoning approved most (203 sent back, 458 approved).
+
+The points below come from an earlier query of the city's portal on 20 November 2026, using its text search for "restaurant". They have not been re-run through the pipeline.
+
 - One real case, permit 6998648-CN: an office converted to a coffee shop, a $60,000 project, spent 175 days in plan review over three rounds, 77 of them waiting on the applicant's corrections.
 - The reviewer-comments dataset is a sample: about 26,300 comments on 707 permits, 2022 to 2025.
 
@@ -239,7 +248,7 @@ Queried directly from the city's portal on 20 November 2026, using its text sear
 
 - [x] **Phase 0: Setup.** Layout, environment, `.gitignore`, `CLAUDE.md`, tests on GitHub
 - [x] **Phase 1: Rules.** Rulebook for six business types, rules engine, zoning, three demo plans
-- [x] **Phase 2: Seattle data.** Download, database, queries (live download still to run)
+- [x] **Phase 2: Seattle data.** Download, database, queries (live download run on 21 November 2026)
 - [x] **Phase 3: Website.** Five pages, editable reading, results, PDF downloads
 - [ ] **Phase 4: Plan reading with the model.** Run `--vision`, record the accuracy table, fix the prompt where it misreads
 - [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
