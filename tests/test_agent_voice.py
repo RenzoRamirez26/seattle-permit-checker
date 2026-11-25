@@ -269,3 +269,32 @@ def test_the_permit_answer_carries_may_be_needed_and_the_unchecked_note(rules, l
     assert answer.count("listed because of a value still being checked against the code") == \
         sum(p.get("check_level") == "unchecked" for p in permits[:5])
     assert answer.count("may be needed: check with the city") == sum(bool(p.get("may_be_needed")) for p in permits[:5])
+
+
+def test_sonnet_answers_are_asked_not_to_think_and_other_models_get_no_thinking_field(salon):
+    sonnet = FakeClient(text="Your restroom door needs 32 inches clear. [EG-3]")
+    agent.answer("Is the restroom door ok?", salon, client=sonnet, model="claude-sonnet-5-5")
+    assert sonnet.kwargs["thinking"] == {"type": "between_tools"} and sonnet.kwargs["max_tokens"] == 500
+    other = FakeClient(text="Your restroom door needs 32 inches clear. [EG-3]")
+    agent.answer("Is the restroom door ok?", salon, client=other, model="test-model")
+    assert "thinking" not in other.kwargs
+
+
+def test_a_thinking_only_reply_falls_back_to_the_template_and_logs_no_user_text(salon, caplog):
+    from types import SimpleNamespace
+
+    class ThinkingOnly:
+        def __init__(self):
+            self.messages = self
+
+        def create(self, **kw):
+            return SimpleNamespace(stop_reason="max_tokens", content=[SimpleNamespace(type="thinking", thinking="")])
+
+    question = "Is my restroom door wide enough for a wheelchair?"
+    with caplog.at_level("WARNING", logger="checker.agent"):
+        out = agent.answer(question, salon, client=ThinkingOnly(), model="claude-sonnet-5-5")
+    assert out["generated_by"] == "template" and out["problems"] == ["empty answer"]
+    assert out["text"] == agent.template_answer(question, salon)
+    logged = " ".join(r.getMessage() for r in caplog.records)
+    assert "no text" in logged and "max_tokens" in logged and "thinking" in logged
+    assert "restroom" not in logged.lower() and "wheelchair" not in logged.lower()

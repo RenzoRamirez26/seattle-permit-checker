@@ -137,10 +137,15 @@ The account's Anthropic spend limit is **$10 a month**. The daily cap is chosen 
 
 **Which calls the API makes** (both through `limits.counted`, so both count against the cap):
 
-| Call | Code | Model | `max_tokens` |
-|---|---|---|---|
-| Plan reading (one picture, one `record_floor_plan` tool) | `checker/extract.py` | `claude-sonnet-5-5` (`PERMIT_VISION_MODEL`) | 4,000 |
-| Assistant answer (the audit as context, up to 6 earlier turns) | `checker/agent.py` | `claude-sonnet-5-5` (`PERMIT_AGENT_MODEL`) | 500 |
+| Call | Code | Model | `max_tokens` | Thinking |
+|---|---|---|---|---|
+| Plan reading (one picture, one `record_floor_plan` tool) | `checker/extract.py` | `claude-sonnet-5-5` (`PERMIT_VISION_MODEL`) | 4,000 | the model's default (adaptive) |
+| Assistant answer (the audit as context, up to 6 earlier turns) | `checker/agent.py` | `claude-sonnet-5-5` (`PERMIT_AGENT_MODEL`) | 500 | off: `{"type": "between_tools"}` |
+
+`max_tokens` covers thinking and the reply together. Sonnet 5.5 thinks by default and rejects
+`thinking: {"type": "disabled"}`; `between_tools` is its documented lowest setting (no other field, effort `high` or
+below; <https://platform.claude.com/docs/en/build-with-claude/thinking>). `checker/agent.py` sends it only to
+`claude-sonnet-5-5`, because other models reject it.
 
 A plan reading is up to two calls: if the model does not call the tool, the request is sent once more.
 
@@ -150,16 +155,20 @@ field (no prompt caching: cache reads and writes were 0):
 | Call | What was sent | Input tokens | Output tokens | Cost |
 |---|---|---|---|---|
 | Plan reading | `demo/flawed_plan.png` (1308 x 1494 px), cafe with cooking | 4,971 | 1,685 | $0.0268 |
-| Assistant answer | "What should I fix first, and which permits will I need?" about that check, NC2-55 (M), with Seattle's review data | 7,652 | 500 (the cap) | $0.0203 |
+| Assistant answer, thinking off | "What should I fix first, and which permits will I need?" about `demo/flawed_extraction.json`, cafe with cooking, NC2-55 (M), with Seattle's review data | 7,592 | 500 (the cap), all text | $0.0202 |
+
+The first answer measured, before thinking was switched off, was 7,652 in and 500 out ($0.0203). All 500 went to
+thinking, so it had no text and the site used the template. That is fixed. A reply with no text is now logged
+(model, stop reason and block types; never the question or the answer) and still falls back to the template.
 
 **Price:** Claude Sonnet 5.5 is $2 per million input tokens and $10 per million output tokens (Anthropic's pricing
 page, read 24 November 2026: <https://platform.claude.com/docs/en/about-claude/pricing>). So a plan reading is
-4,971 x $2/M + 1,685 x $10/M = $0.0099 + $0.0169 = **$0.0268**, and an answer is 7,652 x $2/M + 500 x $10/M =
-$0.0153 + $0.0050 = **$0.0203**.
+4,971 x $2/M + 1,685 x $10/M = $0.0099 + $0.0169 = **$0.0268**, and an answer is 7,592 x $2/M + 500 x $10/M =
+$0.0152 + $0.0050 = **$0.0202**.
 
 **The cap:**
 
-    worst-case cost per call = the dearer of the two = $0.026792 (a plan reading)
+    worst-case cost per call = the dearer of the two = $0.026792 (a plan reading; an answer is $0.020184)
     cap = floor($9 / (worst-case cost per call x 31 days)) = floor(9 / 0.830552) = floor(10.84) = 10 calls a day
     a month at the cap: 10 x $0.026792 x 31 = $8.31
 
@@ -176,11 +185,30 @@ Limits of this estimate:
   its 4,000 output tokens costs more. If every call were a plan reading that used all 4,000 (4,971 x $2/M +
   4,000 x $10/M = $0.0499), 10 calls a day for 31 days would be $15.48. The Console spend limit (step 1) is what
   stops that; the daily cap only keeps an ordinary month well under it.
-- The measured answer used all 500 output tokens without writing any text, so the site answered from its template.
-  The model on this route thinks before it answers, and the thinking used the whole allowance. Until that is fixed,
-  every typed question with a key costs about $0.02 and still gets the template answer. Raising `max_tokens` fixes
-  it but makes an answer dearer than a plan reading (at 2,000: 7,652 x $2/M + 2,000 x $10/M = $0.0353 a call, a cap
-  of 8), so measure again and change the cap with it.
+- The measured answer is grounded text, but it used all 500 output tokens and stopped mid-sentence (in its list of
+  permits). Asking for shorter replies in the prompt would keep the cost where it is. A larger `max_tokens` would
+  make an answer dearer than a plan reading (at 1,000: 7,592 x $2/M + 1,000 x $10/M = $0.0252 a call, still under
+  the plan reading; at 2,000: $0.0352, a cap of 8), so measure again and change the cap with it.
+
+**Where the assistant's input comes from (a later cost lever).** Every question sends about **7,600 input tokens**,
+three-quarters of an answer's cost. Counted with the token-counting endpoint for the check measured above (19
+findings), it is the system prompt plus the check as JSON (`agent.build_context`):
+
+| Part | Tokens | What it is |
+|---|---|---|
+| System prompt (`agent.SYSTEM`) | 516 | The instructions: answer only from the audit, cite rule ids, no new numbers |
+| Findings | 4,360 | Each of the 19 findings: title, status, severity, detail, fix, citation, check level, reviewer. The rulebook (`checker/rules/seattle.json`) is not sent itself: its wording, numbers and citations reach the model through these findings |
+| Permits likely required | 942 | The permit list with agencies |
+| Seattle's review records | 750 | Review data for similar build-outs |
+| Occupant load by space | 376 | |
+| Zoning | 165 | |
+| Summary, code basis, toilets, rule levels, disclaimer | 462 | |
+| Question and tags | about 20 | |
+
+Earlier turns add up to about 6 x 1,000 characters more. Ways to make it cheaper, none done yet: send only the
+findings that are not a pass, drop the `indent` from the JSON, or cache the system prompt and the check (the check
+is the same for every question about it; on Sonnet 5.5 a cache read is $0.10 per million tokens, a 5-minute write
+$2.50). Each changes what the model sees, so measure answers again before and after.
 
 ## 6. DNS and the custom domain
 

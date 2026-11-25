@@ -19,10 +19,11 @@ DAYS = 31
 # Claude Sonnet 5.5, USD per token: https://platform.claude.com/docs/en/about-claude/pricing (read 24 November 2026).
 PRICE = {"claude-sonnet-5-5": {"input": 2 / 1_000_000, "output": 10 / 1_000_000}}
 
-# usage.input_tokens and usage.output_tokens from one real call of each (no cache reads or writes).
+# usage.input_tokens and usage.output_tokens from one real call of each (no cache reads or writes). The plan reading
+# was measured on 24 November 2026; the answer again the same day, after thinking was switched off on it.
 MEASURED = {
     "plan_reading": {"model": "claude-sonnet-5-5", "input_tokens": 4971, "output_tokens": 1685},
-    "assistant_answer": {"model": "claude-sonnet-5-5", "input_tokens": 7652, "output_tokens": 500},
+    "assistant_answer": {"model": "claude-sonnet-5-5", "input_tokens": 7592, "output_tokens": 500},   # thinking off
 }
 
 
@@ -37,7 +38,7 @@ def worst_case_cost_per_call() -> float:
 
 def test_the_recorded_costs_match_the_launch_doc():
     assert round(cost(MEASURED["plan_reading"]), 4) == 0.0268
-    assert round(cost(MEASURED["assistant_answer"]), 4) == 0.0203
+    assert round(cost(MEASURED["assistant_answer"]), 4) == 0.0202
     assert worst_case_cost_per_call() == cost(MEASURED["plan_reading"])
 
 

@@ -11,13 +11,15 @@ answer is used instead.
 
 Without ANTHROPIC_API_KEY the template answers every question, so the app still works.
 
-STATUS: the request and the grounding check are tested with the API mocked. One real call
-(24 November 2026, docs/launch.md, Budget) used all 500 max_tokens on thinking and wrote no
-text, so the template answered. A real model answer has not been seen from this code yet.
+STATUS: the request and the grounding check are tested with the API mocked. One real answer
+(24 November 2026, docs/launch.md, Budget) came back as text and passed the grounding check,
+but it used all 500 max_tokens and stopped mid-sentence. An earlier real call, made before
+THINKING was added, spent all 500 on thinking and wrote no text; that is fixed.
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from typing import Any, Optional
@@ -25,8 +27,16 @@ from typing import Any, Optional
 from .rules_engine import (PRECHECK_NOTE, is_unchecked, level_words, may_be_needed_words, result_counts_sentence,
                            UNVERIFIED_ENTRY, UNVERIFIED_PERMIT)
 
+log = logging.getLogger(__name__)
+
 DEFAULT_MODEL = os.environ.get("PERMIT_AGENT_MODEL", "claude-sonnet-5-5")
 MAX_HISTORY_TURNS = 6
+MAX_TOKENS = 500        # thinking and the answer share this; docs/launch.md, Budget, prices it
+# Claude Sonnet 5.5 thinks before answering unless told not to, and rejects {"type": "disabled"} with a 400.
+# "between_tools" is its documented lowest setting: no thinking before the reply, no other field allowed, effort high
+# or below (the default is high). Without it the thinking used all 500 tokens and no text was written. Other models
+# are sent no thinking field, because "between_tools" is a 400 on them.
+THINKING = {"claude-sonnet-5-5": {"type": "between_tools"}}
 
 SYSTEM = (
     "You explain a permit pre-check to a small-business owner in Seattle. They are not an "
@@ -188,10 +198,14 @@ def answer(question: str, result: dict, *, client=None, model: str = DEFAULT_MOD
         messages = [{"role": m["role"], "content": m["content"]} for m in (history or [])[-MAX_HISTORY_TURNS:]]
         messages.append({"role": "user",
                          "content": f"<audit>\n{build_context(result, examples)}\n</audit>\n\nQuestion: {question}"})
-        resp = client.messages.create(model=model, max_tokens=500, system=SYSTEM, messages=messages)
+        thinking = {"thinking": THINKING[model]} if model in THINKING else {}
+        resp = client.messages.create(model=model, max_tokens=MAX_TOKENS, system=SYSTEM, messages=messages, **thinking)
         text = " ".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
     except Exception as e:  # network, key or quota trouble must not break the demo
         return _out(template_answer(question, result), "template", [f"model call failed: {e.__class__.__name__}"])
+    if not text:        # e.g. only thinking blocks, cut off at max_tokens. Logged without the question or the answer.
+        log.warning("assistant reply had no text: model=%s stop_reason=%s blocks=%s", model,
+                    getattr(resp, "stop_reason", None), [getattr(b, "type", None) for b in resp.content])
     problems = check_grounded(text, result)
     if not text or problems:
         return _out(template_answer(question, result), "template", problems or ["empty answer"])
