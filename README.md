@@ -323,11 +323,11 @@ Use Chrome for spoken questions. In Safari, typed questions and spoken answers w
 
 We all contributed equally.
 
-| Name | GitHub | Owns | Contribution |
-| --- | --- | --- | --- |
-| Lorenzo | [RenzoRamirez26](https://github.com/RenzoRamirez26) | to be assigned | Bridge between the team, design guidelines, and part of the model. |
-| Maria Gomez Jacome | [cjgomez14](https://github.com/cjgomez14) | to be assigned | The model and some of the website's backend. |
-| Orlando Hernandez | [Orlando-Hernandez](https://github.com/Orlando-Hernandez) | to be assigned | Most of the website, some design, and future features. |
-| Alba Benedito | [albabc2020-hub](https://github.com/albabc2020-hub) | to be assigned | The microphone and voice input, website layout, and the language guidelines for Claude. |
+| Name | GitHub | Contribution |
+| --- | --- | --- |
+| Lorenzo | [RenzoRamirez26](https://github.com/RenzoRamirez26) | Bridge between the team, design guidelines, and part of the model. |
+| Maria Gomez Jacome | [cjgomez14](https://github.com/cjgomez14) | The model and some of the website's backend. |
+| Orlando Hernandez | [Orlando-Hernandez](https://github.com/Orlando-Hernandez) | Most of the website, some design, and future features. |
+| Alba Benedito | [albabc2020-hub](https://github.com/albabc2020-hub) | The microphone and voice input, website layout, and the language guidelines for Claude. |
 
 <p align="right"><a href="#seattle-permit-pre-check">back to top ↑</a></p>
