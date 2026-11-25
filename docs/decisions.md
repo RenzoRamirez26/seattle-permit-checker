@@ -272,7 +272,7 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 - **Decision 3, Answers:** a reading the API left empty says "We couldn't read this from your plan." The line "We're not
   sure we read this right." is gone: the API marks no single reading as uncertain (`uncertainties` is a free-text list,
   shown as "Noted while reading your plan"), so that sentence claimed something the data does not say.
-  **Rejected:** keeping "not sure" for every empty reading. **TODO:** bring the line back if `extract.py` gains a
+  **Rejected:** keeping "not sure" for every empty reading. **Follow-up:** bring the line back if `extract.py` gains a
   per-reading uncertainty or confidence mark.
 - **Decision 4, three kept strings rewritten:** of the four strings design-v3 had kept because tests asserted them, three
   did not follow CONTENT.md and were changed with their tests: "Read by the vision model. Check every value against your
@@ -289,7 +289,7 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 - **Rejected for now:** marking them in the front end, which would need the front end to know rule values.
 - **Source:** design checklist scoring of design-v3.
 - **Who:** evaluation checklist.
-- **TODO:** have `rules_engine.py` add `verified: false` to a finding whose numbers come from `_meta.verify`, return it
+- **Follow-up:** have `rules_engine.py` add `verified: false` to a finding whose numbers come from `_meta.verify`, return it
   through the API, and show "This rule's value is still being checked" beside such findings and in the PDF.
 
 ## 2026-11-24 · The v3 Figma pages stop at the results page
@@ -309,7 +309,7 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 - **Rejected:** hard-coding "88% of food and drink build-outs were sent back" from the README.
 - **Source:** design checklist (Landing: claims no larger than the evidence); CONTENT.md rule 8.
 - **Who:** team.
-- **TODO:** add a read-only endpoint (for example `GET /api/seattle/summary`) that returns `pipeline.query.review_summary`
+- **Follow-up:** add a read-only endpoint (for example `GET /api/seattle/summary`) that returns `pipeline.query.review_summary`
   with its permit count, then show it on Start. No such endpoint exists yet.
 
 ## 2026-11-24 · "Check these first" uses the readings the API left empty
@@ -321,7 +321,7 @@ Newest first. Each entry: date, decision, why, what was rejected, source, and wh
 - **Rejected:** guessing confidence in the browser (the front end decides nothing); keeping one long list.
 - **Source:** design brief (least-certain readings first); `FLOOR_PLAN_SCHEMA` in `checker/extract.py`.
 - **Who:** team.
-- **TODO:** if `extract.py` gains a confidence per reading, sort "Check these first" by it.
+- **Follow-up:** if `extract.py` gains a confidence per reading, sort "Check these first" by it.
 
 ## 2026-11-24 · Copy rewrite
 

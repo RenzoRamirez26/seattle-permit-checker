@@ -87,4 +87,4 @@ python -m evaluation.evaluate_extraction --vision  # score the vision model on t
 - For anything touching more than one file, show the plan before writing code.
 - Run `python -m pytest` after each change and show the result.
 - When something fails, explain the cause before proposing the fix.
-- After writing a part, explain in a few sentences what it does and why, so I can explain it to a judge.
+- After writing a part, explain in a few sentences what it does and why, so I can explain it to someone new to the project.

@@ -101,7 +101,7 @@ def example_comments(con: sqlite3.Connection, chapter: int, category: str | None
 
 
 def slowest_examples(con: sqlite3.Connection, category: str | None = "food_drink", limit: int = 5) -> list[dict[str, Any]]:
-    """Tenant build-outs with the most review rounds: real cases for the pitch."""
+    """Tenant build-outs with the most review rounds: real examples of long reviews."""
     cond, args = _cat(category)
     cur = con.execute(
         'SELECT "permit_number", "address", "description", "estimated_cost", "applied_date", "issued_date", '
