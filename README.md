@@ -1,9 +1,5 @@
+<a id="top"></a>
 <h1 align="center">Seattle Permit Pre-Check</h1>
-
-<p align="center">
-  <b>Can a small-business owner find out what the city's plan reviewer will send back, before they submit?</b><br>
-  Upload a floor plan for a café, bar, shop, salon, office or gym in Seattle. Get the fix list, the permits to expect, and what Seattle's own review records say about projects like yours. Ask questions by typing or by voice.
-</p>
 
 <p align="center">
   <img alt="Status: prototype" src="https://img.shields.io/badge/Status-prototype-orange">
@@ -12,11 +8,24 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green"></a>
 </p>
 
+<p align="center">
+  <a href="https://permitos-five.vercel.app"><img alt="Live demo: permitos-five.vercel.app" src="https://img.shields.io/badge/Live_demo-permitos--five.vercel.app-1F4E8C?style=for-the-badge"></a>
+</p>
+
+<p align="center">
+  PermitOS reads the floor plan for a small business in Seattle, checks it against rules coded from the city's codes, and lists what to fix and which permits to expect before the owner applies.
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/readme/hero-results.png" width="800" alt="The PermitOS results page for a café with planted problems: 11 things to fix before applying, 2 to check with the city, and 6 checks with no issues found, with the line &quot;A pre-check from the checks we ran, not a city approval.&quot;">
+</p>
+
 > **Status: prototype.** The rules, the Seattle data pipeline and the website run and are tested. The vision model has now read the three demo plans (21 November 2026), but no real floor plan yet. The live Seattle download ran on 21 November 2026 (1,588 permits, 11,391 review steps, 26,299 reviewer comments). The two local speech models run, but have only been measured on machine-spoken questions. The [status table](#what-is-real-and-what-is-not-yet) says exactly what is real. This is a pre-submission check, not a code determination, and it is not affiliated with the City of Seattle.
 
 ## Contents
 
 - [What it does](#what-it-does)
+- [Screenshots](#screenshots)
 - [What is real and what is not yet](#what-is-real-and-what-is-not-yet)
 - [Try it](#try-it)
 - [How it works](#how-it-works)
@@ -43,6 +52,58 @@ Opening a small business in Seattle means a construction permit, and most plans 
 - **quotes Seattle's own review records** for similar projects: rounds, days, and what reviewers comment on,
 - **answers questions, typed or spoken**, using only the owner's result.
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
+## Screenshots
+
+From a local copy of the website with no API key, on the fictional demo café. More screenshots, including the edge
+states, are in [`docs/screenshots/design-v3/`](docs/screenshots/design-v3/).
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme/start.png" width="400" alt="Start page: the headline &quot;Check your space before you sign the lease&quot;, a short explanation, the four steps, and a drawing of the demo café's floor plan.">
+      <br><b>Start.</b> What the check is, in four steps, before anything is uploaded.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme/plan.png" width="400" alt="Plan page, step 2 of 4: &quot;Upload your floor plan&quot;, a list of what a usable plan shows, a note that the plan file is not saved, and a drop zone for the file.">
+      <br><b>Plan.</b> Upload a PDF, PNG or JPG. This test server has no key, so it offers the example plans instead.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme/answers.png" width="400" alt="Answers page, step 3 of 4: &quot;Check what we read from your plan&quot;, with the plan drawing on the left and each door's width, exit status and swing on the right, each with a Change button.">
+      <br><b>Answers.</b> The owner sees every value read from the plan and can change it before the check runs.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme/results-fix.png" width="400" alt="Results, Fix before you apply (11): &quot;Add a second exit&quot;, &quot;Add a Type I hood over the cooking line&quot; and &quot;Add a sprinkler system&quot;, each with what the plan shows, what to do, and the code section.">
+      <br><b>Results: Fix.</b> Each item says what the plan shows, what to change, and the code section.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme/results-city-no-issues.png" width="400" alt="Results, the tabs &quot;Check with the city (2)&quot; and &quot;No issues found (6)&quot;, with the No issues found tab open, listing the occupancy classification, the toilet count and the zoning screen.">
+      <br><b>Results: Check with the city / No issues found.</b> What the plan can't settle goes to the city, never to a pass.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/screenshots/readme/assistant.png" width="400" alt="The Ask panel beside the results: the question &quot;What should I fix first?&quot; and an answer listing the three most serious fixes, with links to those findings and a box for the next question.">
+      <br><b>Ask.</b> The assistant answers from this result only, by typing or by voice, and links to the findings it names.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshots/readme/phone-results.png" width="260" alt="The results page on a phone: the title, the line &quot;A pre-check from the checks we ran, not a city approval.&quot;, and the count of things to fix.">
+      <br><b>Phone: Results.</b>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshots/readme/phone-assistant.png" width="260" alt="The Ask panel on a phone, as a sheet over the results, with the answer to &quot;What should I fix first?&quot; and the question box.">
+      <br><b>Phone: Ask.</b>
+    </td>
+  </tr>
+</table>
+
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## What is real and what is not yet
 
 | Part | File | Now | Still to do |
@@ -54,16 +115,23 @@ Opening a small business in Seattle means a construction permit, and most plans 
 | Evaluation | `evaluation/evaluate_extraction.py` | Scoring is real and tested. First results in [reports/extraction_eval.md](reports/extraction_eval.md): of 14 real problems on the two flawed plans, 12 were caught as problems, 2 were flagged to confirm, none missed, no false alarms. One run, three demo plans | Repeat the run to see how much it varies; add more plans |
 | Seattle data | `pipeline/` | **The live download has run** (21 November 2026): 1,588 permits, 11,391 review steps, 26,299 reviewer comments, the same counts the city's portal gave on 23 November. Mappers and queries tested | The data is not committed: each computer runs the download itself. Run it again with `--refresh` before quoting numbers |
 | Agent | `checker/agent.py` | Template answers work with no key; model path and grounding check tested with the API mocked. One real answer (24 November 2026) came back grounded, in 101 words, and ended on its own. Fixed that day: empty answers (thinking is now off on this call) and answers cut off mid-sentence (the prompt asks for at most 120 words; `max_tokens` is 1,000) ([docs/launch.md](docs/launch.md#budget)) | Try more questions with a key, including follow-ups |
-| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)) | A person has tested the microphone in Chrome and it works (one person, not measured). The web front end now listens on the device where the browser can (Chrome), and otherwise records WebM, MP4 or Ogg for our API ([docs/voice.md](docs/voice.md#the-web-front-end-three-paths)); **neither path has been tried by a person yet, in Chrome or Safari** |
-| Website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
-| Web front end (version 1) | `web/` | **Built and tested on the branch `website-v1`** against the real API with no key and the demo plans: every page, axe, keyboard and 320 px checks, screenshots ([docs/website_progress.md](docs/website_progress.md)). A static Next.js site; no rules, no key, no model calls (a build guard enforces it) | An uploaded plan read with a key; the Protomaps tiles; a spoken question in Chrome and Safari with faster-whisper installed; testing with business owners |
-| Web API | `api/` | **Tested with the model and the network mocked.** Ten routes under `/api` for the web front end, plus `/api/health`: read a plan, screen zoning, run and store a check, fetch it, both PDFs, ask a question, transcribe a spoken question, delete. It adds no rules; it calls `checker/`. Intake answers accept `null` ("Not sure"), which the rules engine treats as unknown. Docs page at `/docs` (off in production). Launch hardening (`api/security.py`, `api/limits.py`, `tests/test_api_security.py`): security headers, body-size caps, uploads typed by their bytes with picture and PDF limits, per-address rate limits, two daily caps on model calls (plan reads and questions, counted separately so questions never block uploads), optional Turnstile, CORS from `PERMIT_CORS_ORIGIN` only. Packaged by the `Dockerfile`; deployment steps in `docs/launch.md` | **Read an uploaded plan with a key; try one real address through `/api/zoning`; transcribe a real recording with faster-whisper installed (`/api/transcribe`); build the Docker image and run the smoke test in `docs/launch.md`; call Turnstile's siteverify for real.** No login: a check is reached only by its unguessable link. Known follow-up: reviewer examples in `/ask` (the Streamlit app gives the agent real reviewer comments; the API does not yet) |
-| Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. A short sheet (two or three printed pages) gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form |
-| PDF downloads | `checker/pdf.py` | **Real and tested.** The owner downloads the report and the preparation sheet as PDFs (US Letter, page numbers, black and white). The command line writes `report.pdf` next to `report.md` and `report.json`. Page 1 of each was rendered and checked by eye for accents, wrapping and margins | Print one on paper; open one in a screen reader | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
+| Voice | `checker/voice.py` | Browser voice and fallbacks tested. **faster-whisper and Kokoro run** on one laptop (macOS, Intel, CPU): 9 of 10 machine-spoken questions came back word for word, under 1 s to speak and under 1 s to transcribe each ([reports/voice_eval.md](reports/voice_eval.md)). A person has used the microphone in Chrome on a local copy, and it works (one person, not measured). The web front end listens on the device where the browser can (Chrome), and otherwise records WebM, MP4 or Ogg for our API ([docs/voice.md](docs/voice.md#the-web-front-end-three-paths)) | **No person has tried voice on the live site yet, in Chrome or Safari** |
+| Website | `web/` | **Live at https://permitos-five.vercel.app**, with the API on Fly.io (it sleeps when idle, so the first request can take a few seconds). **Built and tested** against the real API with no key and the demo plans: every page, axe, keyboard and 320 px checks, screenshots ([docs/website_progress.md](docs/website_progress.md)). A static Next.js site; no rules, no key, no model calls (a build guard enforces it) | An uploaded plan read with a key; the Protomaps tiles; a spoken question in Chrome and Safari with faster-whisper installed; testing with business owners |
+| Streamlit website | `app/` | **Real.** All five pages, tested headlessly and in a browser | Deploy to a public URL |
+| Web API | `api/` | **Tested with the model and the network mocked.** Ten routes under `/api` for the web front end, plus `/api/health`: read a plan, screen zoning, run and store a check, fetch it, both PDFs, ask a question, transcribe a spoken question, delete. It adds no rules; it calls `checker/`. Intake answers accept `null` ("Not sure"), which the rules engine treats as unknown. Docs page at `/docs` (off in production). Launch hardening (`api/security.py`, `api/limits.py`, `tests/test_api_security.py`): security headers, body-size caps, uploads typed by their bytes with picture and PDF limits, per-address rate limits, two daily caps on model calls (plan reads and questions, counted separately so questions never block uploads), optional Turnstile, CORS from `PERMIT_CORS_ORIGIN` only. Packaged by the `Dockerfile`; deployment steps in `docs/launch.md`. The live site's API runs on Fly.io and sleeps when idle | **Read an uploaded plan with a key; try one real address through `/api/zoning`; transcribe a real recording with faster-whisper installed (`/api/transcribe`); build the Docker image and run the smoke test in `docs/launch.md`; call Turnstile's siteverify for real.** No login: a check is reached only by its unguessable link. Known follow-up: reviewer examples in `/ask` (the Streamlit app gives the agent real reviewer comments; the API does not yet) |
+| Permit application preparation sheet | `checker/permit_draft.py` | **Real and tested** on the café and salon demo plans. A short sheet (two or three printed pages) gathering what SDCI's published pages say the application asks for, filled from the result where it can be; the rest is marked for the applicant. A preparation aid: it does not fill in the city's form | Field list read from city pages on 20-21 November 2026, one of them dated 2016 ([docs/permit_draft.md](docs/permit_draft.md)): **check it against the portal itself** |
+| PDF downloads | `checker/pdf.py` | **Real and tested.** The owner downloads the report and the preparation sheet as PDFs (US Letter, page numbers, black and white). The command line writes `report.pdf` next to `report.md` and `report.json`. Page 1 of each was rendered and checked by eye for accents, wrapping and margins | Print one on paper; open one in a screen reader |
 
 Unfinished parts say `STATUS:` in their docstring. `grep -rn "STATUS:" checker pipeline evaluation` lists them.
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Try it
+
+The quickest way is the live demo: https://permitos-five.vercel.app. The API behind it sleeps when idle, so the first
+request can take a few seconds. To run it yourself:
+
+### Install
 
 Python 3.12 or newer, from the repository root:
 
@@ -77,7 +145,9 @@ The web front end in `web/` also needs Node 22 (see [web/README.md](web/README.m
 installed in `~/.local/node-v22.23.5-darwin-x64/bin`. If `node` or `npm` is not found, add it to the PATH for that
 terminal: `export PATH="$HOME/.local/node-v22.23.5-darwin-x64/bin:$PATH"`.
 
-**Run the website** (works with no key and no internet, on the demo plans):
+### Run the Streamlit website
+
+It works with no key and no internet, on the demo plans:
 
 ```bash
 python -m streamlit run app/streamlit_app.py
@@ -85,7 +155,9 @@ python -m streamlit run app/streamlit_app.py
 
 Pick a demo plan, press **Read the plan**, then **Run the check**. Start with *Café with planted problems*, then switch to the salon to see a different business type.
 
-**Run the web API** (for a front end; the Streamlit website does not need it):
+### Run the web API
+
+For a front end; the Streamlit website does not need it:
 
 ```bash
 uvicorn api.main:app --reload
@@ -95,26 +167,32 @@ Then open http://localhost:8000/docs to see and try every route. It works with n
 
 What the API keeps: **uploaded plans are not saved.** A plan file is read and deleted straight away. **A check is stored**: the facts read from the plan, the answers about the business, the address or zone if one was given, and the result. It is kept for 30 days (`PERMIT_CHECK_DAYS`) in `data/checks.sqlite` on the server, or until it is deleted with `DELETE /api/checks/{id}`. The Claude API key stays on the server and is never sent to the browser.
 
-**Run the tests:**
+### Run the tests
 
 ```bash
 python -m pytest
 ```
 
-**Download Seattle's review records** (internet, no key, a few minutes). After this, reports and the data page show real numbers:
+### Download Seattle's review records
+
+Internet, no key, a few minutes. After this, reports and the data page show real numbers:
 
 ```bash
 python -m pipeline.run_pipeline --seattle
 ```
 
-**Read a plan with the vision model** (needs a key: copy `.env.example` to `.env` and fill in `ANTHROPIC_API_KEY`):
+### Read a plan with the vision model
+
+This needs a key: copy `.env.example` to `.env` and fill in `ANTHROPIC_API_KEY`.
 
 ```bash
 python -m evaluation.evaluate_extraction --vision      # scores the model on all three demo plans
 python -m checker.audit demo/flawed_plan.png --business cafe_restaurant --cooking --zoning "NC2-55 (M)"
 ```
 
-**Turn on spoken questions** (optional; downloads about 500 MB of speech models on first use):
+### Turn on spoken questions
+
+Optional; downloads about 500 MB of speech models on first use:
 
 ```bash
 python -m pip install -r requirements-voice.txt
@@ -125,7 +203,9 @@ PERMIT_TTS=kokoro python -m streamlit run app/streamlit_app.py
 
 Without the install, questions are typed and the browser reads the answers aloud. Without `PERMIT_TTS=kokoro`, the microphone works and the browser's voice reads the answers.
 
-**ffmpeg** (for the web API's `/api/transcribe`): browsers record WebM, MP4 or Ogg, and the API converts each to WAV
+### ffmpeg
+
+For the web API's `/api/transcribe`: browsers record WebM, MP4 or Ogg, and the API converts each to WAV
 with ffmpeg before faster-whisper reads it. Install it with `brew install ffmpeg` (macOS on Apple Silicon), `sudo
 apt-get install ffmpeg` (Debian, Ubuntu) or `winget install ffmpeg` (Windows), so that `ffmpeg` is on the PATH.
 
@@ -143,6 +223,8 @@ This puts ffmpeg on the PATH only while the `.venv` is active, which is when the
 on the device (recent Chrome) still take spoken questions, because their audio never reaches the server. The
 recording is kept in a private temporary folder only while ffmpeg converts it, then deleted. The API tests generate
 their WebM, MP4 and Ogg clips with ffmpeg, and skip those tests if it is missing.
+
+<p align="right"><a href="#top">back to top ↑</a></p>
 
 ## How it works
 
@@ -165,6 +247,8 @@ Three ideas hold it together:
 - **The model reads; code decides.** A language model is good at reading a drawing and bad at being consistently right about code numbers. So the model extracts facts into a fixed format, and compliance is decided by rules you can read in one JSON file.
 - **Show the reading.** The owner sees what was read and can fix it. The check uses those numbers, not the drawing.
 - **The agent is grounded, not trained.** Nothing here is fine-tuned. The agent is given the owner's result (and, once the data is downloaded, real reviewer comments on the same code chapters) and must answer from that. An answer that cites a rule or code section the result does not contain is discarded and replaced by a fixed template.
+
+<p align="right"><a href="#top">back to top ↑</a></p>
 
 ## Repository map
 
@@ -202,6 +286,8 @@ tests/                    one file per part, plus a headless test of the website
 CLAUDE.md                 project rules for Claude Code
 ```
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Design
 
 How PermitOS looks and talks, and why:
@@ -214,6 +300,8 @@ How PermitOS looks and talks, and why:
 - Screenshots of the built site: [`docs/screenshots/design-v3/`](docs/screenshots/design-v3/). The Figma file:
   https://www.figma.com/design/PVw8XgzSLPe2q9TR8mbbhj
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Websites and keys
 
 Only one key is needed, and only for reading uploaded plans and for model-written answers. Full list with what each is used for: [docs/data_sources.md](docs/data_sources.md).
@@ -225,6 +313,8 @@ Only one key is needed, and only for reading uploaded plans and for model-writte
 | Seattle zoning layer | `services.arcgis.com` | No |
 | US Census geocoder (address to point) | `geocoding.geo.census.gov` | No |
 | Speech models, optional | `huggingface.co` (Whisper), `github.com` (Kokoro files) | No (public models) |
+
+<p align="right"><a href="#top">back to top ↑</a></p>
 
 ## What Seattle's data showed
 
@@ -244,6 +334,8 @@ The points below come from an earlier query of the city's portal on 20 November 
 - One real case, permit 6998648-CN: an office converted to a coffee shop, a $60,000 project, spent 175 days in plan review over three rounds, 77 of them waiting on the applicant's corrections.
 - The reviewer-comments dataset is a sample: about 26,300 comments on 707 permits, 2022 to 2025.
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Build phases
 
 - [x] **Phase 0: Setup.** Layout, environment, `.gitignore`, `CLAUDE.md`, tests on GitHub
@@ -258,6 +350,8 @@ The points below come from an earlier query of the city's portal on 20 November 
 
 Phase 4 is the evidence judges will ask for. If time runs short, cut from the bottom.
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Working in this repo
 
 - **One branch per phase or part**, merged through a pull request. The template has a short checklist.
@@ -267,6 +361,8 @@ Phase 4 is the evidence judges will ask for. If time runs short, cut from the bo
 - **Keys go in `.env`**, never in code. `.env.example` lists the names.
 - **Any number you report says what data it came from.**
 - **No real floor plans or personal data in the repository.** The demo plans are invented.
+
+<p align="right"><a href="#top">back to top ↑</a></p>
 
 ## Before launch
 
@@ -281,6 +377,8 @@ Open items that must be done before real owners use the site. Each is a GitHub i
 - [ ] Export Figma v1 to v3 to `docs/screenshots/figma/` (#36).
 - [ ] Check whether "Nothing to fix before you apply" appears twice on a results page (#37).
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Limits
 
 - **Not a code determination.** A licensed design professional and the plan reviewer decide what complies.
@@ -290,6 +388,8 @@ Open items that must be done before real owners use the site. Each is a GitHub i
 - **Demo plans are fictional** and drawn to be easy to read. Real drawings are harder, and reading accuracy on them is unknown.
 - **The permit categories are keyword matches** on the city's descriptions, so some permits are missed or mislabelled.
 - **Reviewer names are in the city's data and are not stored.**
+
+<p align="right"><a href="#top">back to top ↑</a></p>
 
 ## Troubleshooting
 
@@ -328,15 +428,17 @@ Use Chrome for spoken questions. In Safari, typed questions and spoken answers w
 
 </details>
 
+<p align="right"><a href="#top">back to top ↑</a></p>
+
 ## Team
 
 We all contributed equally.
 
 | Name | GitHub | Contribution |
 | --- | --- | --- |
-| Lorenzo | [RenzoRamirez26](https://github.com/RenzoRamirez26) | Bridge between the team, design guidelines, and part of the model. |
-| Maria Gomez Jacome | [cjgomez14](https://github.com/cjgomez14) | The model and some of the website's backend. |
-| Orlando Hernandez | [Orlando-Hernandez](https://github.com/Orlando-Hernandez) | Most of the website, some design, and future features. |
-| Alba Benedito | [albabc2020-hub](https://github.com/albabc2020-hub) | The microphone and voice input, website layout, and the language guidelines for Claude. |
+| Lorenzo | [RenzoRamirez26](https://github.com/RenzoRamirez26) | Coordinated the team across design, model and website; wrote the design guidelines for language, colour and space; worked on the model. |
+| Maria Gomez Jacome | [cjgomez14](https://github.com/cjgomez14) | Built the model and parts of the website's backend. |
+| Orlando Hernandez | [Orlando-Hernandez](https://github.com/Orlando-Hernandez) | Built most of the website, shaped parts of its design, and scoped the features planned next. |
+| Alba Benedito | [albabc2020-hub](https://github.com/albabc2020-hub) | Built voice input, shaped the website's layout, and wrote the language guidelines Claude follows. |
 
-<p align="right"><a href="#seattle-permit-pre-check">back to top ↑</a></p>
+<p align="right"><a href="#top">back to top ↑</a></p>
