@@ -6,6 +6,7 @@
  * the question to POST /api/checks/{id}/ask, which answers from the result only (agent.check_grounded()).
  * Answers are text, never HTML; each links to the finding(s) it cites. It never opens by itself.
  */
+import { turnstileHeaders } from "@/lib/turnstile";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
@@ -257,7 +258,8 @@ function PanelBody({ step, checkId, onClose, closeOnLink }: { step: string; chec
       .slice(-(meta?.limits.max_history_turns ?? 6))
       .map((m) => ({ role: m.role, content: m.text }));
     try {
-      const a = await call(() => api.POST("/api/checks/{check_id}/ask", { params: { path: { check_id: checkId } }, body: { question: q, history } }));
+      const headers = await turnstileHeaders();        // {} unless Turnstile is switched on
+      const a = await call(() => api.POST("/api/checks/{check_id}/ask", { params: { path: { check_id: checkId } }, body: { question: q, history }, headers }));
       assistant.add({ role: "assistant", text: a.text, cited: a.cited_rules, by: a.generated_by === "template" ? "template" : "model", spoken: opts.spoken });
       if (opts.spoken && voiceSetting.get()) readAloud(a.text, assistant.get().messages.length - 1);
     } catch (e) {

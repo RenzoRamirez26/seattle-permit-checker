@@ -40,7 +40,7 @@ test("Start: the headline, the steps in one line, the example drawing, the step 
   await expect(img).toHaveAttribute("height", /^\d+$/);
   const form = page.getByRole("region", { name: "What kind of business is it?" });
   await expect(form.getByRole("radio")).toHaveCount(6);
-  await expect(form.getByRole("button", { name: "Continue" })).toBeVisible();
+  await expect(form.getByRole("button", { name: "Start the pre-check" })).toBeVisible();
   const how = page.getByRole("region", { name: "How it works" });
   await expect(how.getByRole("heading", { level: 3 })).toHaveText([
     "Step 1: You upload your plan", "Step 2: The model reads it", "Step 3: You confirm", "Step 4: Rules based on Seattle's code decide",
@@ -52,7 +52,7 @@ test("Start: the headline, the steps in one line, the example drawing, the step 
   await expectTouchTargets(page);
   await shoot(page, "design-v3", "start");
   await form.getByText("Retail shop").click();
-  await form.getByRole("button", { name: "Continue" }).click();
+  await form.getByRole("button", { name: "Start the pre-check" }).click();
   await expect(page).toHaveURL(/\/plan\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toBeFocused();    // focus moves to the new page's question
 });
@@ -111,7 +111,7 @@ test("step 1: errors next to the field and in the summary; Back and refresh keep
   await expect(page.getByLabel("Zone from the zoning map (optional)")).toHaveValue("NC2-55 (M)");
 
   // The check request carries null for Not sure and for the unanswered optional questions, false for No.
-  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Start the pre-check" }).click();
   await expect(page).toHaveURL(/\/plan\/$/);
   const reading = fixture("reading_cafe_flawed");
   await page.evaluate((r) => { sessionStorage.setItem("precheck.reading", JSON.stringify(r)); sessionStorage.setItem("precheck.facts", JSON.stringify(r.facts)); }, reading);

@@ -2,7 +2,7 @@
   "body": {
     "error": {
       "code": "method_not_allowed",
-      "message": "This address does not accept that kind of request. See /docs."
+      "message": "This address does not accept that kind of request."
     }
   },
   "status": 405

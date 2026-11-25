@@ -77,7 +77,9 @@ def extinguisher(ax, x, y, k=False):
             bbox=dict(boxstyle="circle", fc="white", ec="#c00000", lw=1.2), zorder=7)
 
 
-def draw(flawed: bool) -> Path:
+def draw(flawed: bool, svg: Path | None = None) -> Path:
+    """Draw café plan A (compliant) or B (flawed) to demo/*.png; with svg=path, write only that SVG instead (the
+    website's Start page shows plan B as an SVG drawing; the PNGs the evaluation reads are left untouched)."""
     fig, ax = plt.subplots(figsize=(11, 13), dpi=150)
     ax.set_xlim(-7, W + 22); ax.set_ylim(-9, L + 10); ax.set_aspect("equal"); ax.axis("off")
     title = "CAFÉ TENANT IMPROVEMENT - FLOOR PLAN " + ("B" if flawed else "A")
@@ -169,8 +171,12 @@ def draw(flawed: bool) -> Path:
     ax.text(nx + 2, 44, "N", fontsize=12, weight="bold", ha="center")
     ax.annotate("", xy=(nx + 2, 49), xytext=(nx + 2, 45), arrowprops=dict(arrowstyle="->", lw=1.5))
 
-    out = HERE / ("flawed_plan.png" if flawed else "compliant_plan.png")
-    fig.savefig(out, bbox_inches="tight", facecolor="white")
+    out = svg or HERE / ("flawed_plan.png" if flawed else "compliant_plan.png")
+    if svg:
+        plt.rcParams["svg.hashsalt"] = "permitos"      # stable ids, so the file only changes when the drawing does
+        fig.savefig(out, format="svg", bbox_inches="tight", facecolor="white", metadata={"Date": None})
+    else:
+        fig.savefig(out, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return out
 
@@ -243,6 +249,9 @@ def draw_salon() -> Path:
 if __name__ == "__main__":
     import sys
 
+    if sys.argv[1:2] == ["--svg"]:               # python demo/make_plans.py --svg web/public/demo-plan.svg
+        print(draw(True, svg=Path(sys.argv[2])))
+        raise SystemExit(0)
     which = set(sys.argv[1:]) or {"cafe", "salon"}
     if "cafe" in which:
         for f in (False, True):

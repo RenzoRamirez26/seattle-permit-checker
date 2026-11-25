@@ -28,7 +28,7 @@ def local_review_data(db_path: str | None, business_type: str) -> dict | None:
     from pipeline import db, query
     from pipeline.classify import CATEGORY_FOR_BUSINESS
 
-    con = db.connect(db_path)
+    con = db.connect_readonly(db_path)      # the checker only reads Seattle's records
     try:
         return query.review_data(con, CATEGORY_FOR_BUSINESS.get(business_type, None))
     finally:

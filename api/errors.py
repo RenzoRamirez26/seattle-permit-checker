@@ -14,9 +14,9 @@ log = logging.getLogger("api")
 class ApiError(Exception):
     """An error with a status, a short code the front end can switch on, and a sentence a person can read."""
 
-    def __init__(self, status: int, code: str, message: str):
+    def __init__(self, status: int, code: str, message: str, headers: dict[str, str] | None = None):
         super().__init__(message)
-        self.status, self.code, self.message = status, code, message
+        self.status, self.code, self.message, self.headers = status, code, message, headers or {}
 
 
 def body(code: str, message: str, **extra) -> dict:
@@ -26,7 +26,7 @@ def body(code: str, message: str, **extra) -> dict:
 def install(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     def _api_error(request: Request, e: ApiError) -> JSONResponse:
-        return JSONResponse(body(e.code, e.message), status_code=e.status)
+        return JSONResponse(body(e.code, e.message), status_code=e.status, headers=e.headers)
 
     @app.exception_handler(RequestValidationError)
     def _invalid(request: Request, e: RequestValidationError) -> JSONResponse:
@@ -37,8 +37,12 @@ def install(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     def _http(request: Request, e: StarletteHTTPException) -> JSONResponse:
-        known = {404: ("not_found", "There is nothing at this address. The API's routes are listed at /docs."),
-                 405: ("method_not_allowed", "This address does not accept that kind of request. See /docs.")}
+        from .security import BodyTooLarge
+
+        if isinstance(e, BodyTooLarge):
+            return JSONResponse(body(e.code, e.message), status_code=413)
+        known = {404: ("not_found", "There is nothing at this address on the pre-check API."),
+                 405: ("method_not_allowed", "This address does not accept that kind of request.")}
         code, message = known.get(e.status_code, ("http_error", str(e.detail)))
         return JSONResponse(body(code, message), status_code=e.status_code)
 

@@ -7,7 +7,8 @@
  * "?example=<id>" reads an example plan instead and sets the example's business answers; if they replace the
  * owner's own answers, step 3 says so and offers to keep the owner's.
  */
-import { useEffect, useRef, useState } from "react";
+import { turnstileHeaders } from "@/lib/turnstile";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiProblem, call, type Meta, type PlanReading } from "@/api/client";
@@ -21,7 +22,7 @@ export function ReadingPage() {
   const hydrated = useHydrated();
   return (
     <PageShell step={2} title="Reading your plan">
-      {hydrated ? <Reading /> : null}
+      {hydrated ? <Suspense fallback={null}><Reading /></Suspense> : null}
     </PageShell>
   );
 }
@@ -65,8 +66,10 @@ function Reading() {
           planFile.clear();
         } else {
           const business = flow.business();
+          const headers = await turnstileHeaders();      // {} unless Turnstile is switched on
           reading = await call(() => api.POST("/api/plans/read", {
             body: {} as never,
+            headers,
             bodySerializer: () => form({ file: file!, ...(business?.business_type ? { business_type: business.business_type } : {}) }),
             signal: abort.signal,
           }));

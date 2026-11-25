@@ -4,7 +4,7 @@
  * the date it took effect (both from /api/meta, rulebook.code_edition and rulebook.edition_date; no date while the
  * rulebook holds the placeholder, Q2) and a link to Help.
  * In: /api/meta through useMeta().  Out: two plain lines, e.g.
- * "Rules based on the 2021 Seattle Building Code, effective November 15, 2024."
+ * "Rules based on the 2021 Seattle Building Code, effective November 15, 2024.", then links to Privacy and Terms.
  */
 import Link from "next/link";
 import { useMeta } from "./Providers";
@@ -26,6 +26,10 @@ export function SiteFooter() {
             {meta && edition ? <>, effective <time dateTime={edition}>{formatDate(edition)}</time></> : null}.{" "}
             <Link href="/help/" className="inline-flex min-h-11 items-center">How the pre-check works</Link>
           </p>
+          <ul aria-label="About this site" className="m-0 flex list-none flex-wrap gap-x-6 p-0">
+            <li><Link href="/privacy/" className="inline-flex min-h-11 items-center">Privacy</Link></li>
+            <li><Link href="/terms/" className="inline-flex min-h-11 items-center">Terms</Link></li>
+          </ul>
         </div>
       </div>
     </footer>

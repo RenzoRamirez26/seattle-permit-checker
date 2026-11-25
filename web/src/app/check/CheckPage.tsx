@@ -8,7 +8,7 @@
  * (everything else) and "About your business" (step 1). The owner corrects anything wrong, then runs the check.
  * The decision is the API's; this page only collects, shows and sends.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiProblem, call, type Facts, type Meta } from "@/api/client";
@@ -27,17 +27,23 @@ import { ANSWERS, NOT_SURE, SOURCE_WORDS } from "@/content/facts";
 import { checkRequest } from "@/state/request";
 import { emptyFacts, flow, sameBusiness, type Answer, type Business, type Reading } from "@/state/flow";
 import { useHydrated } from "@/lib/hydrated";
+import { track } from "@/lib/analytics";
 import { CheckingBar, CheckingSteps } from "@/components/flow/CheckingSteps";
 import { cn } from "@/lib/utils";
 
 export function CheckPage() {
   const hydrated = useHydrated();
-  const enterYourself = useSearchParams().get("enter") === "yourself";
+  const loading = <p className="m-0 min-h-[60vh]" aria-live="polite">Loading what was read…</p>;
   return (
     <PageShell step={3} back="/plan/" title="Check what we read from your plan" wide>
-      {hydrated ? <CheckBody enterYourself={enterYourself} /> : <p className="m-0" aria-live="polite">Loading what was read…</p>}
+      {/* Only the body reads ?enter=, so the shell and its h1 are in the static HTML. */}
+      {hydrated ? <Suspense fallback={loading}><CheckBodyFromUrl /></Suspense> : loading}
     </PageShell>
   );
+}
+
+function CheckBodyFromUrl() {
+  return <CheckBody enterYourself={useSearchParams().get("enter") === "yourself"} />;
 }
 
 /**
@@ -107,6 +113,9 @@ function CheckBody({ enterYourself }: { enterYourself: boolean }) {
     try {
       const check = await call(() => api.POST("/api/checks", { body: checkRequest(facts, answers) }));
       flow.setCheckId(check.id);
+      // Two counts only, no content: a check ran, and whether the owner changed what was read from a plan first.
+      if (reading && reading.source !== "manual" && JSON.stringify(facts) !== JSON.stringify(reading.facts)) track("Reading corrected");
+      track("Check completed");
       router.push(`/results/?check=${encodeURIComponent(check.id)}`);
     } catch (e) {
       const p = e instanceof ApiProblem ? e : new ApiProblem("network", 0, "");

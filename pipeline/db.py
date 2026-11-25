@@ -1,6 +1,11 @@
 """SQLite storage: permits, plan-review steps and reviewer comments.
 
-In:  a path. Out: a connection with the three tables created if they are missing.
+In:  a path. Out: connect(): a connection with the three tables created if they are missing (the pipeline's);
+     connect_readonly(): a read-only connection, for the checker and the API, which never write to this file.
+
+Every query in pipeline/ binds its values with ? or :name placeholders. The only SQL built with f-strings joins
+table and column names from TABLES and pipeline/schema.py (constants in the code), never a value from a request;
+tests/test_api_security.py fails if a new execute() call builds its SQL from anything else.
 
 The database is rebuilt by the pipeline and is not migrated. If a file was built with
 different column names (for example before the columns were renamed), connect() raises
@@ -46,6 +51,23 @@ def check_columns(con: sqlite3.Connection, path: Path | str) -> None:
                 f"The Seattle database at {path} was built with different column names "
                 f"(table {table} has {', '.join(unexpected) or 'columns missing'}). "
                 f"Delete the file and rebuild it with: {REBUILD_COMMAND}")
+
+
+def connect_readonly(path: Path | str) -> sqlite3.Connection:
+    """A read-only connection (SQLite mode=ro): any INSERT, UPDATE, DELETE or CREATE through it fails.
+    Raises OutdatedDatabase if the file lacks a table or has different columns, sqlite3.OperationalError if it is missing."""
+    con = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        have = {r["name"] for r in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        if not set(TABLES) <= have:
+            raise OutdatedDatabase(f"The Seattle database at {path} has no {', '.join(sorted(set(TABLES) - have))} table. "
+                                   f"Rebuild it with: {REBUILD_COMMAND}")
+        check_columns(con, path)
+    except Exception:
+        con.close()
+        raise
+    return con
 
 
 def connect(path: Path | str) -> sqlite3.Connection:
@@ -109,10 +131,10 @@ def upsert(con: sqlite3.Connection, permits: Iterable[Permit], batch: int = 2000
     return n
 
 
-def export_csv(con: sqlite3.Connection, path: Path | str, where: str = "1=1") -> int:
+def export_csv(con: sqlite3.Connection, path: Path | str) -> int:
     import csv
 
-    cur = con.execute(f"SELECT * FROM permits WHERE {where}")
+    cur = con.execute("SELECT * FROM permits")
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([d[0] for d in cur.description])

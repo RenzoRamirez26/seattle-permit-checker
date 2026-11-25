@@ -2,7 +2,7 @@
   "body": {
     "error": {
       "code": "unsupported_file_type",
-      "message": "The plan must be a PNG, JPG or PDF file."
+      "message": "We can't read this kind of file. Upload a PDF, PNG or JPG."
     }
   },
   "status": 415

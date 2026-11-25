@@ -9,6 +9,8 @@ const ROUTES: [string, string][] = [
   ["/check/", "Check what we read from your plan"],
   ["/results/", "Your pre-check results"],
   ["/help/", "How the pre-check works"],
+  ["/privacy/", "Privacy"],
+  ["/terms/", "Terms"],
 ];
 
 for (const [path, heading] of ROUTES) {

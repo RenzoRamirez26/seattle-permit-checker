@@ -28,6 +28,15 @@ export const ERROR_WORDS: Record<string, string> = {
   no_speech_heard: "We didn't hear a question. Press Start voice input and speak, or type your question.",
   no_voice_here: "Voice isn’t available in this browser. Type your question instead.",
   ondevice_failed: "Voice on this device stopped. Press Start voice input to record instead, or type your question.",
+  // The launch limits (api/limits.py, api/uploads.py).
+  rate_limited: "You've sent a lot of requests in a short time. Wait a few minutes, then try again.",
+  reading_paused: "Reading uploaded plans is paused for today. Try an example plan, or enter the measurements yourself.",
+  verification_needed: "We couldn't confirm this request came from a person. Reload the page, then try again.",
+  image_too_large: "The picture is too large to read. Upload a smaller copy, for example a photo of the plan.",
+  too_many_pages: "The PDF has too many pages. Upload only the floor plan page.",
+  request_too_large: "The request is larger than the pre-check accepts. Start over from step 1.",
+  not_a_plan_file: "We can’t read this kind of file. Upload a PDF, PNG or JPG.",
+  address_not_usable: "Enter the street number and the street, for example 1420 5th Ave.",
 };
 
 export function errorWords(code: string): string {

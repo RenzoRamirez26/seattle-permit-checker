@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "image_too_large",
+      "message": "The picture is too large to read. Upload a smaller copy, for example a photo of the plan."
+    }
+  },
+  "status": 413
+}

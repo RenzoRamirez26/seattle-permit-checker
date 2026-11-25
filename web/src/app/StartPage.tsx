@@ -5,7 +5,7 @@
  * last step gives /api/meta's counts: how many rules are checked against the code text and how many reviewed. The serif headline is Start's alone (D2). In: /api/meta, /demo/plans.json for the drawing's file and size,
  * "?deleted=1" after a check was deleted.  Out: the step 1 answers, saved by BusinessForm, then /plan/.
  */
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { BusinessForm } from "@/app/business/BusinessPage";
 import { PageHeading } from "@/components/flow/PageHeading";
@@ -27,10 +27,16 @@ function howSteps(strip: string, checked: string) {
   ];
 }
 
-export function StartPage() {
+/** The notice after a check was deleted. Only this reads the URL, so the rest of Start is in the static HTML. */
+function DeletedNotice() {
+  if (useSearchParams().get("deleted") !== "1") return null;
+  return <p role="status" className="m-0 rounded-2xl bg-tint p-4 font-medium text-ink">The check was deleted from the server.</p>;
+}
+
+/** plan: the example drawing's file and size, read when the site is built (page.tsx), so the picture is in the HTML. */
+export function StartPage({ plan = null }: { plan?: PlanPicture | null } = {}) {
   const hydrated = useHydrated();
   const generation = useSyncExternalStore(startOver.subscribe, startOver.get, () => 0);   // Start over empties the form
-  const deleted = useSearchParams().get("deleted") === "1";
   const { meta } = useMeta();
   const HOW = howSteps(decideStrip(meta), rulesCheckedWords(meta));
   return (
@@ -38,9 +44,7 @@ export function StartPage() {
       <section aria-labelledby="page-heading" className="bg-paper py-12 lg:py-16">
         <div className="page-grid gap-y-8">
           <div className="col-span-full flex min-w-0 flex-col gap-6 lg:col-span-7 lg:self-center">
-            {deleted ? (
-              <p role="status" className="m-0 rounded-2xl bg-tint p-4 font-medium text-ink">The check was deleted from the server.</p>
-            ) : null}
+            <Suspense fallback={null}><DeletedNotice /></Suspense>
             <PageHeading className="start-heading">Check your space before you sign the lease.</PageHeading>
             <p className="m-0 measure">
               For anyone opening a small business in Seattle: upload the floor plan, confirm what we read, and see what to fix
@@ -56,7 +60,7 @@ export function StartPage() {
             </ol>
           </div>
           <div className="col-span-full min-w-0 sm:col-span-6 sm:col-start-2 lg:col-span-5 lg:col-start-8">
-            <ExamplePlan />
+            <ExamplePlan initial={plan} />
           </div>
         </div>
       </section>
@@ -68,7 +72,7 @@ export function StartPage() {
             <p className="m-0 text-hero-muted">A few answers about the business. Then you upload the plan.</p>
           </div>
           <div className="col-span-full min-w-0 rounded-2xl bg-white p-6 text-ink sm:p-8 lg:col-span-8 lg:col-start-3">
-            {hydrated ? <BusinessForm key={generation} /> : <p className="m-0" aria-live="polite">Loading the questions…</p>}
+            {hydrated ? <BusinessForm key={generation} submitLabel="Start the pre-check" /> : <p className="m-0" aria-live="polite">Loading the questions…</p>}
           </div>
         </div>
       </section>
@@ -91,12 +95,13 @@ export function StartPage() {
   );
 }
 
-type PlanPicture = { src: string; width: number; height: number };
+export type PlanPicture = { src: string; width: number; height: number };
 
 /** The invented example plan, as a drawing. Its file and pixel size come from /demo/plans.json (scripts/copy-demo.mjs). */
-function ExamplePlan() {
-  const [plan, setPlan] = useState<PlanPicture | null>(null);
+function ExamplePlan({ initial }: { initial: PlanPicture | null }) {
+  const [plan, setPlan] = useState<PlanPicture | null>(initial);
   useEffect(() => {
+    if (initial) return;
     let live = true;
     fetch("/demo/plans.json")
       .then((r) => r.json())
@@ -108,7 +113,7 @@ function ExamplePlan() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [initial]);
   if (!plan) return <div aria-hidden className="aspect-[1308/1494] w-full rounded-2xl bg-white" />;
   return (
     <figure className="m-0 overflow-hidden rounded-2xl border border-hairline bg-white">
@@ -118,6 +123,7 @@ function ExamplePlan() {
         width={plan.width}
         height={plan.height}
         alt="An example floor plan of a café, invented for this demo"
+        fetchPriority="high"
         className="block h-auto w-full"
       />
     </figure>

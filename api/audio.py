@@ -22,6 +22,8 @@ from typing import Optional
 KINDS = {"audio/webm": "webm", "audio/mp4": "mp4", "audio/ogg": "ogg", "audio/wav": "wav", "audio/x-wav": "wav",
          "audio/wave": "wav"}
 SUFFIX = {"webm": ".webm", "mp4": ".mp4", "ogg": ".ogg"}
+DEMUXER = {"webm": "matroska", "mp4": "mov", "ogg": "ogg"}     # ffmpeg's input format for each kind
+MAX_SECONDS = 35                # a little over the 30 seconds the browser records
 WAV_RATE = 16000
 CONVERT_SECONDS = 30            # a 30-second question converts in well under a second
 TEMP_PREFIX = "permit-audio-"
@@ -69,7 +71,10 @@ def to_wav(data: bytes, k: str) -> bytes:
         src, out = Path(folder) / f"in{SUFFIX[k]}", Path(folder) / "out.wav"
         src.write_bytes(data)
         try:
-            done = subprocess.run([exe, "-nostdin", "-hide_banner", "-loglevel", "error", "-i", str(src),
+            # The demuxer is named (never guessed from the bytes), ffmpeg may open local files only, and the output is
+            # cut at MAX_SECONDS, so a small clip cannot turn into a long transcription.
+            done = subprocess.run([exe, "-nostdin", "-hide_banner", "-loglevel", "error", "-protocol_whitelist", "file",
+                                   "-f", DEMUXER[k], "-i", str(src), "-t", str(MAX_SECONDS),
                                    "-ac", "1", "-ar", str(WAV_RATE), "-sample_fmt", "s16", "-f", "wav", str(out)],
                                   capture_output=True, timeout=CONVERT_SECONDS, check=False)
         except subprocess.TimeoutExpired as e:

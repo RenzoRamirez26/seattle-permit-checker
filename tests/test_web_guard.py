@@ -3,6 +3,7 @@
 Also checks that the front end's generated API types and its test fixtures match the API as it is now.
 Needs Node.js (and web/node_modules for the types check); skipped where Node.js is not installed.
 """
+import json
 import shutil
 import subprocess
 import sys
@@ -87,3 +88,24 @@ def test_the_guard_requires_on_device_recognition_to_stay_on_the_device(tmp_path
     od.write_text(od.read_text(encoding="utf-8").replace("r.processLocally = true;", "r.lang = LANGS[0];"), encoding="utf-8")
     r = _guard("src", copy)
     assert r.returncode == 1 and "speech-not-local" in r.stderr and "ondevice.ts" in r.stderr
+
+
+def test_both_static_hosts_send_the_same_security_headers():
+    """vercel.json and netlify.toml (either host may be used) carry the same headers, and they include what the launch
+    needs: frame-ancestors none, HSTS, nosniff, a referrer policy and microphone for the site only."""
+    import tomllib
+
+    vercel = {h["key"]: h["value"] for h in json.loads((WEB / "vercel.json").read_text())["headers"][0]["headers"]}
+    netlify = tomllib.loads((WEB / "netlify.toml").read_text())["headers"][0]["values"]
+    assert vercel == netlify
+    assert "frame-ancestors 'none'" in vercel["Content-Security-Policy"]
+    assert vercel["Strict-Transport-Security"].startswith("max-age=") and vercel["X-Content-Type-Options"] == "nosniff"
+    assert "microphone=(self)" in vercel["Permissions-Policy"] and "camera=()" in vercel["Permissions-Policy"]
+    assert vercel["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+
+def test_the_api_and_the_site_send_the_same_permissions_policy():
+    from api import security
+
+    vercel = {h["key"]: h["value"] for h in json.loads((WEB / "vercel.json").read_text())["headers"][0]["headers"]}
+    assert vercel["Permissions-Policy"] == security.PERMISSIONS

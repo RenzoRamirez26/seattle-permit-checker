@@ -1,0 +1,9 @@
+{
+  "body": {
+    "error": {
+      "code": "reading_paused",
+      "message": "Reading uploaded plans is paused for today. Try an example plan, or enter the measurements yourself. Reading starts again tomorrow."
+    }
+  },
+  "status": 503
+}
