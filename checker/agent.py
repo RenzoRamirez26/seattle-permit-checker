@@ -11,8 +11,9 @@ answer is used instead.
 
 Without ANTHROPIC_API_KEY the template answers every question, so the app still works.
 
-STATUS: the request and the grounding check are tested with the API mocked. No real
-model call has been made from this code yet.
+STATUS: the request and the grounding check are tested with the API mocked. One real call
+(24 November 2026, docs/launch.md, Budget) used all 500 max_tokens on thinking and wrote no
+text, so the template answered. A real model answer has not been seen from this code yet.
 """
 from __future__ import annotations
 

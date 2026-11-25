@@ -90,7 +90,7 @@ a shared store first.
 | `PERMIT_CORS_ORIGIN` | `https://permitos.example,https://www.permitos.example` | none in production: no browser may call |
 | `PERMIT_ENV` | `production` (the image sets it) | `development` |
 | `PERMIT_PROXY_HOPS` | `1` on Render, Fly and Railway | `0` |
-| `PERMIT_DAILY_MODEL_CALLS` | Your daily ceiling, e.g. `500` | `500` |
+| `PERMIT_DAILY_MODEL_CALLS` | Your daily ceiling: `10` for a $10-a-month spend limit (section 5, Budget) | `10` |
 | `PERMIT_TURNSTILE_SECRET` | **Secret.** Only with Turnstile | off |
 | `PERMIT_RATE_PLAN_READ`, `_ASK`, `_TRANSCRIBE`, `_ZONING`, `_CHECKS`, `_PDF` | `requests/seconds` per address | `10/600`, `30/600`, `30/600`, `30/600`, `30/600`, `60/600` |
 | `PERMIT_CHECK_DAYS` | Days a check is kept | `30` |
@@ -121,13 +121,66 @@ Three layers, from the outside in:
    and create the production key in it, so its spend is separate from development. Set that workspace's **spend
    limit** to the most you are willing to pay in a month; calls stop when it is reached. Under **Settings → Limits**
    check your organization's limit and rate limits, and set up email notifications for usage if your account offers
-   them. Check these menu names when you do it: the console changes.
-2. **`PERMIT_DAILY_MODEL_CALLS`** on the API: when the day's calls (UTC) are used, the site says "Reading uploaded
+   them. Check these menu names when you do it: the console changes. For this site, set the limit to **$10 a month**
+   (the budget below).
+2. **`PERMIT_DAILY_MODEL_CALLS`** (default 10, from the budget below) on the API: when the day's calls (UTC) are used, the site says "Reading uploaded
    plans is paused for today" and offers the example plans and typing the measurements. The assistant keeps answering
    from its templates. Reading a plan is up to two calls, an answer is one.
 3. **Rate limits** per address (section 4) stop one visitor or script from using the day's calls.
 
 Look at the Console's usage page daily for the first week and adjust the cap.
+
+### Budget
+
+The account's Anthropic spend limit is **$10 a month**. The daily cap is chosen so that a month at the cap stays under
+**$9**, leaving $1 for development calls and for calls dearer than the ones measured.
+
+**Which calls the API makes** (both through `limits.counted`, so both count against the cap):
+
+| Call | Code | Model | `max_tokens` |
+|---|---|---|---|
+| Plan reading (one picture, one `record_floor_plan` tool) | `checker/extract.py` | `claude-sonnet-5-5` (`PERMIT_VISION_MODEL`) | 4,000 |
+| Assistant answer (the audit as context, up to 6 earlier turns) | `checker/agent.py` | `claude-sonnet-5-5` (`PERMIT_AGENT_MODEL`) | 500 |
+
+A plan reading is up to two calls: if the model does not call the tool, the request is sent once more.
+
+**Measured on 24 November 2026**, one call of each against the real API, token counts from the response's `usage`
+field (no prompt caching: cache reads and writes were 0):
+
+| Call | What was sent | Input tokens | Output tokens | Cost |
+|---|---|---|---|---|
+| Plan reading | `demo/flawed_plan.png` (1308 x 1494 px), cafe with cooking | 4,971 | 1,685 | $0.0268 |
+| Assistant answer | "What should I fix first, and which permits will I need?" about that check, NC2-55 (M), with Seattle's review data | 7,652 | 500 (the cap) | $0.0203 |
+
+**Price:** Claude Sonnet 5.5 is $2 per million input tokens and $10 per million output tokens (Anthropic's pricing
+page, read 24 November 2026: <https://platform.claude.com/docs/en/about-claude/pricing>). So a plan reading is
+4,971 x $2/M + 1,685 x $10/M = $0.0099 + $0.0169 = **$0.0268**, and an answer is 7,652 x $2/M + 500 x $10/M =
+$0.0153 + $0.0050 = **$0.0203**.
+
+**The cap:**
+
+    worst-case cost per call = the dearer of the two = $0.026792 (a plan reading)
+    cap = floor($9 / (worst-case cost per call x 31 days)) = floor(9 / 0.830552) = floor(10.84) = 10 calls a day
+    a month at the cap: 10 x $0.026792 x 31 = $8.31
+
+**What 10 calls a day allows:** at least **5 plan checks a day** (a check is up to two calls), or up to 10 when
+every plan is read on the first try and nobody asks the assistant. Assistant answers come out of the same 10. When the
+day's calls are used, the example plans, typed measurements and template answers still work.
+
+`tests/test_budget.py` records these numbers and fails if the default cap x the worst-case cost x 31 reaches $9.
+Measure again and update the test and this section when the model, its price, a prompt or a `max_tokens` changes.
+
+Limits of this estimate:
+
+- It is one measured call of each. A bigger or busier plan, a longer conversation, or a reading that uses more of
+  its 4,000 output tokens costs more. If every call were a plan reading that used all 4,000 (4,971 x $2/M +
+  4,000 x $10/M = $0.0499), 10 calls a day for 31 days would be $15.48. The Console spend limit (step 1) is what
+  stops that; the daily cap only keeps an ordinary month well under it.
+- The measured answer used all 500 output tokens without writing any text, so the site answered from its template.
+  The model on this route thinks before it answers, and the thinking used the whole allowance. Until that is fixed,
+  every typed question with a key costs about $0.02 and still gets the template answer. Raising `max_tokens` fixes
+  it but makes an answer dearer than a plan reading (at 2,000: 7,652 x $2/M + 2,000 x $10/M = $0.0353 a call, a cap
+  of 8), so measure again and change the cap with it.
 
 ## 6. DNS and the custom domain
 

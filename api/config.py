@@ -98,12 +98,17 @@ def max_image_pixels() -> int:
 MAX_JSON_BYTES = 512 * 1024     # the largest JSON body (a check's facts and answers are a few KB)
 
 
+# Sized for a $10-a-month Anthropic spend limit: 10 calls x $0.0268 (the dearest call measured) x 31 days = $8.31,
+# under $9. The measurement and the formula: docs/launch.md, Budget; tests/test_budget.py keeps them in step.
+DEFAULT_DAILY_MODEL_CALLS = 10
+
+
 def daily_model_calls() -> int:
     """How many model calls (plan readings and assistant answers) the whole site may make per UTC day. 0 means none."""
     try:
-        return max(0, int(os.environ.get("PERMIT_DAILY_MODEL_CALLS", "500")))
+        return max(0, int(os.environ.get("PERMIT_DAILY_MODEL_CALLS", str(DEFAULT_DAILY_MODEL_CALLS))))
     except ValueError:
-        return 500
+        return DEFAULT_DAILY_MODEL_CALLS
 
 
 def proxy_hops() -> int:
