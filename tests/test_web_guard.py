@@ -102,3 +102,10 @@ def test_both_static_hosts_send_the_same_security_headers():
     assert vercel["Strict-Transport-Security"].startswith("max-age=") and vercel["X-Content-Type-Options"] == "nosniff"
     assert "microphone=(self)" in vercel["Permissions-Policy"] and "camera=()" in vercel["Permissions-Policy"]
     assert vercel["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+
+def test_the_api_and_the_site_send_the_same_permissions_policy():
+    from api import security
+
+    vercel = {h["key"]: h["value"] for h in json.loads((WEB / "vercel.json").read_text())["headers"][0]["headers"]}
+    assert vercel["Permissions-Policy"] == security.PERMISSIONS

@@ -1,0 +1,11 @@
+# The web API's runtime only (the Docker image). Same pins as requirements.txt; tests/test_api_security.py fails if
+# they drift apart. Streamlit, pandas, matplotlib and pytest are not needed to serve the API.
+anthropic==2.12.0       # Claude API: vision (checker/extract.py) and the agent (checker/agent.py)
+pillow==13.0.0          # resize the plan image before sending it
+pypdfium2==5.15.2       # first page of a PDF plan -> image
+fpdf2==2.9.0            # the report and preparation-sheet PDFs (checker/pdf.py)
+fastapi==0.165.0        # the web API
+uvicorn==0.54.0         # runs it
+python-multipart==0.0.34  # lets FastAPI accept an uploaded plan file
+requests==2.34.2        # geocoder, zoning layer, Turnstile
+python-dotenv==1.2.4    # checker/__init__.py loads .env when there is one (the image has none)

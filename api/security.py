@@ -27,7 +27,7 @@ PDF_CSP = "frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-s
 DOCS_CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://fastapi.tiangolo.com; "
             "frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
-PERMISSIONS = "camera=(), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()"
+PERMISSIONS = "camera=(), microphone=(self), geolocation=(), payment=(), usb=()"      # the same as web/vercel.json
 HSTS = "max-age=63072000; includeSubDomains"
 DOCS_PATHS = ("/docs", "/redoc")
 
