@@ -47,6 +47,8 @@ export default defineConfig({
         PERMIT_CHECKS_DB: join(data, "checks.sqlite"),
         PERMIT_SEATTLE_DB: join(data, "no-permits.sqlite"),
         PERMIT_CORS_ORIGIN: WEB,
+        // The flows make many requests from one address in a few minutes; the limits have their own tests (tests/test_api_security.py).
+        ...Object.fromEntries(["PLAN_READ", "ASK", "TRANSCRIBE", "ZONING", "CHECKS", "PDF"].map((b) => [`PERMIT_RATE_${b}`, "10000/60"])),
       },
     },
     {

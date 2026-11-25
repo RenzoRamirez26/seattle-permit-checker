@@ -78,7 +78,14 @@ export function toBusiness(v: Values, meta: Meta | null): Business {
   };
 }
 
-export function BusinessForm() {
+/** An address the API will look up: a street number and a street name, within the API's length limit. */
+export function addressUsable(address: string, meta: Pick<Meta, "limits"> | null): boolean {
+  const a = address.trim();
+  return a.length <= (meta?.limits.max_address_chars ?? 200) && /\d/.test(a) && /[a-z]/i.test(a);
+}
+
+/** submitLabel: Start's one call to action is "Start the pre-check"; step 1 on its own page says "Continue". */
+export function BusinessForm({ submitLabel = "Continue" }: { submitLabel?: string } = {}) {
   const router = useRouter();
   const { meta, problem: metaProblem } = useMeta();
   const [problems, setProblems] = useState<ProblemItem[]>([]);
@@ -101,6 +108,8 @@ export function BusinessForm() {
       if (!v[k]) out.push({ id: k, text: QUESTIONS[k].missing, href: `#${k}` });
     }
     if (v.address.trim() && v.zone.trim()) out.push({ id: "zone", text: ADDRESS.both, href: "#zone" });
+    if (v.address.trim() && !addressUsable(v.address, meta))
+      out.push({ id: "address", text: ADDRESS.notUsable, href: "#address" });       // the API refuses the same addresses
     return out;
   };
 
@@ -145,11 +154,12 @@ export function BusinessForm() {
         <Controller name="address" control={control} render={({ field }) => (
           <div id="address">
             <TextField label={ADDRESS.label} hint={ADDRESS.hint} name="street-address" autoComplete="street-address"
-              value={field.value} onChange={field.onChange} spellCheck="false"
+              value={field.value} onChange={(v) => { field.onChange(v); queueMicrotask(recheck); }} spellCheck="false"
+              error={errorFor("address")} maxLength={meta.limits.max_address_chars}
               onBlur={() => { field.onBlur(); setPlaceAddress(field.value.trim()); }} />
           </div>
         )} />
-        {placeAddress && placeAddress === (values.address ?? "").trim() ? <AddressCheck address={placeAddress} businessType={type} /> : null}
+        {placeAddress && placeAddress === (values.address ?? "").trim() && addressUsable(placeAddress, meta) ? <AddressCheck address={placeAddress} businessType={type} /> : null}
         <Controller name="zone" control={control} render={({ field }) => (
           <div id="zone">
             <TextField label={ADDRESS.zoneLabel} hint={ADDRESS.zoneHint} name="zone" autoComplete="off" error={errorFor("zone")}
@@ -185,7 +195,7 @@ export function BusinessForm() {
       ) : null}
 
       <div>
-        <Button type="submit" variant="primary">Continue</Button>
+        <Button type="submit" variant="primary">{submitLabel}</Button>
       </div>
     </form>
   );

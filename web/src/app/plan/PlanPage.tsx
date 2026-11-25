@@ -7,7 +7,7 @@
  * Reading page). On a server with no model key, the example plans and manual entry are listed before the owner tries
  * an upload. The file stays in memory only (D12); nothing is sent until Read my plan.
  */
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DropZone, FileTrigger, Text } from "react-aria-components";
@@ -39,16 +39,50 @@ export function fileProblem(file: File, meta: Pick<Meta, "limits">): string | nu
   return null;
 }
 
+/** The first bytes each accepted type starts with: a renamed file is caught here, before it is sent (the API checks
+ * the same bytes again and ignores the name). */
+const MAGIC: [string, number[]][] = [
+  ["image/png", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  ["image/jpeg", [0xff, 0xd8, 0xff]],
+  ["application/pdf", [0x25, 0x50, 0x44, 0x46, 0x2d]],
+];
+
+/** The problem with a chosen file's contents, or null: its first bytes must be a PDF, PNG or JPG. */
+export async function fileContentProblem(file: Blob): Promise<string | null> {
+  let head: Uint8Array;
+  try {
+    head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  } catch {
+    return null;              // the browser cannot read it here; the API checks it anyway
+  }
+  return MAGIC.some(([, magic]) => magic.every((b, i) => head[i] === b)) ? null : errorWords("not_a_plan_file");
+}
+
 const sizeWords = (bytes: number) => (bytes < 1024 * 1024 ? `${formatNumber(Math.max(1, Math.round(bytes / 1024)))} KB` : `${formatNumber(bytes / 1024 / 1024)} MB`);
 
 export function PlanPage() {
   const hydrated = useHydrated();
   return (
     <PageShell step={2} back="/" title="Upload your floor plan">
-      {hydrated ? <PlanBody /> : <p className="m-0" aria-live="polite">Loading…</p>}
+      {/* Only the body reads ?problem=, so the shell and its h1 are in the static HTML. */}
+      {hydrated ? <Suspense fallback={<PlanLoading />}><PlanBody /></Suspense> : <PlanLoading />}
     </PageShell>
   );
 }
+
+/** Before the page has read this tab's answers: the same opening words as PlanBody, so the page's main text is in the
+ * static HTML (it is what the browser paints first, and the page does not jump when the rest arrives). */
+const PlanLoading = () => (
+  <div className="flex min-h-[60vh] flex-col gap-8">
+    <div className="flex flex-col gap-4">
+      <p className="m-0">The plan can be a PDF, PNG or JPG file. A usable plan shows:</p>
+      <ul className="m-0 flex list-disc flex-col gap-1 pl-6">
+        {USABLE_PLAN.map((t) => <li key={t}>{t}</li>)}
+      </ul>
+    </div>
+    <p className="m-0" aria-live="polite">Loading…</p>
+  </div>
+);
 
 function PlanBody() {
   const router = useRouter();
@@ -63,9 +97,9 @@ function PlanBody() {
 
   const focusChooser = () => requestAnimationFrame(() => document.querySelector<HTMLElement>("#plan-file button")?.focus());
 
-  const choose = (f: File | null | undefined) => {
+  const choose = async (f: File | null | undefined) => {
     if (!f || !meta) return;
-    const p = fileProblem(f, meta);
+    const p = fileProblem(f, meta) ?? (await fileContentProblem(f));
     setFileError(p);
     if (p) {
       planFile.clear();
@@ -110,6 +144,7 @@ function PlanBody() {
   ];
   const state = unreadable ? "unreadable" : failed ? "failed" : file ? "chosen" : reading && reading.source !== "manual" ? "read" : "empty";
   const showNoKey = meta && !meta.features.model_api_key && problemCode !== "no_model_key" && !unreadable;
+  const showPaused = meta && meta.features.model_api_key && meta.features.reading_paused && problemCode !== "reading_paused";
 
   return (
     <div className="flex flex-col gap-8" data-state={state}>
@@ -125,6 +160,7 @@ function PlanBody() {
         </ul>
         {meta ? <p className="m-0 text-ink-muted">{NOT_SAVED(meta.limits.check_days)}</p> : null}
         {showNoKey ? <NoModelKey /> : null}
+        {showPaused ? <ReadingPaused /> : null}
       </div>
 
       <div id="plan-file">
@@ -307,6 +343,16 @@ function NoModelKey() {
   return (
     <section aria-labelledby="no-model-key" className="flex flex-col gap-2 rounded-2xl bg-tint p-6">
       <p id="no-model-key" className="m-0">This server can&apos;t read uploaded plans yet. You can still try an example plan, or enter the measurements yourself:</p>
+      <WithoutReading />
+    </section>
+  );
+}
+
+/** Today's model calls are used up (the API's daily cap): reading uploads is paused, the examples and typing still work. */
+function ReadingPaused() {
+  return (
+    <section aria-labelledby="reading-paused" className="flex flex-col gap-2 rounded-2xl bg-tint p-6">
+      <p id="reading-paused" className="m-0">Reading uploaded plans is paused for today. You can still try an example plan, or enter the measurements yourself:</p>
       <WithoutReading />
     </section>
   );

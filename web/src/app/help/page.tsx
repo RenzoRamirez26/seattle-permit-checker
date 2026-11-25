@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { PageShell } from "@/components/flow/PageShell";
 import { RuleLevels } from "@/components/help/RuleLevels";
 import { CAN_AND_CANNOT, HELP } from "@/content/help";
 import { LEVELS_HELP } from "@/content/verification";
 
-export const metadata: Metadata = { title: "How the pre-check works" };
+export const metadata: Metadata = pageMetadata({
+  title: "How the pre-check works",
+  description: "What the PermitOS pre-check looks at, how far each rule is checked, what happens to your plan, and how voice works.",
+  path: "/help/",
+});
 
 /** D8: the assistant's fixed help text as a page, so it can be read and linked without opening the assistant. */
 export default function Page() {

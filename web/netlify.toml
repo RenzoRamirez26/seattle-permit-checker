@@ -1,0 +1,19 @@
+# Netlify alternative to vercel.json (docs/launch.md): set the site's base directory to web/.
+# The headers are the same as vercel.json's; tests/test_web_guard.py fails if they differ.
+[build]
+  command = "npm run build"
+  publish = "out"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(self), geolocation=(), payment=(), usb=()"
+    Cross-Origin-Opener-Policy = "same-origin"

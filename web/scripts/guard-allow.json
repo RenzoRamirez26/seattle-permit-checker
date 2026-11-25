@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "rule": "model-call",
+    "file": "src/content/legal.ts",
+    "contains": "Anthropic",
+    "reason": "the Privacy page must name the company whose API reads plan images (words and links to its policies, no call)"
+  },
+  {
+    "rule": "code-number",
+    "file": "src/app/fonts.ts",
+    "contains": "weight:",
+    "reason": "font weights (\"300\", \"500\") written as next/font requires literal strings; the quote after the number is not inches"
+  }
+]

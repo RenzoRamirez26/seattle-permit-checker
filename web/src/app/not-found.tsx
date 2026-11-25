@@ -4,7 +4,7 @@ import { PageShell } from "@/components/flow/PageShell";
 
 const TITLE = "There is no page at this address";
 
-export const metadata: Metadata = { title: TITLE };
+export const metadata: Metadata = { title: TITLE, robots: { index: false, follow: true } };
 
 export default function NotFound() {
   return (

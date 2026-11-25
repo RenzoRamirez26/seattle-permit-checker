@@ -32,6 +32,7 @@ export const ADDRESS = {
   zoneLabel: "Zone from the zoning map (optional)",
   zoneHint: "Only if you know it, for example NC2-55 (M). Leave the address empty if you enter a zone.",
   both: "Enter an address or a zone, not both. Clear one of them.",
+  notUsable: "Enter the street number and the street, for example 1420 5th Ave. Or leave the address empty.",
 };
 
 /** The notice on step 3 when an example plan's answers replaced the owner's (F2). */

@@ -39,9 +39,10 @@
 
   /* Type: Plex Sans for text, Plex Mono for code sections and measurements, Plex Serif for the Start headline only.
      Three sizes, no more (tested): 48 page title (Light), 24 section heading (Medium), 17 everything else. */
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --font-serif: "IBM Plex Serif", Georgia, serif;
+  /* The faces are loaded by next/font (src/app/fonts.ts), which sets these variables with a metric-matched fallback. */
+  --font-sans: var(--font-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: var(--font-plex-serif), "IBM Plex Serif", Georgia, serif;
 
   --text-title: 3rem;            /* 48 / 56 */
   --text-title--line-height: 3.5rem;
@@ -194,7 +195,8 @@
 
 @layer components {
   /* Start page h1 only: IBM Plex Serif 400 (D2). Same sizes as every h1. */
-  .start-heading { font-family: var(--font-serif); font-weight: 400; }
+  /* --font-plex-serif is set on Start's own wrapper (src/app/page.tsx), so it is named here, not through --font-serif. */
+  .start-heading { font-family: var(--font-plex-serif, "IBM Plex Serif"), Georgia, serif; font-weight: 400; }
 }
 
 /* The assistant: the only thing that moves (brief section 11). Transform only, off with reduced motion. */

@@ -9,7 +9,7 @@
  */
 import { useMeta } from "@/components/layout/Providers";
 import { inShortCounts, levelWords, ZONING_RULE } from "@/content/verification";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Dialog, Heading, Modal, ModalOverlay, Tab, TabList, TabPanel, Tabs } from "react-aria-components";
@@ -36,7 +36,23 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { flow } from "@/state/flow";
 import { findingInHash, resultsTabs, REVEAL_FINDING } from "@/state/resultsTabs";
 
+/** The page: its heading and a loading line are in the static HTML; only the part that reads ?check= waits for the
+ * browser (useSearchParams), so the page does not start empty and jump when the script runs. */
 export function ResultsPage() {
+  return (
+    <Suspense fallback={<ResultsShell><Loading /></ResultsShell>}>
+      <ResultsLoader />
+    </Suspense>
+  );
+}
+
+const ResultsShell = ({ children }: { children: React.ReactNode }) => (
+  <PageShell step={4} back="/check/" title="Your pre-check results" wide>{children}</PageShell>
+);
+// Holds the space the results will take, so the footer does not move into view and out again while they load.
+const Loading = () => <p className="m-0 min-h-[60vh]" aria-live="polite">Loading the results…</p>;
+
+function ResultsLoader() {
   const id = useSearchParams().get("check");
   const [check, setCheck] = useState<Check | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -56,7 +72,7 @@ export function ResultsPage() {
 
   if (id && check && !problem) return <Results check={check} />;     // the results carry their own hero and h1
   return (
-    <PageShell step={4} back="/check/" title="Your pre-check results" wide>
+    <ResultsShell>
       {!id ? (
         <p className="m-0">There is no check to show. <Link href="/">Start a pre-check</Link>.</p>
       ) : problem ? (
@@ -65,9 +81,9 @@ export function ResultsPage() {
           <p className="m-0"><Link href="/">Start a new check</Link></p>
         </div>
       ) : (
-        <p className="m-0" aria-live="polite">Loading the results…</p>
+        <Loading />
       )}
-    </PageShell>
+    </ResultsShell>
   );
 }
 
