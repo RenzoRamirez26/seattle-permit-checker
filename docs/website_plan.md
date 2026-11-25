@@ -12,7 +12,7 @@ the Status column says what was decided.
 | `docs/design_brief.md` | Yes | Contrast figures recalculated: all match (field border is 3.49 to 1, just above 3). |
 | `docs/design_research.md` | Yes | |
 | `docs/deployment_kit.md` | Yes | Says `GET /api/meta` returns the rulebook date. It does not; see Q2. |
-| `docs/website_handoff.pdf` | Yes, all 5 pages | |
+| The website brief | Yes, all 5 pages | A short handoff from 21 November 2026 (no longer in the repository) that set the rules and build stages for an API and a Next.js front end beside the Streamlit app. |
 | `api/` | Yes, every file | Eight routes in `api/main.py`; the contract in `api/schemas.py`. |
 | Audit result | Yes, by running it | `checker.audit.audit()` on `demo/flawed_extraction.json`: 19 findings (11 fail, 2 review, 6 pass), 12 permits. |
 | Vercel Web Interface Guidelines | **Yes** | `AGENTS.md` from `vercel-labs/web-interface-guidelines`, commit `434b7f9`, fetched today from raw.githubusercontent.com. `vercel.com/design/guidelines` could not be reached from this environment; the repository file is the source the site cites, so nothing depends on it. |
