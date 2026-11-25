@@ -274,7 +274,7 @@ def test_the_permit_answer_carries_may_be_needed_and_the_unchecked_note(rules, l
 def test_sonnet_answers_are_asked_not_to_think_and_other_models_get_no_thinking_field(salon):
     sonnet = FakeClient(text="Your restroom door needs 32 inches clear. [EG-3]")
     agent.answer("Is the restroom door ok?", salon, client=sonnet, model="claude-sonnet-5-5")
-    assert sonnet.kwargs["thinking"] == {"type": "between_tools"} and sonnet.kwargs["max_tokens"] == 500
+    assert sonnet.kwargs["thinking"] == {"type": "between_tools"} and sonnet.kwargs["max_tokens"] == 1000
     other = FakeClient(text="Your restroom door needs 32 inches clear. [EG-3]")
     agent.answer("Is the restroom door ok?", salon, client=other, model="test-model")
     assert "thinking" not in other.kwargs

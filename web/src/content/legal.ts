@@ -37,7 +37,7 @@ export const PRIVACY: LegalSection[] = [
       "Your file goes to our server. The server checks that it is a PDF, PNG or JPG, turns it into a picture and sends that picture to the Claude API, run by Anthropic, which reads the rooms, doors and fixtures from it. Anthropic decides nothing: the rules on our server do.",
       "While it is read, the file is kept in a temporary file with a random name. That file is deleted as soon as the reading ends, whether it worked or not. We never store your plan file and never show it to anyone.",
       "Anthropic receives the picture only to read it. How long Anthropic keeps what is sent to its API is set by its commercial terms and privacy policy.",
-      // api/main.py: a demo case uses its saved reading unless use_vision is asked for
+      // api/main.py: a demo case always uses its saved reading (tests/test_api_security.py)
       "The example plans are read from readings we saved beforehand. Nothing about them is sent to Anthropic.",
     ],
     links: [

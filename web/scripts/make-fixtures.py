@@ -163,7 +163,7 @@ def build(tmp: Path) -> dict[str, object]:
                 messages = type("M", (), {"create": staticmethod(lambda **k: (_ for _ in ()).throw(RuntimeError("unused")))})()
 
             app.dependency_overrides[api_main.model_client] = lambda: Reads()
-            with env(PERMIT_DAILY_MODEL_CALLS="0"):
+            with env(PERMIT_DAILY_PLAN_READS="0"):
                 errors["reading_paused"] = c.post("/api/plans/read", files={"file": ("plan.png", png(), "image/png")})
             with env(PERMIT_TURNSTILE_SECRET="fixture-secret"):
                 errors["verification_needed"] = c.post("/api/plans/read", files={"file": ("plan.png", png(), "image/png")})

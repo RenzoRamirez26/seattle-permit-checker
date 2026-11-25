@@ -90,7 +90,8 @@ a shared store first.
 | `PERMIT_CORS_ORIGIN` | `https://permitos.example,https://www.permitos.example` | none in production: no browser may call |
 | `PERMIT_ENV` | `production` (the image sets it) | `development` |
 | `PERMIT_PROXY_HOPS` | `1` on Render, Fly and Railway | `0` |
-| `PERMIT_DAILY_MODEL_CALLS` | Your daily ceiling: `10` for a $10-a-month spend limit (section 5, Budget) | `10` |
+| `PERMIT_DAILY_PLAN_READS` | Model calls that read uploads per UTC day: `6` for a $10-a-month spend limit (section 5, Budget) | `6` |
+| `PERMIT_DAILY_ASK_CALLS` | Model calls that answer questions per UTC day: `5` (section 5, Budget) | `5` |
 | `PERMIT_TURNSTILE_SECRET` | **Secret.** Only with Turnstile | off |
 | `PERMIT_RATE_PLAN_READ`, `_ASK`, `_TRANSCRIBE`, `_ZONING`, `_CHECKS`, `_PDF` | `requests/seconds` per address | `10/600`, `30/600`, `30/600`, `30/600`, `30/600`, `60/600` |
 | `PERMIT_CHECK_DAYS` | Days a check is kept | `30` |
@@ -123,80 +124,98 @@ Three layers, from the outside in:
    check your organization's limit and rate limits, and set up email notifications for usage if your account offers
    them. Check these menu names when you do it: the console changes. For this site, set the limit to **$10 a month**
    (the budget below).
-2. **`PERMIT_DAILY_MODEL_CALLS`** (default 10, from the budget below) on the API: when the day's calls (UTC) are used, the site says "Reading uploaded
-   plans is paused for today" and offers the example plans and typing the measurements. The assistant keeps answering
-   from its templates. Reading a plan is up to two calls, an answer is one.
+2. **`PERMIT_DAILY_PLAN_READS`** and **`PERMIT_DAILY_ASK_CALLS`** (defaults 6 and 5, from the budget below) on the
+   API, counted separately per UTC day so questions can never block uploads. When the plan reads are used, the site
+   says "Reading uploaded plans is paused for today" and offers the example plans and typing the measurements. When
+   the asks are used, the assistant answers from its templates. Reading a plan is up to two calls; an answer is one.
 3. **Rate limits** per address (section 4) stop one visitor or script from using the day's calls.
 
-Look at the Console's usage page daily for the first week and adjust the cap.
+Look at the Console's usage page daily for the first week and adjust the caps.
 
 ### Budget
 
-The account's Anthropic spend limit is **$10 a month**. The daily cap is chosen so that a month at the cap stays under
-**$9**, leaving $1 for development calls and for calls dearer than the ones measured.
+The account's Anthropic spend limit is **$10 a month**. The daily caps are chosen so that a month at both caps stays
+under **$9**, leaving $1 for development calls and for calls dearer than the ones measured.
 
-**Which calls the API makes** (both through `limits.counted`, so both count against the cap):
+**Which calls the API makes.** Each goes through `limits.counted` and counts against its own daily cap:
 
-| Call | Code | Model | `max_tokens` | Thinking |
-|---|---|---|---|---|
-| Plan reading (one picture, one `record_floor_plan` tool) | `checker/extract.py` | `claude-sonnet-5-5` (`PERMIT_VISION_MODEL`) | 4,000 | the model's default (adaptive) |
-| Assistant answer (the audit as context, up to 6 earlier turns) | `checker/agent.py` | `claude-sonnet-5-5` (`PERMIT_AGENT_MODEL`) | 500 | off: `{"type": "between_tools"}` |
+| Call | Code | Model | `max_tokens` | Thinking | Daily cap |
+|---|---|---|---|---|---|
+| Plan reading (one picture, one `record_floor_plan` tool) | `checker/extract.py` | `claude-sonnet-5-5` (`PERMIT_VISION_MODEL`) | 4,000 | the model's default (adaptive) | `PERMIT_DAILY_PLAN_READS` |
+| Assistant answer (the audit as context, up to 6 earlier turns) | `checker/agent.py` | `claude-sonnet-5-5` (`PERMIT_AGENT_MODEL`) | 1,000 | off: `{"type": "between_tools"}` | `PERMIT_DAILY_ASK_CALLS` |
 
 `max_tokens` covers thinking and the reply together. Sonnet 5.5 thinks by default and rejects
-`thinking: {"type": "disabled"}`; `between_tools` is its documented lowest setting (no other field, effort `high` or
+`thinking: {"type": "disabled"}`. `between_tools` is its documented lowest setting (no other field, effort `high` or
 below; <https://platform.claude.com/docs/en/build-with-claude/thinking>). `checker/agent.py` sends it only to
-`claude-sonnet-5-5`, because other models reject it.
+`claude-sonnet-5-5`, because other models reject it. The system prompt asks for at most 120 words, in plain language,
+starting with what to do (CONTENT.md). `max_tokens` is 1,000 so that a longer reply is not cut off mid-sentence.
 
-A plan reading is up to two calls: if the model does not call the tool, the request is sent once more.
+A plan reading is up to two calls: if the model does not call the tool, the request is sent once more. The example
+plans never call the model: they always use their saved readings, and the API no longer accepts a flag to read them
+with the model (`tests/test_api_security.py`).
 
-**Measured on 24 November 2026**, one call of each against the real API, token counts from the response's `usage`
-field (no prompt caching: cache reads and writes were 0):
+**Measured on 24 November 2026**, one call of each against the real API. Token counts are from the response's `usage`
+field; prompt caching was not used (cache reads and writes were 0):
 
 | Call | What was sent | Input tokens | Output tokens | Cost |
 |---|---|---|---|---|
 | Plan reading | `demo/flawed_plan.png` (1308 x 1494 px), cafe with cooking | 4,971 | 1,685 | $0.0268 |
-| Assistant answer, thinking off | "What should I fix first, and which permits will I need?" about `demo/flawed_extraction.json`, cafe with cooking, NC2-55 (M), with Seattle's review data | 7,592 | 500 (the cap), all text | $0.0202 |
+| Assistant answer | "What should I fix first, and which permits will I need?" about `demo/flawed_extraction.json`, cafe with cooking, NC2-55 (M), with Seattle's review data | 7,695 | 210 (101 words, ended on its own: `end_turn`) | $0.0175 |
 
-The first answer measured, before thinking was switched off, was 7,652 in and 500 out ($0.0203). All 500 went to
-thinking, so it had no text and the site used the template. That is fixed. A reply with no text is now logged
-(model, stop reason and block types; never the question or the answer) and still falls back to the template.
+Earlier answers that day, now fixed, are kept here for the record:
+
+- Before thinking was switched off: 7,652 in, 500 out ($0.0203). All 500 tokens went to thinking, so the reply had no
+  text and the site used the template. A reply with no text is now logged (model, stop reason and block types; never
+  the question or the answer) and still falls back to the template.
+- With thinking off but `max_tokens` 500 and no length limit in the prompt: 7,592 in, 500 out ($0.0202). The text
+  was grounded but stopped mid-sentence.
 
 **Price:** Claude Sonnet 5.5 is $2 per million input tokens and $10 per million output tokens (Anthropic's pricing
-page, read 24 November 2026: <https://platform.claude.com/docs/en/about-claude/pricing>). So a plan reading is
-4,971 x $2/M + 1,685 x $10/M = $0.0099 + $0.0169 = **$0.0268**, and an answer is 7,592 x $2/M + 500 x $10/M =
-$0.0152 + $0.0050 = **$0.0202**.
+page, read 24 November 2026: <https://platform.claude.com/docs/en/about-claude/pricing>). So:
 
-**The cap:**
+    plan reading call          4,971 x $2/M + 1,685 x $10/M = $0.0099 + $0.0169 = $0.026792
+    answer as measured         7,695 x $2/M +   210 x $10/M = $0.0154 + $0.0021 = $0.017490
+    answer at max_tokens       7,695 x $2/M + 1,000 x $10/M = $0.0154 + $0.0100 = $0.025390
 
-    worst-case cost per call = the dearer of the two = $0.026792 (a plan reading; an answer is $0.020184)
-    cap = floor($9 / (worst-case cost per call x 31 days)) = floor(9 / 0.830552) = floor(10.84) = 10 calls a day
-    a month at the cap: 10 x $0.026792 x 31 = $8.31
+The plan reading is still the dearest call, even against an answer that uses all 1,000 tokens. So one combined cap
+would have stayed at floor($9 / ($0.026792 x 31)) = **10**. The cap is now split in two instead.
 
-**What 10 calls a day allows:** at least **5 plan checks a day** (a check is up to two calls), or up to 10 when
-every plan is read on the first try and nobody asks the assistant. Assistant answers come out of the same 10. When the
-day's calls are used, the example plans, typed measurements and template answers still work.
+**The two caps.** Questions can never use up the calls that read uploads, because each kind has its own counter:
 
-`tests/test_budget.py` records these numbers and fails if the default cap x the worst-case cost x 31 reaches $9.
-Measure again and update the test and this section when the model, its price, a prompt or a `max_tokens` changes.
+    plan_reads x $0.026792 x 31  +  asks x $0.025390 x 31  <=  $9
+    6 x $0.026792 x 31 = $4.98     5 x $0.025390 x 31 = $3.94     total $8.92
+
+| Variable | Default | When it is used up |
+|---|---|---|
+| `PERMIT_DAILY_PLAN_READS` | 6 | Reading an upload says "Reading uploaded plans is paused for today" and offers the example plans and typing the measurements |
+| `PERMIT_DAILY_ASK_CALLS` | 5 | The assistant answers from its templates, still only from the result |
+
+One more of either goes over $9 (7 and 5: $9.75; 6 and 6: $9.71), so this is the largest split that fits. Another
+split also fits, for example 7 and 4 ($8.96) or 5 and 6 ($8.88). This one favours uploads: **6 plan-reading calls are
+at least 3 uploaded plans a day** (a plan is up to two calls), and up to 6 when each is read on the first try.
+**5 answers** a day come from the model, and every question after that gets a template answer. The example plans
+and typed measurements don't count against either cap.
+
+`tests/test_budget.py` records these numbers. It prices an answer at the agent's own `MAX_TOKENS`, and it fails if a
+month at the default caps reaches $9, if one more of either cap would still fit, or if an answer gets dearer than a
+plan reading. Measure again and update the test and this section when the model, its price, a prompt or a
+`max_tokens` changes.
 
 Limits of this estimate:
 
 - It is one measured call of each. A bigger or busier plan, a longer conversation, or a reading that uses more of
-  its 4,000 output tokens costs more. If every call were a plan reading that used all 4,000 (4,971 x $2/M +
-  4,000 x $10/M = $0.0499), 10 calls a day for 31 days would be $15.48. The Console spend limit (step 1) is what
-  stops that; the daily cap only keeps an ordinary month well under it.
-- The measured answer is grounded text, but it used all 500 output tokens and stopped mid-sentence (in its list of
-  permits). Asking for shorter replies in the prompt would keep the cost where it is. A larger `max_tokens` would
-  make an answer dearer than a plan reading (at 1,000: 7,592 x $2/M + 1,000 x $10/M = $0.0252 a call, still under
-  the plan reading; at 2,000: $0.0352, a cap of 8), so measure again and change the cap with it.
+  its 4,000 output tokens costs more. If every plan-reading call used all 4,000 (4,971 x $2/M + 4,000 x $10/M =
+  $0.0499), a month at both caps would be 6 x $0.0499 x 31 + $3.94 = $13.23. The Console spend limit (step 1) is what
+  stops that; the daily caps only keep an ordinary month under it.
 
-**Where the assistant's input comes from (a later cost lever).** Every question sends about **7,600 input tokens**,
-three-quarters of an answer's cost. Counted with the token-counting endpoint for the check measured above (19
-findings), it is the system prompt plus the check as JSON (`agent.build_context`):
+**Where the assistant's input comes from (a later cost lever).** Every question sends about **7,700 input tokens**:
+88% of the measured answer's cost, and 61% of an answer that uses all 1,000 output tokens. Counted with the
+token-counting endpoint for the check measured above (19 findings), it is the system prompt plus the check as JSON
+(`agent.build_context`):
 
 | Part | Tokens | What it is |
 |---|---|---|
-| System prompt (`agent.SYSTEM`) | 516 | The instructions: answer only from the audit, cite rule ids, no new numbers |
+| System prompt (`agent.SYSTEM`) | 619 | The instructions: answer only from the audit, cite rule ids, no new numbers, at most 120 words |
 | Findings | 4,360 | Each of the 19 findings: title, status, severity, detail, fix, citation, check level, reviewer. The rulebook (`checker/rules/seattle.json`) is not sent itself: its wording, numbers and citations reach the model through these findings |
 | Permits likely required | 942 | The permit list with agencies |
 | Seattle's review records | 750 | Review data for similar build-outs |
@@ -205,10 +224,14 @@ findings), it is the system prompt plus the check as JSON (`agent.build_context`
 | Summary, code basis, toilets, rule levels, disclaimer | 462 | |
 | Question and tags | about 20 | |
 
-Earlier turns add up to about 6 x 1,000 characters more. Ways to make it cheaper, none done yet: send only the
-findings that are not a pass, drop the `indent` from the JSON, or cache the system prompt and the check (the check
-is the same for every question about it; on Sonnet 5.5 a cache read is $0.10 per million tokens, a 5-minute write
-$2.50). Each changes what the model sees, so measure answers again before and after.
+Earlier turns add up to about 6 x 1,000 characters more. None of these has been done yet:
+
+- send only the findings that are not a pass
+- drop the `indent` from the JSON
+- cache the system prompt and the check. The check is the same for every question about it. On Sonnet 5.5 a cache
+  read is $0.10 per million tokens and a 5-minute write is $2.50.
+
+Each one changes what the model sees, so measure answers again before and after.
 
 ## 6. DNS and the custom domain
 

@@ -7,7 +7,8 @@ primary_region = "sea"
 
 [env]
   PERMIT_PROXY_HOPS = "1"
-  PERMIT_DAILY_MODEL_CALLS = "10"   # docs/launch.md, Budget: $10 a month
+  PERMIT_DAILY_PLAN_READS = "6"    # docs/launch.md, Budget: with the asks, $8.92 a month at most
+  PERMIT_DAILY_ASK_CALLS = "5"
 
 [http_service]
   internal_port = 8000

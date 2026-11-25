@@ -226,12 +226,6 @@ export interface components {
              * @description The owner's plan. It is read and deleted, never stored.
              */
             file?: string | null;
-            /**
-             * Use Vision
-             * @description For a demo plan: read it with the model instead of using the saved reading.
-             * @default false
-             */
-            use_vision: boolean;
         };
         /** BusinessType */
         BusinessType: {

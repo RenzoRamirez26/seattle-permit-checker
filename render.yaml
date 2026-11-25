@@ -17,8 +17,10 @@ services:
         sync: false
       - key: PERMIT_CORS_ORIGIN
         sync: false           # https://your-domain, the static site's address
-      - key: PERMIT_DAILY_MODEL_CALLS
-        value: "10"             # docs/launch.md, Budget: $10 a month
+      - key: PERMIT_DAILY_PLAN_READS
+        value: "6"              # docs/launch.md, Budget: with the asks below, $8.92 a month at most
+      - key: PERMIT_DAILY_ASK_CALLS
+        value: "5"
       - key: PERMIT_PROXY_HOPS
         value: "1"            # Render's proxy adds one X-Forwarded-For entry
       - key: PERMIT_TURNSTILE_SECRET

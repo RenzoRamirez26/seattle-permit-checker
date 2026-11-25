@@ -28,7 +28,7 @@ def api(tmp_path, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("PERMIT_STT", "off")
     for name in ("PERMIT_CORS_ORIGIN", "PERMIT_CHECK_DAYS", "PERMIT_MAX_UPLOAD_MB", "PERMIT_ENV", "PERMIT_API_DOCS",
-                 "PERMIT_DAILY_MODEL_CALLS", "PERMIT_TURNSTILE_SECRET", "PERMIT_PROXY_HOPS"):
+                 "PERMIT_DAILY_PLAN_READS", "PERMIT_DAILY_ASK_CALLS", "PERMIT_TURNSTILE_SECRET", "PERMIT_PROXY_HOPS"):
         monkeypatch.delenv(name, raising=False)
     limits.limiter.reset()
     app = api_main.create_app()
@@ -490,14 +490,14 @@ def test_the_api_key_never_leaves_the_server(api, monkeypatch):
     responses = [
         api.get("/api/meta"), api.get("/openapi.json"), api.get("/docs"),
         api.post("/api/plans/read", files={"file": ("plan.png", _png(), "image/png")}),
-        api.post("/api/plans/read", data={"case_id": "cafe_flawed", "use_vision": "true"}),
+        api.post("/api/plans/read", data={"case_id": "cafe_flawed"}),
         api.post("/api/zoning", json={"zone": "NR3", "business_type": "salon"}),
         api.get(f"/api/checks/{check['id']}"), api.get(f"/api/checks/{check['id']}/report.pdf"),
         api.post(f"/api/checks/{check['id']}/ask", json={"question": "Is the door ok?"}),
         api.post(f"/api/checks/{check['id']}/ask", json={"question": "x" * 600}), api.get("/api/checks/none"),
     ]
     assert api.get("/api/meta").json()["features"]["model_api_key"] is True              # says yes or no, never the key
-    assert responses[4].json()["source"] == "vision_model"
+    assert responses[3].json()["source"] == "vision_model" and responses[4].json()["source"] == "saved_reading"
     for r in responses:
         assert KEY.encode() not in r.content and b"sk-ant" not in r.content, r.request.url
         assert KEY not in json.dumps(dict(r.headers))

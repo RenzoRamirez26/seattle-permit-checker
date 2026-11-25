@@ -3,13 +3,15 @@ Cloudflare Turnstile check.
 
 In:  the request (for the client's address and an optional Turnstile token) and the route's bucket name.
 Out: nothing when the request may go ahead; otherwise an ApiError the front end shows in CONTENT.md words:
-     429 rate_limited (with Retry-After), 503 reading_paused (the day's model calls are used up), 403 verification_needed.
+     429 rate_limited (with Retry-After), 503 reading_paused (the day's plan reads are used up), 403 verification_needed.
 
 - Rate limits are counted in memory, per client address, in a sliding window. The addresses are kept only for the
   length of the window and never written to disk or the log. With several server processes each counts on its own.
-- The daily cap counts real model calls (each plan-reading attempt and each assistant answer), per UTC day, in the
-  checks database, so a restart does not reset it. When it is reached plan reading stops with reading_paused, and the
-  assistant answers from its templates (still only from the result).
+- The daily caps count real model calls per UTC day, in the checks database, so a restart does not reset them. There
+  are two, so questions can never use up the calls that read uploads: PLAN_READ (each plan-reading attempt,
+  PERMIT_DAILY_PLAN_READS) and ASK (each assistant answer, PERMIT_DAILY_ASK_CALLS). When the plan reads are used,
+  reading an upload stops with reading_paused and the example plans still work (they use saved readings and never call
+  the model). When the asks are used, the assistant answers from its templates (still only from the result).
 - Turnstile is checked only when PERMIT_TURNSTILE_SECRET is set.
 
 STATUS: tested with the network mocked. Turnstile's siteverify has NOT been called from this code against Cloudflare.
@@ -113,7 +115,9 @@ def rate_limit(bucket: str):
     return check
 
 
-# ---------------------------------------------------------------- the daily cap on model calls
+# ---------------------------------------------------------------- the daily caps on model calls
+PLAN_READ, ASK = "plan_read", "ask"
+_ALLOWANCE = {PLAN_READ: config.daily_plan_reads, ASK: config.daily_ask_calls}
 _budget_lock = threading.Lock()
 
 
@@ -125,37 +129,38 @@ def _usage_db() -> sqlite3.Connection:
     path = config.checks_db()
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
-    con.execute("CREATE TABLE IF NOT EXISTS model_usage (day TEXT PRIMARY KEY, calls INTEGER NOT NULL)")
+    con.execute("CREATE TABLE IF NOT EXISTS model_calls (day TEXT NOT NULL, kind TEXT NOT NULL, calls INTEGER NOT NULL, "
+                "PRIMARY KEY (day, kind))")
     return con
 
 
-def calls_today() -> int:
+def calls_today(kind: str) -> int:
     con = _usage_db()
     try:
-        row = con.execute("SELECT calls FROM model_usage WHERE day = ?", (_today(),)).fetchone()
+        row = con.execute("SELECT calls FROM model_calls WHERE day = ? AND kind = ?", (_today(), kind)).fetchone()
         return int(row[0]) if row else 0
     finally:
         con.close()
 
 
-def model_paused() -> bool:
-    """True when today's model calls are used up (PERMIT_DAILY_MODEL_CALLS)."""
-    return calls_today() >= config.daily_model_calls()
+def model_paused(kind: str) -> bool:
+    """True when today's calls of this kind (PLAN_READ or ASK) are used up."""
+    return calls_today(kind) >= _ALLOWANCE[kind]()
 
 
-def take_model_call() -> bool:
-    """Count one model call. False (and nothing counted) when the day's cap is already reached."""
+def take_model_call(kind: str) -> bool:
+    """Count one model call of this kind. False (and nothing counted) when its daily cap is already reached."""
     with _budget_lock:
         con = _usage_db()
         try:
             day = _today()
-            row = con.execute("SELECT calls FROM model_usage WHERE day = ?", (day,)).fetchone()
+            row = con.execute("SELECT calls FROM model_calls WHERE day = ? AND kind = ?", (day, kind)).fetchone()
             used = int(row[0]) if row else 0
-            if used >= config.daily_model_calls():
+            if used >= _ALLOWANCE[kind]():
                 return False
-            con.execute("INSERT INTO model_usage (day, calls) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET calls = calls + 1",
-                        (day,))
-            con.execute("DELETE FROM model_usage WHERE day < date(?, '-31 days')", (day,))
+            con.execute("INSERT INTO model_calls (day, kind, calls) VALUES (?, ?, 1) "
+                        "ON CONFLICT(day, kind) DO UPDATE SET calls = calls + 1", (day, kind))
+            con.execute("DELETE FROM model_calls WHERE day < date(?, '-31 days')", (day,))
             con.commit()
             return True
         finally:
@@ -163,29 +168,32 @@ def take_model_call() -> bool:
 
 
 class BudgetExhausted(RuntimeError):
-    """The day's model calls are used up."""
+    """The day's model calls of one kind are used up."""
 
 
 class _CountedMessages:
-    def __init__(self, messages: Any) -> None:
-        self._messages = messages
+    def __init__(self, messages: Any, kind: str) -> None:
+        self._messages, self._kind = messages, kind
 
     def create(self, *args: Any, **kwargs: Any) -> Any:
-        if not take_model_call():
-            raise BudgetExhausted("the daily model-call cap is reached")
+        if not take_model_call(self._kind):
+            raise BudgetExhausted(f"the daily {self._kind} cap is reached")
         return self._messages.create(*args, **kwargs)
 
 
 class CountedClient:
-    """Wraps a model client so every messages.create() counts against the daily cap and stops when it is reached.
-    checker/agent.py treats the BudgetExhausted error like any model failure and answers from its template."""
+    """Wraps a model client so every messages.create() counts against one daily cap (PLAN_READ or ASK) and stops when
+    it is reached. checker/agent.py treats the BudgetExhausted error like any model failure and answers from its
+    template."""
 
-    def __init__(self, client: Any) -> None:
+    def __init__(self, client: Any, kind: str) -> None:
+        if kind not in _ALLOWANCE:
+            raise ValueError(f"unknown model-call kind {kind!r}")
         self._client = client
-        self.messages = _CountedMessages(client.messages)
+        self.messages = _CountedMessages(client.messages, kind)
 
 
-def counted(client: Any) -> Any:
+def counted(client: Any, kind: str) -> Any:
     """The client to hand to checker/: the test stand-in or the real Anthropic client, counted. None when the server
     has no key and no stand-in was given (checker/ then uses its template or refuses)."""
     if client is None:
@@ -194,7 +202,7 @@ def counted(client: Any) -> Any:
         import anthropic
 
         client = anthropic.Anthropic()
-    return CountedClient(client)
+    return CountedClient(client, kind)
 
 
 # ---------------------------------------------------------------- Cloudflare Turnstile (optional)

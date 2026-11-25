@@ -11,7 +11,8 @@ In:  HTTP requests from the front end.  Out: JSON (or a PDF) built by calling ch
 - An uploaded plan is read and deleted; it is never stored. A check (the facts, the answers, the
   address or zone if given, and the result) is stored until it expires or is deleted.
 - There is no login. A check is reached only by its unguessable id. Every route that costs money or CPU has a
-  per-address rate limit, model calls have a daily cap, and Turnstile can be switched on (api/limits.py).
+  per-address rate limit, model calls have two daily caps (plan reads, questions), and Turnstile can be switched
+  on (api/limits.py).
 - Production (PERMIT_ENV=production, set by the Dockerfile): no /docs or /openapi.json unless PERMIT_API_DOCS=1,
   only PERMIT_CORS_ORIGIN may call, HSTS is sent. Security headers and body-size caps are in api/security.py.
 
@@ -114,7 +115,7 @@ def get_meta() -> dict:
                        for c in demo_cases().values()],
         "features": {"model_api_key": config.has_api_key(), "seattle_database": seattle_database()[0] is not None,
                      "speech_to_text": speech_to_text(), "kokoro_voice": voice.tts_backend() == "kokoro",
-                     "reading_paused": config.has_api_key() and limits.model_paused(),
+                     "reading_paused": config.has_api_key() and limits.model_paused(limits.PLAN_READ),
                      "turnstile": bool(config.turnstile_secret())},
         "limits": {"upload_types": sorted(config.UPLOAD_TYPES), "max_upload_mb": config.max_upload_bytes() / 1024 / 1024,
                    "max_question_chars": config.MAX_QUESTION_CHARS, "max_history_turns": config.MAX_HISTORY_TURNS,
@@ -144,7 +145,6 @@ def read_plan(request: Request,
               case_id: Optional[str] = Form(None, max_length=60, description="A demo case id from /api/meta. Give this or a file."),
               file: Optional[UploadFile] = File(None, description="The owner's plan. It is read and deleted, never stored."),
               business_type_key: Optional[str] = Form(None, alias="business_type", max_length=60, description="Helps the model read an uploaded plan."),
-              use_vision: bool = Form(False, description="For a demo plan: read it with the model instead of using the saved reading."),
               client: Any = Depends(model_client), _limit: None = Depends(limits.rate_limit("plan_read"))) -> dict:
     if bool(case_id) == (file is not None):
         raise ApiError(400, "plan_needed", "Give a demo case id or upload one plan file, not both and not neither.")
@@ -154,10 +154,10 @@ def read_plan(request: Request,
     def with_model(path: Path) -> dict:
         from checker.extract import extract_floor_plan
 
-        if limits.model_paused():
+        if limits.model_paused(limits.PLAN_READ):
             raise ApiError(503, "reading_paused", limits.READING_PAUSED)
         try:
-            return extract_floor_plan(path, context, client=limits.counted(client))
+            return extract_floor_plan(path, context, client=limits.counted(client, limits.PLAN_READ))
         except limits.BudgetExhausted:
             raise ApiError(503, "reading_paused", limits.READING_PAUSED) from None
         except Exception as e:      # network, key, quota, or a reply with no reading. Only the kind is logged, never the plan.
@@ -169,11 +169,9 @@ def read_plan(request: Request,
         case = demo_cases().get(case_id)
         if case is None:
             raise ApiError(404, "demo_case_not_found", f"There is no demo case {case_id!r}. Use one of: {', '.join(demo_cases())}.")
-        if use_vision and can_use_model:
-            limits.verify_turnstile(request)
-            facts, source = with_model(config.DEMO_DIR / case["plan"]), "vision_model"
-        else:
-            facts, source = json.loads((config.DEMO_DIR / case["extraction"]).read_text(encoding="utf-8")), "saved_reading"
+        # An example plan always uses its saved reading: it never calls the model or uses the day's plan reads, and
+        # the Privacy page says nothing about it is sent to Anthropic.
+        facts, source = json.loads((config.DEMO_DIR / case["extraction"]).read_text(encoding="utf-8")), "saved_reading"
     else:
         data = file.file.read(config.max_upload_bytes() + 1)      # never reads more than one byte past the limit
         suffix = uploads.check(file.filename or "", data)          # the type comes from the first bytes, not the name
@@ -250,7 +248,7 @@ def ask(request: Request, q: schemas.Question, check_id: str = CHECK_ID, client:
         _limit: None = Depends(limits.rate_limit("ask"))) -> dict:
     result = stored(check_id)["result"]
     history = [{"role": t.role, "content": t.content[:config.MAX_HISTORY_TURN_CHARS]} for t in q.history[-config.MAX_HISTORY_TURNS:]]
-    model = limits.counted(client)          # past the day's cap the agent answers from its template, still from the result
+    model = limits.counted(client, limits.ASK)      # past the day's asks the agent answers from its template, still from the result
     if model is not None:
         limits.verify_turnstile(request)
     return agent.answer(q.question, result, client=model, history=history)      # includes the grounding check

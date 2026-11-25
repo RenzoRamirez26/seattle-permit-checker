@@ -98,17 +98,28 @@ def max_image_pixels() -> int:
 MAX_JSON_BYTES = 512 * 1024     # the largest JSON body (a check's facts and answers are a few KB)
 
 
-# Sized for a $10-a-month Anthropic spend limit: 10 calls x $0.0268 (the dearest call measured) x 31 days = $8.31,
-# under $9. The measurement and the formula: docs/launch.md, Budget; tests/test_budget.py keeps them in step.
-DEFAULT_DAILY_MODEL_CALLS = 10
+# Two daily allowances, so questions can never use up the calls that read uploads. Sized for a $10-a-month Anthropic
+# spend limit: (6 x $0.0268 a plan-reading call + 5 x $0.0254 an answer at max_tokens) x 31 days = $8.92, under $9.
+# The measurements and the formula: docs/launch.md, Budget; tests/test_budget.py keeps them in step.
+DEFAULT_DAILY_PLAN_READS = 6
+DEFAULT_DAILY_ASK_CALLS = 5
 
 
-def daily_model_calls() -> int:
-    """How many model calls (plan readings and assistant answers) the whole site may make per UTC day. 0 means none."""
+def _allowance(name: str, default: int) -> int:
     try:
-        return max(0, int(os.environ.get("PERMIT_DAILY_MODEL_CALLS", str(DEFAULT_DAILY_MODEL_CALLS))))
+        return max(0, int(os.environ.get(name, str(default))))
     except ValueError:
-        return DEFAULT_DAILY_MODEL_CALLS
+        return default
+
+
+def daily_plan_reads() -> int:
+    """Model calls that read uploaded plans, per UTC day, for the whole site (a plan is up to two). 0 means none."""
+    return _allowance("PERMIT_DAILY_PLAN_READS", DEFAULT_DAILY_PLAN_READS)
+
+
+def daily_ask_calls() -> int:
+    """Model calls that answer the assistant's questions, per UTC day, for the whole site. 0 means none."""
+    return _allowance("PERMIT_DAILY_ASK_CALLS", DEFAULT_DAILY_ASK_CALLS)
 
 
 def proxy_hops() -> int:

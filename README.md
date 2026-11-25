@@ -329,3 +329,12 @@ Use Chrome for spoken questions. In Safari, typed questions and spoken answers w
 | Alba Benedito | [albabc2020-hub](https://github.com/albabc2020-hub) | to be assigned |
 
 <p align="right"><a href="#seattle-permit-pre-check">back to top ↑</a></p>
+
+## Team
+
+We all contributed equally.
+
+- **Lorenzo Ramirez**: bridge between the team, design guidelines, and part of the model.
+- **Orlando**: most of the website, some design, and future features.
+- **Alba**: the microphone and voice input, website layout, and the language guidelines for Claude.
+- **Charlie**: the model and some of the website's backend.
