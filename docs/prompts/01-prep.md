@@ -13,7 +13,7 @@ Work in order. If something is unexpected, stop and report it; do not guess. Nev
 
 ## Part B: a new branch `website-prep`, made from `main`
 
-5. Confirm `docs/` contains `design_brief.md`, `design_research.md`, `deployment_kit.md` and `website_handoff.pdf`. If one is missing, stop and tell me which.
+5. Confirm `docs/` contains `design_brief.md`, `design_research.md` and `deployment_kit.md`, and that you have the website brief, a short handoff from 21 November 2026 (no longer in the repository) that set the rules and build stages for an API and a Next.js front end beside the Streamlit app. If one is missing, stop and tell me which.
 6. Update `CLAUDE.md`. Keep the existing "Set up" and "Main folders" sections. Add a "Rules" section:
    - No building-code numbers and no pass/fail logic in the front end. It only displays what the backend returns.
    - Every model call goes through the backend. The API key never reaches the browser.

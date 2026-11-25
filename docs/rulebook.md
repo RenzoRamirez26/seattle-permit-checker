@@ -1,6 +1,6 @@
 # The rulebook: what was checked and what was not
 
-`checker/rules/seattle.json` holds every number the checker uses. This page says where each came from, so the team knows what can be shown to a judge as checked.
+`checker/rules/seattle.json` holds every number the checker uses. This page says where each came from, so anyone can see which values have been checked.
 
 ## Edition date
 

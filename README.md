@@ -279,7 +279,7 @@ app/                      the Streamlit website
 evaluation/               evaluate_extraction.py: how accurately the model reads a plan; evaluate_voice.py: spoken questions
 demo/                     three fictional plans, their ground truth, cases.json, make_plans.py
 data/raw/                 downloads go here (not committed)
-reports/                  evaluation output for the slides
+reports/                  evaluation results: plan reading, voice, Lighthouse
 docs/                     rulebook status, data sources, demo script, voice options,
                           permit_draft.md: the city source for each field on the preparation sheet
 tests/                    one file per part, plus a headless test of the website
@@ -346,9 +346,9 @@ The points below come from an earlier query of the city's portal on 20 November 
 - [ ] **Phase 5: Agent and voice with real models.** Try the agent with a key; ~~try the two speech models~~ (done, see [reports/voice_eval.md](reports/voice_eval.md)); ~~try the microphone with a real voice~~ (works in Chrome; Safari recording does not work yet)
 - [ ] **Phase 6: More plans.** A retail and a gym demo plan, and one real (permission given) plan
 - [x] **Phase 7: Permit application preparation sheet.** A short sheet gathering what the city's application asks for, filled from the result where it can be; a preparation aid, not the city's form ([docs/permit_draft.md](docs/permit_draft.md))
-- [ ] **Phase 8: Demo and write-up.** Results table, limits, slides ([docs/demo_script.md](docs/demo_script.md))
+- [ ] **Phase 8: Demo and write-up.** Results table, limits, common questions ([docs/questions.md](docs/questions.md))
 
-Phase 4 is the evidence judges will ask for. If time runs short, cut from the bottom.
+Phase 4 comes next: how well the model reads real drawings is the main open question.
 
 <p align="right"><a href="#top">back to top ↑</a></p>
 

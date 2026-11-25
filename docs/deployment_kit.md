@@ -95,7 +95,7 @@ Deploy the backend first and check it with plain requests, then put the front en
 3. **Package the backend.** Make a container with Python 3.13, `requirements.txt`, the `api-backend` packages, `checker/`, `pipeline/`, `api/` and the database. Add `requirements-voice.txt` only if the server transcribes speech.
 4. **Set the variables** from the table above in the host's secret settings. `ANTHROPIC_API_KEY` and `PERMIT_CORS_ORIGIN` are the two that must be set.
 5. **Check the backend by hand.** `GET /api/meta` returns the rulebook date. `POST /api/checks` with `demo/flawed_plan.png` returns the same findings as the Streamlit app. The zoning route returns a zone for 1420 5th Ave.
-6. **Build the front end** to `docs/design_brief.md` and the teammate handoff PDF. Point it at the backend's address. It holds no rule numbers and calls no model.
+6. **Build the front end** to `docs/design_brief.md` and the website brief, a short handoff from 21 November 2026 (no longer in the repository) that set the rules and build stages for an API and a Next.js front end beside the Streamlit app. Point it at the backend's address. It holds no rule numbers and calls no model.
 7. **Host the front end** as a static site on its own address, and put that address in `PERMIT_CORS_ORIGIN`.
 8. **Schedule the data refresh.** Re-run the pipeline weekly and restart the backend on the new database.
 9. **Add what a public site needs** before real users: sign-in, a limit on checks per user (each check costs API calls), storage for saved checks with the 30-day deletion, a privacy note, and the footer saying it isn't a city service.

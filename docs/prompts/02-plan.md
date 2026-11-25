@@ -8,7 +8,7 @@ This session writes two documents on a new branch `website-plan`. Write no appli
 
 ## Read first
 
-`CLAUDE.md`, `docs/design_brief.md`, `docs/design_research.md`, `docs/deployment_kit.md`, `docs/website_handoff.pdf`, every route in `api/`, and the shape of the audit result returned by `checker/audit.py`.
+`CLAUDE.md`, `docs/design_brief.md`, `docs/design_research.md`, `docs/deployment_kit.md`, the website brief, a short handoff from 21 November 2026 (no longer in the repository) that set the rules and build stages for an API and a Next.js front end beside the Streamlit app, every route in `api/`, and the shape of the audit result returned by `checker/audit.py`.
 
 Also read the Vercel Web Interface Guidelines, which are in the GitHub repository `vercel-labs/web-interface-guidelines`. The plan must say whether you read them, and if not, why not.
 
